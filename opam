@@ -1,0 +1,30 @@
+opam-version: "2.0"
+name: "bytesrw"
+synopsis: "Composable byte stream readers and writers for OCaml"
+description: """\
+Bytesrw extends the OCaml `Bytes` module with composable, memory
+efficient, byte stream readers and writers compatible with effect
+based concurrency.
+
+Except for byte slice life-times, these abstractions intentionnaly
+separate away ressource management and the specifics of reading and
+writing bytes.
+
+Bytesrw distributed under the ISC license. It has no dependencies.
+
+Homepage: <https://erratique.ch/software/bytesrw/>"""
+maintainer: "Daniel Bünzli <daniel.buenzl i@erratique.ch>"
+authors: "The bytesrw programmers"
+license: "ISC"
+tags: ["bytes" "streaming" "org:erratique"]
+homepage: "https://erratique.ch/software/bytesrw"
+doc: "https://erratique.ch/software/bytesrw/doc"
+bug-reports: "https://github.com/dbuenzli/bytesrw/issues"
+depends: [
+  "ocaml" {>= "4.14.0"}
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
+  "topkg" {build & >= "1.0.3"}
+]
+build: ["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"]
+dev-repo: "git+https://erratique.ch/repos/bytesrw.git"

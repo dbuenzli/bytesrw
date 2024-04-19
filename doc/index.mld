@@ -1,0 +1,29 @@
+{0 Bytesrw {%html: <span class="version">%%VERSION%%</span>%}}
+
+Bytesrw extends the OCaml {!Bytes} module with composable, memory
+efficient, byte stream {{!Bytesrw.Bytes.Reader}readers} and
+{{!Bytesrw.Bytes.Writer}writers} compatible with effect based
+concurrency.
+
+Except for byte slice {{!Bytesrw.Bytes.Slice.validity}life-times},
+these abstractions intentionnaly separate away ressource management
+and the specifics of reading and writing bytes.
+
+{1:bytesrw Library [bytesrw]}
+
+{!modules:
+Bytesrw}
+
+{1:todo TODO}
+
+{ul
+{- We likely want the reader and writer abstractions to be
+   abstract in the end. This would allow to add more immutable
+   metadata we might be interested in for better compositionality,
+   like global byte offsets where read starts.}
+{- Once reader is abstract perhaps abstract away slice overlapping
+   reads which are painful to handle, though that would involve
+   copying.}
+{- Once writer is abstract we can make it mandate the slice size
+   it wants to receive. This avoids the need for a reslice combinator
+   and allows writer users to adapt their own buffers when they write.}}

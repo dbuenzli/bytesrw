@@ -1,0 +1,8 @@
+description = "Composable streaming bytes readers and writers for OCaml"
+version = "%%VERSION_NUM%%"
+requires = ""
+archive(byte) = "bytesrw.cma"
+archive(native) = "bytesrw.cmxa"
+plugin(byte) = "bytesrw.cma"
+plugin(native) = "bytesrw.cmxs"
+exists_if = "bytesrw.cma bytesrw.cmxa"

@@ -73,8 +73,8 @@ module Bytes : sig
 
     (** {1:readers Bytes readers} *)
 
-    type t = unit -> Slice.t
-    (** The type for bytes readers.  TODO abstract. *)
+    type t
+    (** The type for bytes readers. *)
 
     val make : (unit -> Slice.t) -> t
     (** [make rf] is a bytes reader from the function [rf].
@@ -121,8 +121,8 @@ module Bytes : sig
   (** Bytes writers. *)
   module Writer : sig
 
-    type t = Slice.t -> unit
-    (** The type for bytes writers. TODO abstract *)
+    type t
+    (** The type for bytes writers *)
 
     val make : (Slice.t -> unit) -> t
     (** [make wf] is a bytes writer from the function [wf].
@@ -137,6 +137,9 @@ module Bytes : sig
            only ever be called with {!Slice.eod}}} *)
 
     (** {1:writing Writing} *)
+
+    val write : t -> Slice.t -> unit
+    (** [write w s] writes the slice [s] on [w]. *)
 
     val write_string : ?slice_length:int -> t -> string -> unit
     (** [write_string w s] writes the bytes [s] on [w]. [slice_length]

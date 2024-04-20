@@ -70,7 +70,7 @@ let rec setup_overlap d start need = match need with
     in
     d.i <- d.overlap; d.i_next <- 0; d.i_max <- start; slice
 | need ->
-    if is_eoslice d then set_slice d (d.reader ());
+    if is_eoslice d then set_slice d (Bytes.Reader.read d.reader);
     if is_eod d
     then (d.byte_count <- d.byte_count - start; err_malformed_utf_8 d);
     let available = available d in
@@ -83,7 +83,8 @@ let rec setup_overlap d start need = match need with
 
 let rec nextc d = match available d with
 | a when a <= 0 ->
-    if is_eod d then d.u <- eot else (set_slice d (d.reader ()); nextc d)
+    if is_eod d then d.u <- eot else
+    (set_slice d (Bytes.Reader.read d.reader); nextc d)
 | a when a < uchar_max_utf_8_byte_length && a < next_utf_8_length d ->
     let s = setup_overlap d 0 (next_utf_8_length d) in nextc d; set_slice d s
 | _ ->
@@ -117,10 +118,10 @@ let make_encoder ?buf:(o = Bytes.create 65535) writer =
   { writer; o; o_max = len - 1; o_next = 0 }
 
 let flush e =
-  e.writer (Bytes.Slice.make e.o ~first:0 ~length:e.o_next);
+  Bytes.Writer.write e.writer (Bytes.Slice.make e.o ~first:0 ~length:e.o_next);
   e.o_next <- 0
 
-let encode_eot e = flush e; e.writer Bytes.Slice.eod
+let encode_eot e = flush e; Bytes.Writer.write_eod e.writer
 let encode_char e c =
   if e.o_next > e.o_max then flush e;
   Bytes.set e.o e.o_next c; e.o_next <- e.o_next + 1

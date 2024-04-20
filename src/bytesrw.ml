@@ -86,6 +86,7 @@ module Bytes = struct
 
     let make = Fun.id
 
+    let write w s = w s
     let write_bytes ?slice_length w b =
       let rec loop w b len first length =
         if first >= len then () else

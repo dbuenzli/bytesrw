@@ -33,13 +33,4 @@ Bytesrw_zstd
 {ul
 {- Should {!Bytesrw.Bytes.Slice.make} return the [eod]
    when invoked with [0] ? It could make for better loops.}
-{- We likely want the reader and writer abstractions to be
-   abstract in the end. This would allow to add more immutable
-   metadata we might be interested in for better compositionality,
-   like global byte offsets where read starts.}
-{- Once reader is abstract perhaps abstract away slice overlapping
-   reads which are painful to handle, though that would involve
-   copying.}
-{- Once writer is abstract we can make it mandate the slice size
-   it wants to receive. This avoids the need for a reslice combinator
-   and allows writer users to adapt their own buffers when they write.}}
+{- Use size maybe ? But size is never used by the stdlib.}}

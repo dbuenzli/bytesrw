@@ -1,4 +1,4 @@
-description = "Composable streaming bytes readers and writers for OCaml"
+description = "Composable byte stream readers and writers for OCaml"
 version = "%%VERSION_NUM%%"
 requires = ""
 archive(byte) = "bytesrw.cma"
@@ -6,3 +6,27 @@ archive(native) = "bytesrw.cmxa"
 plugin(byte) = "bytesrw.cma"
 plugin(native) = "bytesrw.cmxs"
 exists_if = "bytesrw.cma bytesrw.cmxa"
+
+package "zlib" (
+  directory = "zlib"
+  description = "Read and write deflate, zlib and gzip compressed bytes"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw"
+  archive(byte) = "bytesrw_zlib.cma"
+  archive(native) = "bytesrw_zlib.cmxa"
+  plugin(byte) = "bytesrw_zlib.cma"
+  plugin(native) = "bytesrw_zlib.cmxs"
+  exists_if = "bytesrw_zlib.cma bytesrw_zlib.cmxa"
+)
+
+package "zstd" (
+  directory = "zstd"
+  description = "Read and write zstd compressed bytes"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw"
+  archive(byte) = "bytesrw_zstd.cma"
+  archive(native) = "bytesrw_zstd.cmxa"
+  plugin(byte) = "bytesrw_zstd.cma"
+  plugin(native) = "bytesrw_zstd.cmxs"
+  exists_if = "bytesrw_zstd.cma bytesrw_zstd.cmxa"
+)

@@ -1,0 +1,15 @@
+true : bin_annot, safe_string
+<_b0> : -traverse
+<src> : include
+
+<src/zlib> : include
+<src/zlib/bytesrw_zlib_stubs.c> : use_zlib
+<src/zlib/bytesrw_zlib.{cma,cmxa}> : record_bytesrw_zlib_stubs
+<src/zlib/bytesrw_zlib.{cmxs}> : link_bytesrw_zlib_stubs
+<src/zlib/libbytesrw_zlib_stubs.*> : use_zlib
+
+<src/zstd> : include
+<src/zstd/bytesrw_zstd_stubs.c> : use_zstd
+<src/zstd/bytesrw_zstd.{cma,cmxa}> : record_bytesrw_zstd_stubs
+<src/zstd/bytesrw_zstd.{cmxs}> : link_bytesrw_zstd_stubs
+<src/zstd/libbytesrw_zstd_stubs.*> : use_zstd

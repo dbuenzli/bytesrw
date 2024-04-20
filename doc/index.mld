@@ -12,11 +12,27 @@ and the specifics of reading and writing bytes.
 {1:bytesrw Library [bytesrw]}
 
 {!modules:
-Bytesrw}
+Bytesrw
+}
+
+{1:bytesrw_zlib Library [bytesrw.zlib]}
+
+{!modules:
+Bytesrw_zlib
+}
+
+{1:bytesrw_zstd Library [bytesrw.zstd]}
+
+{!modules:
+Bytesrw_zstd
+}
+
 
 {1:todo TODO}
 
 {ul
+{- Should {!Bytesrw.Bytes.Slice.make} return the [eod]
+   when invoked with [0] ? It could make for better loops.}
 {- We likely want the reader and writer abstractions to be
    abstract in the end. This would allow to add more immutable
    metadata we might be interested in for better compositionality,

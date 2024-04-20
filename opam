@@ -11,6 +11,11 @@ separate away ressource management and the specifics of reading and
 writing bytes.
 
 Bytesrw distributed under the ISC license. It has no dependencies.
+Optional support for compressed bytes depends on the C [`zlib`]
+and [`libzstd`] libraries.
+
+[`zlib`]: https://zlib.net
+[`libzstd`]: https://zstd.net
 
 Homepage: <https://erratique.ch/software/bytesrw/>"""
 maintainer: "Daniel Bünzli <daniel.buenzl i@erratique.ch>"
@@ -26,5 +31,19 @@ depends: [
   "ocamlbuild" {build}
   "topkg" {build & >= "1.0.3"}
 ]
-build: ["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"]
+depopts: ["conf-zlib" "conf-zstd"]
+conflicts: [
+  "conf-zstd" {< "1.3.8"}
+]
+build: [
+  "ocaml"
+  "pkg/pkg.ml"
+  "build"
+  "--dev-pkg"
+  "%{dev}%"
+  "--with-conf-zlib"
+  "%{conf-zlib:installed}%"
+  "--with-conf-zstd"
+  "%{conf-zstd:installed}%"
+]
 dev-repo: "git+https://erratique.ch/repos/bytesrw.git"

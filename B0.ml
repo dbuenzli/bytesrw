@@ -3,12 +3,28 @@ open B0_kit.V000
 (* Library names *)
 
 let bytesrw = B0_ocaml.libname "bytesrw"
+let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
+let bytesrw_zstd = B0_ocaml.libname "bytesrw.zstd"
 
 (* Libraries *)
 
-let bytesrs_lib =
+let bytesrw_lib =
   let srcs = [ `Dir ~/"src" ] in
   B0_ocaml.lib bytesrw ~srcs
+
+let bytesrw_zlib_lib =
+  let srcs = [ `Dir ~/"src/zlib" ] in
+  let c_requires = Cmd.arg "-lz" in
+  let requires = [bytesrw] in
+  let doc = "Read and write deflate, zlib and gzip compressed bytes" in
+  B0_ocaml.lib bytesrw_zlib ~srcs ~requires ~c_requires ~doc
+
+let bytesrw_zstd_lib =
+  let srcs = [ `Dir ~/"src/zstd" ] in
+  let c_requires = Cmd.arg "-lzstd" in
+  let requires = [bytesrw] in
+  let doc = "Read and write zstd compressed bytes" in
+  B0_ocaml.lib bytesrw_zstd ~srcs ~requires ~c_requires ~doc
 
 (* Tests *)
 
@@ -20,6 +36,8 @@ let test ?(requires = []) src =
   B0_ocaml.exe name ~srcs ~requires ~meta
 
 let utf8codec = test ~/"test/utf8codec.ml"
+let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
+let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
 
 (* Packs *)
 
@@ -35,7 +53,11 @@ let default =
    |> ~~ B0_meta.issues "https://github.com/dbuenzli/bytesrw/issues"
    |> ~~ B0_meta.description_tags ["bytes"; "streaming"; "org:erratique"; ]
    |> ~~ B0_opam.build
-     {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"]]|}
+     {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
+                 "--with-conf-zlib" "%{conf-zlib:installed}%"
+                 "--with-conf-zstd" "%{conf-zstd:installed}%"]]|}
+   |> ~~ B0_opam.depopts ["conf-zlib", ""; "conf-zstd", ""]
+   |> ~~ B0_opam.conflicts [ "conf-zstd", {|< "1.3.8"|}] (* should be 1.4 *)
    |> ~~ B0_opam.depends
      [ "ocaml", {|>= "4.14.0"|};
        "ocamlfind", {|build|};

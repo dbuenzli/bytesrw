@@ -6,6 +6,8 @@ let bytesrw = B0_ocaml.libname "bytesrw"
 let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
 let bytesrw_zstd = B0_ocaml.libname "bytesrw.zstd"
 
+let cmdliner = B0_ocaml.libname "cmdliner"
+
 (* Libraries *)
 
 let bytesrw_lib =
@@ -38,6 +40,7 @@ let test ?(requires = []) src =
 let utf8codec = test ~/"test/utf8codec.ml"
 let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
 let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
+let zstdtrip = test ~requires:[bytesrw_zstd; cmdliner] ~/"test/zstdtrip.ml"
 
 (* Packs *)
 

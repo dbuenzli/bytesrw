@@ -86,7 +86,14 @@ module Bytes = struct
 
     let make = Fun.id
 
-    let write w s = w s
+    let write w slice = w slice
+    let write_reader w r =
+      let rec loop w r = match Reader.read r with
+      | slice when Slice.is_eod slice -> ()
+      | slice -> write w slice; loop w r
+      in
+      loop w r
+
     let write_bytes ?slice_length w b =
       let rec loop w b len first length =
         if first >= len then () else

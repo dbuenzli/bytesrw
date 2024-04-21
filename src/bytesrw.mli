@@ -141,6 +141,9 @@ module Bytes : sig
     val write : t -> Slice.t -> unit
     (** [write w s] writes the slice [s] on [w]. *)
 
+    val write_reader : t -> Reader.t -> unit
+    (** [write_reader w r] writes the slices of [r] on [w]. *)
+
     val write_string : ?slice_length:int -> t -> string -> unit
     (** [write_string w s] writes the bytes [s] on [w]. [slice_length]
         is the maximal length of slices, it defautls to [String.length s].

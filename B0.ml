@@ -54,7 +54,9 @@ let default =
    |> ~~ B0_meta.licenses ["ISC"]
    |> ~~ B0_meta.repo "git+https://erratique.ch/repos/bytesrw.git"
    |> ~~ B0_meta.issues "https://github.com/dbuenzli/bytesrw/issues"
-   |> ~~ B0_meta.description_tags ["bytes"; "streaming"; "org:erratique"; ]
+   |> ~~ B0_meta.description_tags
+     ["bytes"; "streaming"; "zstd"; "zlib"; "gzip"; "deflate";
+      "base64"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
                  "--with-conf-zlib" "%{conf-zlib:installed}%"

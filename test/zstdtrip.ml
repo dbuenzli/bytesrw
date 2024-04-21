@@ -7,11 +7,10 @@ open Bytesrw
 
 let decompress in_size out_size =
   try
-    (* FIXME in_size *)
-    let compressed = Bytes.Reader.of_in_channel In_channel.stdin in
-    let dec = Bytesrw_zstd.decompress ?slice_length:out_size compressed in
+    let c = Bytes.Reader.of_in_channel ?slice_length:in_size In_channel.stdin in
+    let d = Bytesrw_zstd.decompress_reads ?slice_length:out_size c in
     let w = Bytes.Writer.of_out_channel Out_channel.stdout in
-    Bytes.Writer.write_reader w dec;
+    Bytes.Writer.write_reader w d;
     Ok 0
   with
   | Bytesrw_zstd.Error e -> Error e

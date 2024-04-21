@@ -16,34 +16,51 @@ open Bytesrw
 exception Error of string
 (** The exception for [zstd] errors.
 
-    Except for the {{!lib}library parameters}, all function of this
-    module and resulting reader and writers may raise this exeception. *)
+    Except for the {{!lib}library parameters}, all functions of this
+    module and resulting reader and writers may raise this exeception.
 
-(** {1:simple Simple streams} *)
+    {b TODO.} Is there a case to distinguish unexpected end of data ? Add
+    stream offset. *)
 
-val decompress :
-  ?slice_length:int -> Bytes.Reader.t -> Bytes.Reader.t
-(** [decompress br] is a decompressed stream for the [zstd] compressed
-    bytes of [br]. [slice_length] is the maximal slice length used by
-    the result. It defaults to {!decompress_out_slice_length}. *)
+(** {1:decompress Decompress} *)
+
+val decompress_reads :
+  ?stream_offset:int -> ?slice_length:int -> Bytes.Reader.t -> Bytes.Reader.t
+(** [decompress_reads r] decompresses the [zstd] compressed reads of [r].
+
+    [slice_length] and [stream_offset] are used by the resulting
+    reader. [slice_length] defaults to {!ddst_slice_length}; if you
+    get to create [r] use {!dsrc_slice_length} for its
+    slices. [stream_offset] defaults to the stream offset of [r]. *)
+
+val decompress_writes :
+  ?stream_offset:int -> ?slice_length:int -> Bytes.Writer.t -> Bytes.Writer.t
+(** [decompress_writes w] decompresses the [zstd] compressed writes made
+    on [w].
+
+    [slice_length] and [stream_offset] are used by the resulting
+    writer. [slice_length] defaults to {!dsrc_slice_length}.
+    Decompressed slices will abide to [w]'s desire but if you get to
+    create it use {!ddst_slice_length}. [stream_offset] defaults to
+    the stream offset of [w]. *)
 
 (** {1:lib Library parameters} *)
 
 val version : unit -> string
 (** [version ()] is the version of the [libzstd] C library. *)
 
-val compress_in_slice_length : unit -> int
-(** [compress_in_slice_length ()] is the recommended length
-    of decompressed slices on compression. *)
+val csrc_slice_length : unit -> int
+(** [csrc_slice_length ()] is the recommended length of source slices on
+    compression. *)
 
-val compress_out_slice_length : unit -> int
-(** [compress_out_slice_length ()] is the recommended length
-    of compressed slices on compression. *)
+val cdst_slice_length : unit -> int
+(** [cdst_slice_length ()] is the recommended length of destination
+    slices on compression. *)
 
-val decompress_in_slice_length : unit -> int
-(** [decompress_in_slice_length ()] is the recommended length
-    of compressed slices on decompression. *)
+val dsrc_slice_length : unit -> int
+(** [dsrc_slice_length ()] is the recommended length of source slices
+    on decompression. *)
 
-val decompress_out_slice_length : unit -> int
-(** [decompress_out_slice_length ()] is the recommended length of
-    decompressed slices on decompression. *)
+val ddst_slice_length : unit -> int
+(** [ddst_slice_length ()] is the recommended length of destination
+    slices on decompression. *)

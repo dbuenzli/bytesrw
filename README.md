@@ -5,7 +5,7 @@ Bytesrw extends the OCaml `Bytes` module with composable, memory
 efficient, byte stream readers and writers compatible with effect
 based concurrency.
 
-Except for byte slice life-times, these abstractions intentionnaly
+Except for byte slice life-times, these abstractions intentionally
 separate away ressource management and the specifics of reading and
 writing bytes.
 

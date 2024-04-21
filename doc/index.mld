@@ -6,7 +6,7 @@ efficient, byte stream {{!Bytesrw.Bytes.Reader}readers} and
 concurrency.
 
 Except for byte slice {{!Bytesrw.Bytes.Slice.validity}life-times},
-these abstractions intentionnaly separate away ressource management
+these abstractions intentionally separate away ressource management
 and the specifics of reading and writing bytes.
 
 {1:bytesrw Library [bytesrw]}
@@ -14,6 +14,10 @@ and the specifics of reading and writing bytes.
 {!modules:
 Bytesrw
 }
+{!modules:
+Bytesrw.Bytes.Slice
+Bytesrw.Bytes.Reader
+Bytesrw.Bytes.Writer}
 
 {1:bytesrw_zlib Library [bytesrw.zlib]}
 
@@ -32,5 +36,21 @@ Bytesrw_zstd
 
 {ul
 {- Should {!Bytesrw.Bytes.Slice.make} return the [eod]
-   when invoked with [0] ? It could make for better loops.}
-{- Use size maybe ? But size is never used by the stdlib.}}
+   when invoked with [0] length ? It could make for better loops.}
+{- Use size maybe ? But size is never used by the stdlib.}
+{- Make a decision on whether [?slice_length] on readers and writers are
+   hints or hard limits. If it is a hard limit, the abstraction could
+   transparently adapt the size of slices. But then we could also
+   simply provide reslice combinators for those clients that want
+   the guarantees.}
+{- Reader and writer, should we keep a byte count of consumed
+   slices ? E.g. [Reader.read_length] [Writer.written_length].
+   These informational bits are always useful to have and a pain
+   to have to make them on the side.}
+{- Reader and writer, sneak over the data and mutate the read/write
+   function when [eod] has been seen ? Could be benificial not to
+   keep references on these closures. For readers this could also be
+   used to implement push back without having to create a new reader.}
+{- Not calling stuff after [Slice.eod] (rather than allowing
+   more calls with [Slice.eod]) is likely a better idea,
+   e.g. we don't want to flush a possibly closed fd.}}

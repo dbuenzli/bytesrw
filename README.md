@@ -14,7 +14,7 @@ Optional support for compressed bytes depends on the C [`zlib`]
 and [`libzstd`] libraries.
 
 [`zlib`]: https://zlib.net
-[`libzstd`]: https://zstd.net
+[`libzstd`]: http://zstd.net
 
 Homepage: <https://erratique.ch/software/bytesrw/>
 

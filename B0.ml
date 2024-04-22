@@ -38,6 +38,7 @@ let test ?(requires = []) src =
   B0_ocaml.exe name ~srcs ~requires ~meta
 
 let utf8codec = test ~/"test/utf8codec.ml"
+let test_bytesrw = test ~requires:[bytesrw_zlib] ~/"test/test_bytesrw.ml"
 let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
 let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
 let zstdtrip = test ~requires:[bytesrw_zstd; cmdliner] ~/"test/zstdtrip.ml"

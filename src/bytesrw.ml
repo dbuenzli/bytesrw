@@ -12,20 +12,30 @@ module Bytes = struct
 
     let invalid_argf fmt = Printf.ksprintf invalid_arg fmt
 
-    let err_invalid_slice ~first ~length ~len =
+    let err_invalid ~first ~length ~len =
       invalid_argf "invalid slice first:%d length:%d bytes:%d" first length len
 
-    let err_slice_length l =
+    let err_length l =
       invalid_argf "slice length %d is not positive" l
 
-    let check_slice_length l = if l <= 0 then err_slice_length l else l
+    let check_length l = if l <= 0 then err_length l else l
 
     type t = { bytes : Bytes.t; first : int; length : int }
+
+    let eod = { bytes = Bytes.empty; first = 0; length = 0 }
+    let is_eod s = s == eod
+
     let make bytes ~first ~length =
       let len = Bytes.length bytes in
       if length <= 0 || length > len || first < 0 || first >= len
-      then err_invalid_slice ~first ~length ~len;
+      then err_invalid ~first ~length ~len;
       { bytes; first; length }
+
+    let make_or_eod bytes ~first ~length =
+      let len = Bytes.length bytes in
+      if length > len || first < 0 || first >= len
+      then err_invalid ~first ~length ~len;
+      if length = 0 then eod else { bytes; first; length }
 
     let bytes s = s.bytes
     let first s = s.first
@@ -34,9 +44,6 @@ module Bytes = struct
       if not tight then { s with bytes = Bytes.copy s.bytes } else
       let bytes = Bytes.sub s.bytes s.first s.length in
       { bytes; first = 0; length = s.length}
-
-    let eod = { bytes = Bytes.empty; first = 0; length = 0 }
-    let is_eod s = s == eod
 
     let take n s =
       if n <= 0 then eod else
@@ -95,7 +102,14 @@ module Bytes = struct
         slice_length : int option; }
 
     let make ?(stream_offset = 0) ?slice_length read =
-      let slice_length = Option.map Slice.check_slice_length slice_length in
+      let slice_length = Option.map Slice.check_length slice_length in
+      { stream_offset; read; slice_length }
+
+    let of_reader ?stream_offset ?slice_length r read =
+      let stream_offset = Option.value ~default:r.stream_offset stream_offset in
+      let slice_length = match slice_length with
+      | None -> r.slice_length | Some l -> Some (Slice.check_length l)
+      in
       { stream_offset; read; slice_length }
 
     let read_eod = Fun.const Slice.eod
@@ -106,7 +120,7 @@ module Bytes = struct
 
     let of_in_channel ?stream_offset ?(slice_length = Slice.io_buffer_size) ic =
       let () = In_channel.set_binary_mode ic true in
-      let slice_length = Slice.check_slice_length slice_length in
+      let slice_length = Slice.check_length slice_length in
       let b = Bytes.create slice_length in
       let read () =
         let count = In_channel.input ic b 0 (Bytes.length b) in
@@ -118,7 +132,7 @@ module Bytes = struct
       let blen = Bytes.length b in
       if blen = 0 then make ?stream_offset ?slice_length read_eod else
       let slice_length = match slice_length with
-      | None -> blen | Some slen -> Int.min (Slice.check_slice_length slen) blen
+      | None -> blen | Some slen -> Int.min (Slice.check_length slen) blen
       in
       if slice_length = blen then begin
         let s = ref (Slice.make b ~first:0 ~length:blen) in
@@ -175,19 +189,20 @@ module Bytes = struct
         slice_length : int option; }
 
     let make ?(stream_offset = 0) ?slice_length write =
-      let slice_length = Option.map Slice.check_slice_length slice_length in
+      let slice_length = Option.map Slice.check_length slice_length in
+      { stream_offset; write; slice_length }
+
+    let of_writer ?stream_offset ?slice_length w write =
+      let stream_offset = Option.value ~default:w.stream_offset stream_offset in
+      let slice_length = match slice_length with
+      | None -> w.slice_length | Some l -> Some (Slice.check_length l)
+      in
       { stream_offset; write; slice_length }
 
     let slice_length w = w.slice_length
     let stream_offset w = w.stream_offset
     let write w slice = w.write slice
     let write_eod w = write w Slice.eod
-    let write_reader w r =
-      let rec loop w r = match Reader.read r with
-      | slice when Slice.is_eod slice -> ()
-      | slice -> write w slice; loop w r
-      in
-      loop w r
 
     let write_bytes w b =
       let rec loop w slice_length b blen first =
@@ -206,11 +221,18 @@ module Bytes = struct
       (* Unsafe is ok: the writer is not supposed to mutate the bytes. *)
       write_bytes w (Bytes.unsafe_of_string s)
 
-    let write_in_channel w ic =
+    let write_reader ~eod w r =
+      let rec loop w r = match Reader.read r with
+      | slice when Slice.is_eod slice -> if eod then write_eod w else ()
+      | slice -> write w slice; loop w r
+      in
+      loop w r
+
+    let write_in_channel ~eod w ic =
       let () = In_channel.set_binary_mode ic true in
       let rec loop w ic buf =
         let count = In_channel.input ic buf 0 (Bytes.length buf) in
-        if count = 0 then () else
+        if count = 0 then (if eod then write_eod w else ())  else
         (write w (Slice.make buf ~first:0 ~length:count); loop w ic buf)
       in
       let blen = Option.value ~default:Slice.io_buffer_size w.slice_length in

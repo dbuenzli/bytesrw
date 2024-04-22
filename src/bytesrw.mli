@@ -39,10 +39,15 @@ module Bytes : sig
 
     val make : bytes -> first:int -> length:int -> t
     (** [make b ~first ~length] are the bytes of [b] in the range
-        \[[first]; [first+length-1]\]. See also {!of_bytes}.
+        \[[first]; [first+length-1]\]. See also {!make_or_eod} and
+        {!of_bytes}.
 
         Raises [Invalid_argument] if [length] is not positive, larger
         than the length of [b] or if [first] is out of bounds. *)
+
+    val make_or_eod : bytes -> first:int -> length:int -> t
+    (** [make_or_eod] is like {!make} but returns {!eod} instead of
+        raising [Invalid_argument] if [length] is not positive. *)
 
     val bytes : t -> bytes
     (** [bytes s] are the underlying bytes of the slice [s]. *)
@@ -128,8 +133,8 @@ module Bytes : sig
         value of OCaml's UNIX_BUFFER_SIZE. See
         {{:https://github.com/ocaml/ocaml/issues/5938}here}. *)
 
-    val check_slice_length : int -> int
-    (** [check_slice_length l] is [l] if [l > 0] and raises
+    val check_length : int -> int
+    (** [check_length l] is [l] if [l > 0] and raises
         [Invalid_argument] otherwise. *)
   end
 
@@ -162,6 +167,12 @@ module Bytes : sig
         If [slice_length] is given, it provides a hint on the maximal
         length of slices that [read] returns. The zero-based
         {!stream_offset} is informational, defaults to [0]. *)
+
+    val of_reader :
+      ?stream_offset:int -> ?slice_length:int -> t -> (unit -> Slice.t) -> t
+    (** [of_reader ?stream_offset ?slice_length r read] is like {!make}
+        but unspecified parameters are copied from [r]. Not mandatory
+        but implicitely it is assumed that [read] will read from [r]. *)
 
     val empty : t
     (** [empty] reads an empty byte stream. *)
@@ -219,7 +230,6 @@ module Bytes : sig
         {{!Out_channel.flush}flushed} after each slice except
         {!Slice.eod}. *)
 
-
     (** {1:other Other} *)
 
     val trace_reads : (Slice.t -> unit) -> t -> t
@@ -261,6 +271,12 @@ module Bytes : sig
         indicate that [write] iterates over a portion of a larger byte
         stream that starts at [stream_offset] (defaults to [0]). *)
 
+    val of_writer :
+      ?stream_offset:int -> ?slice_length:int -> t -> (Slice.t -> unit) -> t
+    (** [of_writer ?stream_offset ?slice_length w write] is like {!make}
+        but unspecified parameters are copied from [w]. Not mandatory
+        but implicitely it is assumed that [write] will write to [w]. *)
+
     (** {1:properties Properties} *)
 
     val slice_length : t -> int option
@@ -284,10 +300,6 @@ module Bytes : sig
     val write_eod : t -> unit
     (** [write_eod w] is [write w Slice.eod]. *)
 
-    val write_reader : t -> Reader.t -> unit
-    (** [write_reader w r] writes the slices, except {!Slice.eod}, of [r]
-        on [w]. *)
-
     val write_bytes : t -> bytes -> unit
     (** [write_bytes w b] writes the bytes [b] on [w] in
         {!slice_length} slices. The bytes of [b] must not change until
@@ -296,10 +308,15 @@ module Bytes : sig
     val write_string : t -> string -> unit
     (** [write_string] is like {!write_bytes} but writes a string. *)
 
-    val write_in_channel : t -> In_channel.t -> unit
+    val write_reader : eod:bool -> t -> Reader.t -> unit
+    (** [write_reader w r] writes the slices of [r]
+        on [w]. {!Slice.eod} is only written if [eod] is [true]. *)
+
+    val write_in_channel : eod:bool -> t -> In_channel.t -> unit
     (** [write_in_channel w ic] sets [ic] to
         {{!In_channel.set_binary_mode}binary mode} and writes slices
-        to [w] until the end of file is reached. *)
+        to [w] until the end of file is reached at which point
+        {!Slice.eod} is written iff [eod] is true. *)
 
    (** {1:convert Converting} *)
 

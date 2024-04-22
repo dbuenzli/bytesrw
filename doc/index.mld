@@ -35,8 +35,6 @@ Bytesrw_zstd
 {1:todo TODO}
 
 {ul
-{- Should {!Bytesrw.Bytes.Slice.make} return the [eod]
-   when invoked with [0] length ? It could make for better loops.}
 {- Use size maybe ? But size is never used by the stdlib.}
 {- Make a decision on whether [?slice_length] on readers and writers are
    hints or hard limits. If it is a hard limit, the abstraction could
@@ -53,4 +51,9 @@ Bytesrw_zstd
    used to implement push back without having to create a new reader.}
 {- Not calling stuff after [Slice.eod] (rather than allowing
    more calls with [Slice.eod]) is likely a better idea,
-   e.g. we don't want to flush a possibly closed fd.}}
+   e.g. we don't want to flush a possibly closed fd.}
+{- [Bytesrw_unix].}
+{- Small howto and a simple tutorial to devise your own.}
+{- [Bytesrw_zstd], add per frame control,
+   figure out the mulithreaded compression support (we'd need to copy
+   the bytes), add stream offsets to errors.}}

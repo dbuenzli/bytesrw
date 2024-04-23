@@ -20,14 +20,14 @@ module Bytes : sig
   (** Bytes slices.
 
       A bytes slice is a {e non-empty} consecutive range of bytes in a
-      {!Bytes.t} value. The distinguished empty slice {!Slice.eod} is used
-      to indicate end of data. *)
+      {!Bytes.t} value. The sole distinguished {e empty} slice {!Slice.eod}
+      is used to indicate end of data. *)
   module Slice : sig
 
     (** {1:validity Validity}
 
-        The range of a slice is made available to a third-party for a
-        limited amount of time during which the slice is said to be {e
+        The bytes in the range of a slice is made available to a third-party
+        for a limited amount of time during which the slice is said to be {e
         valid} for reading or writing (or both). Third parties are
         only allowed to access the bytes in the range and in the mode
         specified while it is valid. *)
@@ -39,8 +39,11 @@ module Bytes : sig
 
     val make : bytes -> first:int -> length:int -> t
     (** [make b ~first ~length] are the bytes of [b] in the range
-        \[[first]; [first+length-1]\]. See also {!make_or_eod} and
-        {!of_bytes}.
+        \[[first]; [first+length-1]\].
+
+        This function does not allow the creation of the empty {!Slice.eod}
+        which is a feature. See also {!make_or_eod}, {!of_bytes} and
+        {!of_bytes_or_eod}.
 
         Raises [Invalid_argument] if [length] is not positive, larger
         than the length of [b] or if [first] is out of bounds. *)
@@ -49,17 +52,8 @@ module Bytes : sig
     (** [make_or_eod] is like {!make} but returns {!eod} instead of
         raising [Invalid_argument] if [length] is not positive. *)
 
-    val bytes : t -> bytes
-    (** [bytes s] are the underlying bytes of the slice [s]. *)
-
-    val first : t -> int
-    (** [first s] is the index of the first byte of [s]. *)
-
-    val length : t -> int
-    (** [length s] is the byte length of [s]. *)
-
     val copy : tight:bool -> t -> t
-    (** [copy ~tight s] is a copy of [s]. If [thight] is [true], the
+    (** [copy ~tight s] is a copy of [s]. If [tight] is [true], the
         copy contains only the bytes in the range of [s]. If not the
         whole [bytes s] is copied. *)
 
@@ -71,6 +65,17 @@ module Bytes : sig
 
     val is_eod : t -> bool
     (** [is_eod s] is [true] iff [s == eod]. *)
+
+    (** {1:props Properties} *)
+
+    val bytes : t -> bytes
+    (** [bytes s] are the underlying bytes of the slice [s]. *)
+
+    val first : t -> int
+    (** [first s] is the index of the first byte of [s]. *)
+
+    val length : t -> int
+    (** [length s] is the byte length of [s]. *)
 
     (** {1:breaking Breaking slices} *)
 
@@ -90,11 +95,17 @@ module Bytes : sig
 
     val of_bytes : ?first:int -> ?last:int -> bytes -> t
     (** [of_bytes ~first ~last b] is the slice made of the consecutive
-        bytes of [b] whose indices exist in the range \[[first];[last]\].
+        bytes of [b] whose indices exist in the non-empty
+        range \[[first];[last]\].
 
         [first] defaults to [0] and [last] to [Bytes.length s - 1].
         Note that both [first] and [last] can be any integer. If
-        [first > last] the interval is empty and {!eod} is returned. *)
+        [b] is empty or if [first > last] the interval is empty and
+        [Invalid_argument] is raised. *)
+
+    val of_bytes_or_eod : ?first:int -> ?last:int -> bytes -> t
+    (** [of_bytes_or_eod] is like {!of_bytes} except that if the bytes
+        are empty or if [first > last], {!eod} is returned. *)
 
     val to_bytes : t -> bytes
     (** [to_bytes t] copies the range of [s] to a new [bytes] value. *)
@@ -103,25 +114,35 @@ module Bytes : sig
     (** [to_string s] copies the range of [s] as a [string] value. *)
 
     val add_to_buffer : Buffer.t -> t -> unit
-    (** [add_to_buffer b s] adds the slice [s] to [b]. *)
+    (** [add_to_buffer b s] adds the byte range of [s] to [b]. *)
 
-    (** {1:format Formatting} *)
+    val output_to_out_channel : Out_channel.t -> t -> unit
+    (** [output_to_out_channel oc s] outputs the byte range of [s] to
+        [oc]. {b Warning.} Make sure the channel is in
+        {{!Out_channel.set_binary_mode}binary mode}, e.g. [stdout] is
+        not by default. *)
+
+    (** {1:format Formatting and inspecting} *)
 
     val pp : Format.formatter -> t -> unit
-    (** [pp] formats a slice for inspection. *)
+    (** [pp] formats a slice for inspection. This formats
+        the range specification and at most the first four bytes of
+        the buffer in hex. *)
 
-    val pp_text : Format.formatter -> t -> unit
-    (** [pp_text] is like {!pp} but assumes UTF-8 text in slices rather
-        than bytes (bytes are printed raw instead of hex). *)
-
-    (** {1:other Other} *)
+    val pp' : ?head:int -> ?hex:bool -> unit -> Format.formatter -> t -> unit
+    (** [pp'] is like {!pp} but prints raw bytes if [hex] is [false]
+        (defaults to [true]) and prints at most [head] initial bytes
+        (defaults to [4], use (-1) to format all the bytes). *)
 
     val tracer :
       ?pp:(Format.formatter -> t -> unit) ->
       ?ppf:Format.formatter -> id:string -> t -> unit
-    (** [tracer ppf ~id] traces slices with identifier [id] using [pp]
-        on [ppf] (defaults to {!Formatter.err_formatter}). Use with
+    (** [tracer ~pp ~ppf ~id] is a function that formats slices on
+        [ppf] (defaults to {!Format.err_formatter}) with [pp]
+        (defaults to {!pp)) and the identifier [id]. Use with
         {!Reader.trace_reads} or {!Writer.trace_writes}. *)
+
+    (** {1:other Other} *)
 
     val io_buffer_size : int
     (** [io_buffer_size] is [65536] it should correspond to the value of
@@ -359,4 +380,32 @@ module Bytes : sig
     (** [get_stream_offset ~none o] is the stream offset of [none]
         if [o] is [None] and [i] if [o] is [Some i]. *)
   end
+
+  (** {1:bytes Formatters} *)
+
+  val pp_hex :
+    ?addr:bool -> ?addr_start:int -> ?addr_div:int -> ?count:int ->
+    ?group:int -> ?ascii:bool -> ?start:int -> ?len:int -> unit ->
+    Format.formatter -> bytes -> unit
+  (** [pp_hex ~addr ~addr_start ~count ~group ~ascii ~start ~len:n () ppf
+      b] prints the bytes in range \[[start];[start + n - 1]\] in
+      hexadecimal. [start] defaults to [0] and [len] to [length b -
+      start]. Formats nothing if [len] is [0].
+      The formatting options are as follows:
+      {ul
+      {- If [addr] is [true] (defaults to [false]), starts each line
+       with the index of the first byte on the line as a 32-bit or 64-bit
+       hexadecimal number (adjusted according the values of [addr_start] and
+       [len]). Finishes the output with a blank line that has the address
+       following the last byte.}
+      {- If [addr_start] is specified uses this as the start index for
+       the first byte (defaults to [start])}
+      {- If [addr_div] is specified addresses are divided by this number.
+       Defaults to [1]. For example using [4] indexes by 32-bits.}
+      {- [count] defines the number of bytes, printed on each line. Defaults to
+       [16].}
+      {- [group] is the number of bytes that are grouped together. Defaults to
+       [2], i.e. shows hexadecimal 16-bit numbers.}
+      {- If [ascii] is [true] (defaults to [false]) ends each line with
+       a column with the bytes interpreted as US-ASCII.}} *)
 end

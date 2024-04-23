@@ -9,7 +9,7 @@ let () =
   Pkg.describe "bytesrw" @@ fun c ->
   let zstd = Conf.value c zstd in
   let zlib = Conf.value c zlib in
-  Ok [ Pkg.mllib "src/bytesrw.mllib";
+  Ok [ Pkg.mllib ~api:["Bytesrw"] "src/bytesrw.mllib";
        Pkg.mllib ~cond:zlib "src/zlib/bytesrw_zlib.mllib" ~dst_dir:"zlib";
        Pkg.clib ~cond:zlib "src/zlib/libbytesrw_zlib_stubs.clib"
          ~lib_dst_dir:"zlib";

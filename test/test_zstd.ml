@@ -5,12 +5,7 @@
 
 open Bytesrw
 
-let pp_hex ppf head =
-  for i = 0 to String.length head - 1 do
-    Format.fprintf ppf "%02x" (Char.code head.[i])
-  done
-
-let log fmt = Printf.eprintf (fmt ^^ "\n%!")
+let log fmt = Format.eprintf (fmt ^^ "\n%!")
 let tracer = Bytes.Slice.tracer ~ppf:Format.std_formatter
 
 let comp_test =

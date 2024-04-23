@@ -19,6 +19,7 @@ Bytesrw.Bytes.Slice
 Bytesrw.Bytes.Reader
 Bytesrw.Bytes.Writer}
 
+
 {1:bytesrw_zlib Library [bytesrw.zlib]}
 
 {!modules:
@@ -31,6 +32,7 @@ Bytesrw_zlib
 Bytesrw_zstd
 }
 
+{1:quick Quick start}
 
 {1:todo TODO}
 
@@ -49,7 +51,8 @@ Bytesrw_zstd
    more calls with [Slice.eod]) is likely a better idea,
    e.g. we don't want to flush a possibly closed fd.}
 {- [Bytesrw_unix].}
-{- Small howto and a simple tutorial to devise your own.}
+{- Small howto and a simple tutorial to devise your own. Show read
+   sniffing.}
 {- Sort out the [stream_offset] and \{[written],[read]\}[_length] system,
    so that it can be reliable and not painful to work with. Idea:
    transformers should always offset from the structure they transform.
@@ -64,4 +67,7 @@ Bytesrw_zstd
    figure out the mulithreaded compression support (we'd need to copy
    the bytes), add stream offsets to errors.}
 {- Possibly we could add an hmap to readers and writers. But let's KISS
-   for now.}}
+   for now.}
+{- Slices, add bigbytes converters. Breaking slice, decide whether
+   the funs should raise on empty slice or the [_or_eod] convention
+   be added.}}

@@ -7,16 +7,16 @@ module Bytes = struct
   include Bytes
 
   module Slice = struct
-    let io_buffer_size = 65536
-    let unix_io_buffer_size = 65536
-
     let invalid_argf fmt = Printf.ksprintf invalid_arg fmt
 
     let err_invalid ~first ~length ~len =
-      invalid_argf "invalid slice first:%d length:%d bytes:%d" first length len
+      invalid_argf "invalid slice: first:%d length:%d bytes:%d" first length len
+
+    let err_empty_range ~first ~last ~len =
+      invalid_argf "invalid slice: first:%d last:%d bytes:%d" first last len
 
     let err_length l =
-      invalid_argf "slice length %d is not positive" l
+      invalid_argf "invalid slice length: %d is not positive" l
 
     let check_length l = if l <= 0 then err_length l else l
 
@@ -41,9 +41,12 @@ module Bytes = struct
     let first s = s.first
     let length s = s.length
     let copy ~tight s =
+      if s.length = 0 then eod else
       if not tight then { s with bytes = Bytes.copy s.bytes } else
       let bytes = Bytes.sub s.bytes s.first s.length in
       { bytes; first = 0; length = s.length}
+
+    (* Breaking *)
 
     let take n s =
       if n <= 0 then eod else
@@ -57,42 +60,63 @@ module Bytes = struct
 
     let break n s = take n s, drop n s
 
-    let of_bytes ?(first = 0) ?last bytes =
+    (* Converting *)
+
+    let of_bytes' ~allow_eod ?(first = 0) ?last bytes =
       let max = Bytes.length bytes - 1 in
       let last = match last with
-      | None -> max | Some last -> if last > max then last else last
+      | None -> max | Some last -> if last > max then max else last
       in
       let first = if first < 0 then 0 else first in
-      if first > last then eod else
-      { bytes; first; length = last - first + 1 }
+      if first <= last then { bytes; first; length = last - first + 1 } else
+      if allow_eod then eod else
+      err_empty_range ~first ~last ~len:(max + 1)
+
+    let of_bytes ?first ?last bytes =
+      of_bytes' ~allow_eod:false ?first ?last bytes
+
+    let of_bytes_or_eod ?first ?last bytes =
+      of_bytes' ~allow_eod:true ?first ?last bytes
 
     let to_bytes s = Bytes.sub s.bytes s.first s.length
     let to_string s = Bytes.sub_string s.bytes s.first s.length
     let add_to_buffer b s = Buffer.add_subbytes b s.bytes s.first s.length
+    let output_to_out_channel oc s =
+      let b = Bytes.unsafe_to_string s.bytes in
+      Out_channel.output_substring oc b s.first s.length
 
-    let pp_head_hex ell ppf head =
-      let pp_hex ppf x =
-        for i = 0 to String.length head - 1 do
-          Format.fprintf ppf "%02x" (Char.code head.[i])
-        done
+    (* Formatting *)
+
+    let pp_meta ppf s =
+      Format.fprintf ppf "@[[%04d;%04d]@ len:%04d@]"
+        s.first (s.first + s.length - 1) s.length
+
+    let pp_full ~hex ppf s =
+      let pp_bytes ppf s=
+        if not hex
+        then Bytesrw_fmt.pp_raw ~first:s.first ~len:s.length ppf s.bytes
+        else Bytesrw_fmt.pp_hex ~addr:true ~ascii:true ~start:s.first
+            ~len:s.length () ppf s.bytes
       in
-      Format.fprintf ppf "x%a%s" pp_hex head (if ell then "" else "…")
+      Format.fprintf ppf "@[<v>%a@,%a@]" pp_meta s pp_bytes s
 
-    let pp_head_text ell ppf head =
-      Format.fprintf ppf "\"%s%s\"" head (if ell then "" else "…")
+    let pp_head ~hex c ppf s =
+      let pp_head = Bytesrw_fmt.(if hex then pp_head_hex else pp_head_raw) c in
+      Format.fprintf ppf "@[%a %a@]" pp_meta s pp_head s.bytes
 
-    let _pp pp_head ppf s =
+    let pp' ?(head = 4) ?(hex = true) () ppf s =
       if is_eod s then Format.pp_print_string ppf "<eod>" else
-      let hlen = Int.min s.length 4 in
-      let head = Bytes.(unsafe_to_string (sub s.bytes s.first hlen)) in
-      let ell = hlen = s.length in
-      Format.fprintf ppf "@[<h>{range:[%04d;%04d] len:%04d %a}@]"
-      s.first (s.first + s.length - 1) s.length (pp_head ell) head
+      if head = -1 then pp_full ~hex ppf s else pp_head ~hex head ppf s
 
-    let pp ppf s = _pp pp_head_hex ppf s
-    let pp_text ppf s = _pp pp_head_text ppf s
+    let pp = pp' ()
+
     let tracer ?(pp = pp) ?(ppf = Format.err_formatter)  ~id s =
-      Format.fprintf ppf "@[<h>%s: %a@]@." id pp s
+      Format.fprintf ppf "@[[%3s]: @[%a@]@]@." id pp s
+
+    (* Other *)
+
+    let io_buffer_size = 65536
+    let unix_io_buffer_size = 65536
   end
 
   module Reader = struct
@@ -175,8 +199,7 @@ module Bytes = struct
       let rec loop r oc = match read r with
       | s when Slice.is_eod s -> ()
       | s ->
-          let b = Bytes.unsafe_to_string (Slice.bytes s) in
-          Out_channel.output_substring oc b (Slice.first s) (Slice.length s);
+          Slice.output_to_out_channel oc s;
           if flush_slices then Out_channel.flush oc;
           loop r oc
       in
@@ -276,4 +299,6 @@ module Bytes = struct
       let write slice = f slice; w.write slice in
       { w with write }
   end
+
+  let pp_hex = Bytesrw_fmt.pp_hex
 end

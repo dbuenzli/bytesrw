@@ -15,10 +15,17 @@ module Bytes = struct
     let err_empty_range ~first ~last ~len =
       invalid_argf "invalid slice: first:%d last:%d bytes:%d" first last len
 
-    let err_length l =
-      invalid_argf "invalid slice length: %d is not positive" l
+    (* Slice lengths *)
 
+    type length = int
+
+    let err_length l = invalid_argf "invalid slice length: %d is not positive" l
     let check_length l = if l <= 0 then err_length l else l
+    let pp_length_option ppf = function
+    | None -> Format.pp_print_string ppf "<none>"
+    | Some len -> Format.pp_print_int ppf len
+
+    (* Slices *)
 
     type t = { bytes : Bytes.t; first : int; length : int }
 
@@ -37,14 +44,17 @@ module Bytes = struct
       then err_invalid ~first ~length ~len;
       if length = 0 then eod else { bytes; first; length }
 
-    let bytes s = s.bytes
-    let first s = s.first
-    let length s = s.length
     let copy ~tight s =
       if s.length = 0 then eod else
       if not tight then { s with bytes = Bytes.copy s.bytes } else
       let bytes = Bytes.sub s.bytes s.first s.length in
       { bytes; first = 0; length = s.length}
+
+    (* Properties *)
+
+    let bytes s = s.bytes
+    let first s = s.first
+    let length s = s.length
 
     (* Breaking *)
 
@@ -119,57 +129,64 @@ module Bytes = struct
     let unix_io_buffer_size = 65536
   end
 
+  module Stream = struct
+    let err_channel_pos kind pos =
+      Printf.sprintf "%s: channel position %Ld doesn't fit on int" kind pos
+  end
+
   module Reader = struct
     type t =
-      { stream_offset : int;
-        read : unit -> Slice.t;
-        slice_length : int option;
+      { read : unit -> Slice.t;
+        slice_length : Slice.length option;
+        stream_offset : int;
         mutable read_length : int; }
 
-    let make ?(stream_offset = 0) ?slice_length read =
-      let slice_length = Option.map Slice.check_length slice_length in
-      { stream_offset; read; slice_length; read_length = 0 }
-
-    let of_reader ?stream_offset ?slice_length r read =
-      let stream_offset = Option.value ~default:r.stream_offset stream_offset in
-      let slice_length = match slice_length with
-      | None -> r.slice_length | Some l -> Some (Slice.check_length l)
-      in
-      let read_length = r.read_length in
-      { stream_offset; read; slice_length; read_length }
-
     let read_eod = Fun.const Slice.eod
-    let empty =
-      { stream_offset = 0; read = read_eod; slice_length = None;
+    let empty () =
+      { read = read_eod; slice_length = None; stream_offset = 0;
         read_length = 0 }
 
-    let stream_offset r = r.stream_offset
-    let slice_length r = r.slice_length
+    let make_default = empty ()
+    let make
+        ?start_from:(r = make_default) ?(read_length = 0) ?slice_length
+        ?stream_offset read
+      =
+      let slice_length = match slice_length with
+      | None -> r.slice_length | Some l -> Option.map Slice.check_length l
+      in
+      let stream_offset = Option.value ~default:r.read_length stream_offset in
+      { stream_offset; read; slice_length; read_length }
+
+    (* Stream properties *)
+
     let read_length r = r.read_length
+    let slice_length r = r.slice_length
+    let stream_offset r = r.stream_offset
+    let with_stream_props ?from ?read_length ?slice_length ?stream_offset r =
+      let d = Option.value ~default:r from in
+      let read_length = Option.value ~default:d.read_length read_length in
+      let slice_length = Option.value ~default:d.slice_length slice_length in
+      let stream_offset = Option.value ~default:d.stream_offset stream_offset in
+      { r with read_length; slice_length; stream_offset }
+
+    (* Reading *)
+
     let read r =
       let slice = r.read () in
       r.read_length <- r.read_length + Slice.length slice; slice
 
-    let of_in_channel ?stream_offset ?(slice_length = Slice.io_buffer_size) ic =
-      let () = In_channel.set_binary_mode ic true in
-      let slice_length = Slice.check_length slice_length in
-      let b = Bytes.create slice_length in
-      let read () =
-        let count = In_channel.input ic b 0 (Bytes.length b) in
-        if count = 0 then Slice.eod else Slice.make b ~first:0 ~length:count
-      in
-      make ?stream_offset ~slice_length read
+    (* Converting *)
 
-    let of_bytes ?stream_offset ?slice_length b =
+    let of_bytes ?slice_length b =
       let blen = Bytes.length b in
-      if blen = 0 then make ?stream_offset ?slice_length read_eod else
+      if blen = 0 then make ~slice_length read_eod else
       let slice_length = match slice_length with
       | None -> blen | Some slen -> Int.min (Slice.check_length slen) blen
       in
       if slice_length = blen then begin
         let s = ref (Slice.make b ~first:0 ~length:blen) in
         let read () = let v = !s in s := Slice.eod; v in
-        make ?stream_offset ~slice_length read
+        make ~slice_length:(Some slice_length) read
       end else begin
         let first = ref 0 in
         let read () =
@@ -178,12 +195,28 @@ module Bytes = struct
           let s = Slice.make b ~first:!first ~length in
           first := !first + length; s
         in
-        make ?stream_offset ~slice_length read
+        make ~slice_length:(Some slice_length) read
       end
 
-    let of_string ?stream_offset ?slice_length s =
+    let of_string ?slice_length s =
       (* Unsafe is ok: the consumer is not supposed to mutate the bytes. *)
-      of_bytes ?stream_offset ?slice_length (Bytes.unsafe_of_string s)
+      of_bytes ?slice_length (Bytes.unsafe_of_string s)
+
+    let of_in_channel ?(slice_length = Slice.io_buffer_size) ic =
+      let () = In_channel.set_binary_mode ic true in
+      let slice_length = Slice.check_length slice_length in
+      let b = Bytes.create slice_length in
+      let read () =
+        let count = In_channel.input ic b 0 (Bytes.length b) in
+        if count = 0 then Slice.eod else Slice.make b ~first:0 ~length:count
+      in
+      let stream_offset =
+        let pos = In_channel.pos ic in
+        match Int64.unsigned_to_int pos with
+        | None -> raise (Sys_error (Stream.err_channel_pos "Bytes.Reader" pos))
+        | Some i -> i
+      in
+      make ~stream_offset ~slice_length:(Some slice_length) read
 
     let rec add_to_buffer b r = match read r with
     | s when Slice.is_eod s -> ()
@@ -205,36 +238,56 @@ module Bytes = struct
       in
       loop r oc
 
+    (* Formatting *)
+
+    let pp ppf r =
+      Format.fprintf ppf "<reader slice_len:%a start_pos:%d read:%d>"
+        Slice.pp_length_option r.slice_length r.stream_offset r.read_length
+
     let trace_reads f r =
       let read () = let slice = r.read () in f slice; slice in
       { r with read }
-
-    let get_stream_offset ~none = function
-    | None -> none.stream_offset | Some i -> i
   end
 
   module Writer = struct
     type t =
-      { stream_offset : int;
+      { slice_length : Slice.length option;
+        stream_offset : int;
         write : Slice.t -> unit;
-        slice_length : int option;
         mutable written_length : int }
 
-    let make ?(stream_offset = 0) ?slice_length write =
-      let slice_length = Option.map Slice.check_length slice_length in
-      { stream_offset; write; slice_length; written_length = 0 }
+    let ignore_write s = ()
+    let ignore () =
+      { slice_length = None; stream_offset = 0; write = ignore_write;
+        written_length = 0 }
 
-    let of_writer ?stream_offset ?slice_length w write =
-      let stream_offset = Option.value ~default:w.stream_offset stream_offset in
+    let make_default = ignore ()
+    let make
+        ?start_from:(w = make_default)  ?slice_length ?stream_offset
+        ?(written_length = 0) write
+      =
       let slice_length = match slice_length with
-      | None -> w.slice_length | Some l -> Some (Slice.check_length l)
+      | None -> w.slice_length | Some l -> Option.map Slice.check_length l
       in
-      let written_length = w.written_length in
-      { stream_offset; write; slice_length; written_length }
+      let stream_offset = Option.value ~default:w.stream_offset stream_offset in
+      { stream_offset; slice_length; write; written_length }
+
+    (* Stream properties *)
 
     let slice_length w = w.slice_length
     let stream_offset w = w.stream_offset
     let written_length w = w.written_length
+    let with_stream_props ?from ?slice_length ?stream_offset ?written_length w =
+      let d = Option.value ~default:w from in
+      let slice_length = Option.value ~default:d.slice_length slice_length in
+      let stream_offset = Option.value ~default:d.stream_offset stream_offset in
+      let written_length =
+        Option.value ~default:d.written_length written_length
+      in
+      { w with slice_length; stream_offset; written_length }
+
+    (* Writing *)
+
     let write w slice =
       w.written_length <- w.written_length + Slice.length slice;
       w.write slice
@@ -275,7 +328,9 @@ module Bytes = struct
       let blen = Option.value ~default:Slice.io_buffer_size w.slice_length in
       loop w ic (Bytes.create blen)
 
-    let of_out_channel ?stream_offset ?slice_length ?(flush_slices = false) oc =
+    (* Converting *)
+
+    let of_out_channel ?slice_length ?(flush_slices = false) oc =
       let () = Out_channel.set_binary_mode oc true in
       let write = function
       | s when Slice.is_eod s -> ()
@@ -283,17 +338,26 @@ module Bytes = struct
           Slice.(Out_channel.output oc (bytes s) (first s) (length s));
           if flush_slices then Out_channel.flush oc
       in
-      make ?stream_offset ?slice_length write
+      let stream_offset =
+        let pos = Out_channel.pos oc in
+        match Int64.unsigned_to_int pos with
+        | None -> raise (Sys_error (Stream.err_channel_pos "Bytes.Writter" pos))
+        | Some i -> i
+      in
+      make ~stream_offset ~slice_length write
 
-    let of_buffer ?stream_offset ?slice_length b =
+    let of_buffer ?slice_length b =
       let write = function
       | s when Slice.is_eod s -> ()
       | s -> Slice.(Buffer.add_subbytes b (bytes s) (first s) (length s))
       in
-      make ?stream_offset ?slice_length write
+      make ~slice_length write
 
-    let get_stream_offset ~none = function
-    | None -> none.stream_offset | Some i -> i
+    (* Formatting *)
+
+    let pp ppf w =
+      Format.fprintf ppf "<writer slice_len:%a start_pos:%d written:%d>"
+        Slice.pp_length_option w.slice_length w.stream_offset w.written_length
 
     let trace_writes f w =
       let write slice = f slice; w.write slice in

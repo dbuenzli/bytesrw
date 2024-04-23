@@ -1,0 +1,42 @@
+{0 Bytes reader and writer tutorial}
+
+
+
+{1:positions Stream positions}
+
+For many usages stream positions are irrelevant. However one should
+pay attention to them when devising readers and writers so that errors
+are reported accurately.
+
+Byte reader and writers maintain the number of bytes they have read or
+written. This provides a {e current relative position} in the stream
+which represents the stream byte index of the next byte to read or
+write.
+
+They also have a stream start position.
+
+When a reader [r1] starts reading from a reader [r0] it should set its
+stream start position to the current relative position of [r0].
+
+When a writer [w1] starts writing on a writer [w0] it should set its
+stream start position to the current relative position of [w0].
+
+
+
+  {[
+     ^
+     | read(2)
+     0  skip  n
+     |........|......|
+              ^
+              | gz decompression
+              0        m
+              |........|.......|
+                       ^
+                       | tar decode
+                       0
+                       |.......|
+                       ^
+                       | JSON decode
+
+  ]}

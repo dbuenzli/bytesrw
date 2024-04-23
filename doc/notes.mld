@@ -1,0 +1,6 @@
+
+{0 Design notes}
+
+* No arbitrary getter/setter on mutable fields and changing them makes
+  a new reader/writer. This is by design so that reader and writer
+  filters plunged in a composition can't fiddle with these fields.

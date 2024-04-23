@@ -3,11 +3,11 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** [zstd] compressed byte streams.
+(** [zstd] compressed streams.
 
     This module provides support for reading and writing
     {{:https://www.rfc-editor.org/rfc/rfc8878.html}[zstd]} compressed
-    byte streams with the {{:http://zstd.net/}[libzstd]} C library. *)
+    streams with the {{:http://zstd.net/}[libzstd]} C library. *)
 
 open Bytesrw
 
@@ -57,18 +57,17 @@ module Ddict : sig
 end
 
 val decompress_reads :
-  ?stream_offset:int -> ?slice_length:int -> ?dict:Ddict.t ->
+  ?slice_length:Bytes.Slice.length -> ?dict:Ddict.t ->
   ?params:Dctx_params.t -> Bytes.Reader.t -> Bytes.Reader.t
 (** [decompress_reads r] decompresses the [zstd] compressed reads of [r].
     {ul
     {- [dict] is the decompression dictionary, if any.}
     {- [params] defaults to {!Dctx_params.default}}
     {- [slice_length] defaults to {!ddst_slice_length}.}
-    {- [stream_offset] defaults to [r]'s stream offset.}
     {- If you get to create [r] use {!dsrc_slice_length} for its slices.}}  *)
 
 val decompress_writes :
-  ?stream_offset:int -> ?slice_length:int -> ?dict:Ddict.t ->
+  ?slice_length:Bytes.Slice.length -> ?dict:Ddict.t ->
   ?params:Dctx_params.t -> Bytes.Writer.t -> Bytes.Writer.t
 (** [decompress_writes w] decompresses [zstd] compressed writes and
     writes the result on [w].
@@ -76,9 +75,8 @@ val decompress_writes :
     {- [dict] is the decompression dictionary, if any.}
     {- [params] defaults to {!Dctx_params.default}}
     {- [slice_length] defaults to {!dsrc_slice_length}}
-    {- [stream_offset] defaults to [w]'s stream offset.}
-    {- Compressed slice lengths abides to [w]'s
-       desire but if you get to create it use {!ddst_slice_length}.}} *)
+    {- Compressed slice lengths abides to [w]'s desire but if you get to
+       create it use {!ddst_slice_length}.}} *)
 
 (** {1:compress Compress} *)
 
@@ -130,8 +128,8 @@ module Cdict : sig
 end
 
 val compress_reads :
-  ?stream_offset:int -> ?slice_length:int -> ?dict:Cdict.t ->
-  ?params:Cctx_params.t -> Bytes.Reader.t -> Bytes.Reader.t
+  ?slice_length:int -> ?dict:Cdict.t -> ?params:Cctx_params.t ->
+  Bytes.Reader.t -> Bytes.Reader.t
 (** [compress_reads r] compresses the reads of [r] with [zstd].
     {ul
     {- [dict] is the compression dictionary, if any.}
@@ -141,15 +139,14 @@ val compress_reads :
     {- If you get to create [r] use {!csrc_slice_length} for its slices.}} *)
 
 val compress_writes :
-  ?stream_offset:int -> ?slice_length:int -> ?dict:Cdict.t ->
-  ?params:Cctx_params.t -> Bytes.Writer.t -> Bytes.Writer.t
+  ?slice_length:int -> ?dict:Cdict.t -> ?params:Cctx_params.t ->
+  Bytes.Writer.t -> Bytes.Writer.t
 (** [compress_writes w] compresses to [zstd] writes and writes the
     result on [w].
     {ul
     {- [dict] is the compression dictionary, if any.}
     {- [params] defaults to {!Cctx_params.default}.}
     {- [slice_length] defaults to {!dsrc_slice_length}.}
-    {- [stream_offset] defaults to [w]'s stream offset.}
     {- Decompressed slice length abides to [w]'s desire but if you get to
        create it use {!ddst_slice_length}.}} *)
 

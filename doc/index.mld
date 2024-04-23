@@ -9,26 +9,45 @@ Except for byte slice {{!Bytesrw.Bytes.Slice.validity}life-times},
 these abstractions intentionally separate away ressource management
 and the specifics of reading and writing bytes.
 
+{1:manuals Manuals}
+
+The following manuals are available:
+
+{ul
+{- The {{!quick}quick start} should get you started}
+{- The {{!tutorial}tutorial} shows you how to devise your own
+   stream processors}
+{- The {{!conventions}conventions} are conventions to follow
+   if you write byte stream reader and writed based codecs}}
+
 {1:bytesrw Library [bytesrw]}
 
+This library has the base definition of bytes
+reader and writers as an extension of the {!Stdlib.Bytes}
+module.
+
 {!modules:
-Bytesrw
-}
+Bytesrw}
+
 {!modules:
 Bytesrw.Bytes.Slice
 Bytesrw.Bytes.Reader
 Bytesrw.Bytes.Writer}
 
+{1:bytesrw_kit Library [bytesrw.kit]}
 
-{1:bytesrw_zlib Library [bytesrw.zlib]}
+The following modules rely only the [Stdlib]:
+
+{!modules:
+Bytesrw_utf}
+
+{1:bytesrw_compress Libraries [bytesrw.{zlib,zstd}]}
+
+Each of these modules lives in its corresponding
+library and depends on their canonical C library.
 
 {!modules:
 Bytesrw_zlib
-}
-
-{1:bytesrw_zstd Library [bytesrw.zstd]}
-
-{!modules:
 Bytesrw_zstd
 }
 
@@ -38,11 +57,6 @@ Bytesrw_zstd
 
 {ul
 {- Use size maybe ? But size is never used by the stdlib.}
-{- Make a decision on whether [?slice_length] on readers and writers are
-   hints or hard limits. If it is a hard limit, the abstraction could
-   transparently adapt the size of slices. But then we could also
-   simply provide reslice combinators for those clients that want
-   the guarantees.}
 {- Reader and writer, sneak over the data and mutate the read/write
    function when [eod] has been seen ? Could be benificial not to
    keep references on these closures. For readers this could also be
@@ -53,16 +67,8 @@ Bytesrw_zstd
 {- [Bytesrw_unix].}
 {- Small howto and a simple tutorial to devise your own. Show read
    sniffing.}
-{- Sort out the [stream_offset] and \{[written],[read]\}[_length] system,
-   so that it can be reliable and not painful to work with. Idea:
-   transformers should always offset from the structure they transform.
-   Allow to change the values but as a new value (that way if we give
-   access to their own value to reader/writer they can't fiddle with the
-   counts.)}
-{- Sort out an error convention. If we give access to the reader
-   and writer in the functions
-   then it could be [exception M.Error of Bytes.processor option * 'a].
-   Does this open a can of worm ? Self-writes and reads.}
+{- Sort out an error convention. Perhaps
+   have a Bytes.Stream_error exception and an extensible type.}
 {- [Bytesrw_zstd], add per frame control,
    figure out the mulithreaded compression support (we'd need to copy
    the bytes), add stream offsets to errors.}

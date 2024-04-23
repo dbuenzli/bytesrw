@@ -190,6 +190,10 @@ module Bytes : sig
         is purely informational. It can be useful for error
         reporting. *)
 
+    val read_length : t -> int
+    (** [read_length r] is the number of bytes returned by calls to
+        {!read}. *)
+
     (** {1:reads Reading} *)
 
     val read : t -> Slice.t
@@ -290,6 +294,9 @@ module Bytes : sig
         it is purely informational. It can be useful for error
         reporting. *)
 
+    val written_length : t -> int
+    (** [written_length w] is the number of bytes written on [w]. *)
+
     (** {1:writing Writing} *)
 
     val write : t -> Slice.t -> unit
@@ -302,21 +309,24 @@ module Bytes : sig
 
     val write_bytes : t -> bytes -> unit
     (** [write_bytes w b] writes the bytes [b] on [w] in
-        {!slice_length} slices. The bytes of [b] must not change until
-        the function returns. *)
+        {!slice_length} slices or a single slice if [None]. The bytes
+        of [b] must not change until the function returns. *)
 
     val write_string : t -> string -> unit
     (** [write_string] is like {!write_bytes} but writes a string. *)
 
     val write_reader : eod:bool -> t -> Reader.t -> unit
     (** [write_reader w r] writes the slices of [r]
-        on [w]. {!Slice.eod} is only written if [eod] is [true]. *)
+        on [w]. {!Slice.eod} is only written if [eod] is [true].
+        Note that the slices are written as given by [r] and may
+        not respect [w]'s desired {!slice_length}. *)
 
     val write_in_channel : eod:bool -> t -> In_channel.t -> unit
     (** [write_in_channel w ic] sets [ic] to
         {{!In_channel.set_binary_mode}binary mode} and writes slices
         to [w] until the end of file is reached at which point
-        {!Slice.eod} is written iff [eod] is true. *)
+        {!Slice.eod} is written iff [eod] is true. The maximal length
+        of written slices are [w]'s {!slice_length}. *)
 
    (** {1:convert Converting} *)
 

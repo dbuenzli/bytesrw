@@ -41,10 +41,6 @@ Bytesrw_zstd
    transparently adapt the size of slices. But then we could also
    simply provide reslice combinators for those clients that want
    the guarantees.}
-{- Reader and writer, should we keep a byte count of consumed
-   slices ? E.g. [Reader.read_length] [Writer.written_length].
-   These informational bits are always useful to have and a pain
-   to have to make them on the side.}
 {- Reader and writer, sneak over the data and mutate the read/write
    function when [eod] has been seen ? Could be benificial not to
    keep references on these closures. For readers this could also be
@@ -54,6 +50,18 @@ Bytesrw_zstd
    e.g. we don't want to flush a possibly closed fd.}
 {- [Bytesrw_unix].}
 {- Small howto and a simple tutorial to devise your own.}
+{- Sort out the [stream_offset] and \{[written],[read]\}[_length] system,
+   so that it can be reliable and not painful to work with. Idea:
+   transformers should always offset from the structure they transform.
+   Allow to change the values but as a new value (that way if we give
+   access to their own value to reader/writer they can't fiddle with the
+   counts.)}
+{- Sort out an error convention. If we give access to the reader
+   and writer in the functions
+   then it could be [exception M.Error of Bytes.processor option * 'a].
+   Does this open a can of worm ? Self-writes and reads.}
 {- [Bytesrw_zstd], add per frame control,
    figure out the mulithreaded compression support (we'd need to copy
-   the bytes), add stream offsets to errors.}}
+   the bytes), add stream offsets to errors.}
+{- Possibly we could add an hmap to readers and writers. But let's KISS
+   for now.}}

@@ -99,24 +99,32 @@ module Bytes = struct
     type t =
       { stream_offset : int;
         read : unit -> Slice.t;
-        slice_length : int option; }
+        slice_length : int option;
+        mutable read_length : int; }
 
     let make ?(stream_offset = 0) ?slice_length read =
       let slice_length = Option.map Slice.check_length slice_length in
-      { stream_offset; read; slice_length }
+      { stream_offset; read; slice_length; read_length = 0 }
 
     let of_reader ?stream_offset ?slice_length r read =
       let stream_offset = Option.value ~default:r.stream_offset stream_offset in
       let slice_length = match slice_length with
       | None -> r.slice_length | Some l -> Some (Slice.check_length l)
       in
-      { stream_offset; read; slice_length }
+      let read_length = r.read_length in
+      { stream_offset; read; slice_length; read_length }
 
     let read_eod = Fun.const Slice.eod
-    let empty = { stream_offset = 0; read = read_eod; slice_length = None }
+    let empty =
+      { stream_offset = 0; read = read_eod; slice_length = None;
+        read_length = 0 }
+
     let stream_offset r = r.stream_offset
     let slice_length r = r.slice_length
-    let read r = r.read ()
+    let read_length r = r.read_length
+    let read r =
+      let slice = r.read () in
+      r.read_length <- r.read_length + Slice.length slice; slice
 
     let of_in_channel ?stream_offset ?(slice_length = Slice.io_buffer_size) ic =
       let () = In_channel.set_binary_mode ic true in
@@ -186,22 +194,28 @@ module Bytes = struct
     type t =
       { stream_offset : int;
         write : Slice.t -> unit;
-        slice_length : int option; }
+        slice_length : int option;
+        mutable written_length : int }
 
     let make ?(stream_offset = 0) ?slice_length write =
       let slice_length = Option.map Slice.check_length slice_length in
-      { stream_offset; write; slice_length }
+      { stream_offset; write; slice_length; written_length = 0 }
 
     let of_writer ?stream_offset ?slice_length w write =
       let stream_offset = Option.value ~default:w.stream_offset stream_offset in
       let slice_length = match slice_length with
       | None -> w.slice_length | Some l -> Some (Slice.check_length l)
       in
-      { stream_offset; write; slice_length }
+      let written_length = w.written_length in
+      { stream_offset; write; slice_length; written_length }
 
     let slice_length w = w.slice_length
     let stream_offset w = w.stream_offset
-    let write w slice = w.write slice
+    let written_length w = w.written_length
+    let write w slice =
+      w.written_length <- w.written_length + Slice.length slice;
+      w.write slice
+
     let write_eod w = write w Slice.eod
 
     let write_bytes w b =

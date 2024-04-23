@@ -8,12 +8,14 @@ open Bytesrw
 let filter_stdio_with_bytes_reader ~in_size filter =
   let i = Bytes.Reader.of_in_channel ?slice_length:in_size In_channel.stdin in
   let o = Bytes.Writer.of_out_channel Out_channel.stdout in
-  Bytes.Writer.write_reader ~eod:true o (filter i)
+  Bytes.Writer.write_reader ~eod:true o (filter i);
+  i, o
 
 let filter_stdio_with_bytes_writer ~out_size:osize filter =
   let i = Bytes.Reader.of_in_channel In_channel.stdin in
   let o = Bytes.Writer.of_out_channel ?slice_length:osize Out_channel.stdout in
-  Bytes.Writer.write_reader ~eod:true (filter o) i
+  Bytes.Writer.write_reader ~eod:true (filter o) i;
+  i, o
 
 let decompress processor params ~in_size ~out_size = match processor with
 | `Reader ->
@@ -31,15 +33,25 @@ let compress processor params ~in_size ~out_size = match processor with
     let c = Bytesrw_zstd.compress_writes ?slice_length:in_size ~params in
     filter_stdio_with_bytes_writer ~out_size c
 
-let trip mode clevel no_checksum processor in_size out_size =
-  try match mode with
-  | `Decompress ->
-      let params = Bytesrw_zstd.Dctx_params.make () in
-      decompress processor params ~in_size ~out_size; Ok 0
-  | `Compress ->
-      let checksum = not no_checksum in
-      let params = Bytesrw_zstd.Cctx_params.make ~clevel ~checksum () in
-      compress processor params ~in_size ~out_size; Ok 0
+let log_count i o =
+  let i = Bytes.Reader.read_length i in
+  let o = Bytes.Writer.written_length o in
+  let pct = Float.to_int ((float o /. float i) *. 100.) in
+  Printf.eprintf "i:%d o:%d o/i:%d%%\n%!" i o pct
+
+let trip mode clevel no_checksum processor in_size out_size show_count =
+  try
+    let i, o = match mode with
+    | `Decompress ->
+        let params = Bytesrw_zstd.Dctx_params.make () in
+        decompress processor params ~in_size ~out_size
+    | `Compress ->
+        let checksum = not no_checksum in
+        let params = Bytesrw_zstd.Cctx_params.make ~clevel ~checksum () in
+        compress processor params ~in_size ~out_size
+    in
+    if show_count then log_count i o;
+    Ok 0
   with
   | Bytesrw_zstd.Error e -> Error e
 
@@ -77,9 +89,13 @@ let cmd =
     let doc = "Do not add integrity checksums" in
     Arg.(value & flag & info ["no-check"] ~doc)
   in
+  let show_count =
+    let doc = "Show on $(b,stderr) final amount of bytes read and written." in
+    Arg.(value & flag & info ["show-count"] ~doc)
+  in
   Cmd.v (Cmd.info "zstdtrip" ~version:"%%VERSION%%" ~doc) @@
   Term.(const trip $ mode $ clevel $ no_checksum $ processor $
-        in_size $ out_size)
+        in_size $ out_size $ show_count)
 
 let main () = Cmd.eval_result' cmd
 let () = if !Sys.interactive then () else exit (main ())

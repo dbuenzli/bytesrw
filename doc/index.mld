@@ -31,6 +31,7 @@ Bytesrw}
 
 {!modules:
 Bytesrw.Bytes.Slice
+Bytesrw.Bytes.Stream
 Bytesrw.Bytes.Reader
 Bytesrw.Bytes.Writer}
 
@@ -71,9 +72,9 @@ Bytesrw_zstd
    have a Bytes.Stream_error exception and an extensible type.}
 {- [Bytesrw_zstd], add per frame control,
    figure out the mulithreaded compression support (we'd need to copy
-   the bytes), add stream offsets to errors.}
+   the bytes), add stream positions to errors.}
 {- Possibly we could add an hmap to readers and writers. But let's KISS
    for now.}
-{- Slices, add bigbytes converters. Breaking slice, decide whether
-   the funs should raise on empty slice or the [_or_eod] convention
-   be added.}}
+{- Slices, add bigbytes converters.}}
+
+See also the {{!page-notes}design notes}.

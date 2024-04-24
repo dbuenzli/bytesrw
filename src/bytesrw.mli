@@ -17,6 +17,8 @@ module Bytes : sig
 
   include module type of Stdlib.Bytes (** @closed *)
 
+  (** {1:streams Byte streams} *)
+
   (** Bytes slices.
 
       A bytes slice is a {e non-empty} consecutive range of bytes in a
@@ -196,6 +198,23 @@ module Bytes : sig
         {{:https://github.com/ocaml/ocaml/issues/5938}here}. *)
   end
 
+  (** Byte streams.
+
+      Byte streams have no concrete incarnation. They are
+      observed by {!Bytes.Reader}s and {!Bytes.Writer}s.  *)
+  module Stream : sig
+
+    (** {1:positions Stream position} *)
+
+    type pos = int
+    (** The type for stream positions.
+
+        The position of a stream is the zero-based byte index of
+        the next byte to read or write. It can also be seen as the
+        count of bytes read or written by a stream reader or
+        writer. *)
+  end
+
   (** Byte stream readers.
 
       Byte streams are sequences of {{!Slice}bytes slices}. A byte stream
@@ -211,12 +230,10 @@ module Bytes : sig
     (** The type for byte stream readers. *)
 
     val make :
-      ?start_from:t -> ?read_length:int -> ?slice_length:Slice.length option ->
-      ?stream_offset:int -> (unit -> Slice.t) -> t
-    (** [make read] is a reader from the function [read] which enumerates
-        the slices of a byte stream. The [read] function must satisfy the
-        following properties:
-
+      ?parent_pos:int -> ?slice_length:Slice.length -> (unit -> Slice.t) -> t
+    (** [make read] is a reader from the function [read] which
+        enumerates the slices of a byte stream. The [read] function must
+        satisfy the following properties:
         {ul
         {- [read ()] returns {!Slice.t} values until it returns
            a {!Slice.eod}. Once {!Slice.eod} is returned, further calls to
@@ -224,63 +241,82 @@ module Bytes : sig
         {- Returned slices must remain {{!Slice.validity}valid for reading}
            until the next call to [read ()].}}
 
-        The other arguments are the {{!props}stream properties}.
-        [read_length] defaults to [0], [stream_offset] defaults
-        to the read length of [start_from] and [slice_length] defaults
-        to the slice length of [start_from]. [start_from] defaults
-        to an {!empty} reader. *)
+        [parent_pos] defaults to [0] and [slice_length] to [None]. *)
 
-    val empty : unit -> t
-    (** [empty ()] reads an empty byte stream. It always returns
-        {!Slice.eod}.  The [slice_length] is [None], the
-        [stream_offset] is [0] and the read [read_length] is [0]. *)
+    val make' :
+      parent:t -> ?slice_length:Slice.length option -> (unit -> Slice.t) -> t
+    (** [make'] is like {!make} but {!parent_pos} is defined by the
+        {!pos} of [parent] and {!slice_length} by the slice length of
+        [parent], unless explicitly specified. *)
+
+    val empty : t
+    (** [empty] is an empty byte stream. It always returns
+        {!Slice.eod}.  The {!parent_pos} is [0] and
+        the {!slice_length} is [None]. *)
 
     (** {1:props Stream properties} *)
 
+    val parent_pos : t -> Stream.pos
+    (** [parent_pos r] is [r]'s start position in a parent stream.
+        This indicates that [r] returns (potentially transformed,
+        e.g. decompressed) bytes from a parent stream that starts at
+        this position in the parent position space.
+
+        {b Warning.} Due to push backs negative values can be returned. *)
+
+    val pos : t -> Stream.pos
+    (** [pos r] is the {{!Stream.pos}stream position} of the next byte to
+        read. Alternatively it can be seen as the number of bytes
+        returned by calls to [read] (not including push back replays),
+        see {!read_length}.
+
+        {b Warning.} Due to push backs negative values can be returned. *)
+
     val read_length : t -> int
-    (** [read_length r] is the number of bytes returned by calls to
-        {!read}. Note that given enough pushbacks this can be negative. *)
+    (** [read_length r] is an alternative name for {!pos}.
+
+        {b Warning.} Due to push backs negative values can be returned. *)
 
     val slice_length : t -> Slice.length option
-    (** [slice_length r] is a hint on the maximal length
-        of slices that [f] generates (if any). *)
+    (** [slice_length r] is a hint (if any) on the maximal length of
+        slices that [f] generates. *)
 
-    val stream_offset : t -> int
-    (** [stream_offset r] is the stream offset of [r]. This indicates
-        that [r] enumerates the portion of a larger byte stream that
-        starts at this offset. As far as byte readers are concerned it
-        is purely informational. It can be useful for error
-        reporting. Note the number is not guaranteed to [>= 0]. *)
-
-    val with_stream_props :
-      ?from:t -> ?read_length:int -> ?slice_length:int option ->
-      ?stream_offset:int -> t -> t
-    (** [with_stream_props r] is [r] with stream properties
-        adjusted by the given properties. Those unspecified take
-        the value of [from] which default to [r] itself. *)
+    (**/**)
+    val with_props :
+      ?from:t -> ?parent_pos:int -> ?pos:int -> ?slice_length:int option ->
+      t -> t
+    (** [with_props r] is [r] with stream properties adjusted by the
+        given properties. Those unspecified take the value of [from]
+        which default to [r] itself. *)
+    (**/**)
 
     (** {1:reads Reading} *)
 
     val read : t -> Slice.t
-    (** [read r] reads the next slice from [r]. The slice is {{!Slice.validity}
-        valid for reading} until the next call to [read] on [r].
-        Once {!Slice.eod} is returned, {!Slice.eod} is always returned. *)
+    (** [read r] reads the next slice from [r]. The slice is
+        {{!Slice.validity} valid for reading} until the next call to
+        [read] on [r].  Once {!Slice.eod} is returned, {!Slice.eod} is
+        always returned. *)
 
     (** {1:convert Converting} *)
 
-    val of_bytes : ?slice_length:Slice.length -> bytes -> t
+    val of_bytes :
+      ?parent_pos:Stream.pos -> ?slice_length:Slice.length -> bytes -> t
     (** [of_bytes s] reads the bytes of [b] with slices of maximal
-        length [slice_length] (defaults to [Bytes.length s]). *)
+        length [slice_length] which defaults to [Bytes.length s].
+        [parent_pos] defaults to [0]. *)
 
-    val of_string : ?slice_length:Slice.length -> string -> t
+    val of_string :
+      ?parent_pos:Stream.pos -> ?slice_length:Slice.length -> string -> t
     (** [of_string b] is like {!of_bytes} but reads the bytes of [s]. *)
 
-    val of_in_channel : ?slice_length:Slice.length -> In_channel.t -> t
+    val of_in_channel :
+      ?parent_pos:Stream.pos -> ?slice_length:Slice.length -> In_channel.t -> t
     (** [of_in_channel ic], sets [ic] in
         {{!In_channel.set_binary_mode}binary mode} and reads the bytes
-        of [ic] with slices of maximal length [slice_length] (defaults
-        to {!Slice.io_buffer_size}). The [stream_offset] of the reader
-        is set to {!In_channel.pos}. *)
+        of [ic] with slices of maximal length [slice_length] which
+        defaults to {!Slice.io_buffer_size}. [parent_pos] default to
+        {!In_channel.pos}. *)
 
     val to_string : t -> string
     (** [to_string r] reads [r] until {!Slice.eod} into a string [s]. *)
@@ -298,6 +334,9 @@ module Bytes : sig
         {!Slice.eod}. *)
 
     (** {1:fmt Formatting and inspecting} *)
+
+    val pp : Format.formatter -> t -> unit
+    (** [pp] formats readers for inspection. *)
 
     val trace_reads : (Slice.t -> unit) -> t -> t
     (** [trace_reads f w] invokes [f] with the slice before
@@ -317,8 +356,8 @@ module Bytes : sig
     (** The type for byte stream writers. *)
 
     val make :
-      ?start_from:t -> ?slice_length:Slice.length option ->
-      ?stream_offset:int -> ?written_length:int -> (Slice.t -> unit) -> t
+      ?parent_pos:Stream.pos -> ?slice_length:Slice.length ->
+      (Slice.t -> unit) -> t
     (** [make write] is a writer from the function [write] which
         iterates over the slices of a byte stream. The [write]
         function is called as follows:
@@ -330,39 +369,45 @@ module Bytes : sig
         {- Slice values given to [write] must remain {{!Slice.validity}valid
            for reading} until the [write] function returns.}}
 
-        The other arguments are the {{!props}stream properties}.
-        [read_length] defaults to [0], [stream_offset] defaults to the
-        written length of [start_from] and [slice_length] defaults to
-        the slice length of [start_from]. [start_from] defaults to an
-        {!ignore} writer. *)
+        [parent_pos] defaults to [0] and slice_length to [None]. *)
+
+    val make' :
+      parent:t -> ?slice_length:Slice.length option -> (Slice.t -> unit) -> t
+    (** [make'] is like {!make} but {!parent_pos} is defined by the {!pos}
+        of [parent] and {!slice_length} by the slice length of [parent],
+        unless explicitely specified. *)
 
     val ignore : unit -> t
     (** [ignore ()] is a writer that ignores the writes that are pushed
-        on it. The [slice_length] is [None], the [stream_offset] is [0]
-        and the [written_length] is [0]. *)
+        on it. The {!parent_pos} is [0] and the {!slice_length} is [None]. *)
 
     (** {1:props Stream properties} *)
+
+    val parent_pos : t -> Stream.pos
+    (** [parent_pos w] is [w]'s start position in a parent stream. This
+        indicates that [w] transforms (e.g. compresses) and writes bytes
+        on a parent stream that it further writes starting at this position. *)
+
+    val pos : t -> Stream.pos
+    (** [pos w] is the {{!Stream.pos}stream postion} of the next byte
+        to write. Alternatively it can be seen as the number of bytes
+        written on [w], see {!written_length}. *)
 
     val slice_length : t -> Slice.length option
     (** [slice_length w] is a hint on the maximal length of slices that
         [w] would like to receive (if any). *)
 
-    val stream_offset : t -> int
-    (** [stream_offset w] is the stream offset of [w]. This indicates
-        that [w] iterates a portion of a larger byte stream that
-        starts at this offset. As far as byte writers are concerned
-        it is purely informational. It can be useful for error
-        reporting. *)
-
     val written_length : t -> int
-    (** [written_length w] is the number of bytes written on [w]. *)
+    (** [written_length w] is an alternative name for {!pos}. *)
 
-    val with_stream_props :
-      ?from:t -> ?slice_length:Slice.length option -> ?stream_offset:int ->
-      ?written_length:int -> t -> t
-   (** [with_stream_props w] is [w] with stream properties
-       adjusted by the given properties. Those unspecified take
-       the value of [from] which default to [r] itself. *)
+    (**/**)
+    val with_props :
+      ?from:t -> ?parent_pos:Stream.pos -> ?pos:Stream.pos ->
+      ?slice_length:Slice.length option -> t -> t
+   (** [with_props w] is [w] with stream properties adjusted by
+       the given properties. Those unspecified take the value of
+       [from] which default to [r] itself. *)
+    (**/**)
 
     (** {1:writing Writing} *)
 
@@ -376,8 +421,8 @@ module Bytes : sig
 
     val write_bytes : t -> bytes -> unit
     (** [write_bytes w b] writes the bytes [b] on [w] in
-        {!slice_length} slices or a single slice if [None]. The bytes
-        of [b] must not change until the function returns. *)
+        {!slice_length} slices. The bytes of [b] must not change until the
+        function returns. *)
 
     val write_string : t -> string -> unit
     (** [write_string] is like {!write_bytes} but writes a string. *)
@@ -398,16 +443,18 @@ module Bytes : sig
    (** {1:convert Converting} *)
 
     val of_out_channel :
-      ?slice_length:Slice.length -> ?flush_slices:bool -> Out_channel.t -> t
+      ?parent_pos:int -> ?slice_length:Slice.length ->
+      ?flush_slices:bool -> Out_channel.t -> t
     (** [of_out_channel oc] sets [oc] to binary mode and writes slices
         to [oc]. If [flush_slices] is [true] (defaults to [false]), [oc] is
         {{!Out_channel.flush}flushed} after each slice except {!Slice.eod}.
-        The [stream_offset] of the writer is set to {!Out_channel.pos}. *)
+        [parent_pos] defaults to {!Out_channel.pos}. The hinted
+        {!slice_length} defaults to {!Slice.io_buffer_size}. *)
 
-    val of_buffer : ?slice_length:Slice.length -> Buffer.t -> t
+    val of_buffer :
+      ?parent_pos:int -> ?slice_length:Slice.length -> Buffer.t -> t
     (** [of_buffer b] writes slices to [b].
 
-        [slice_length] and [stream_offset] are given to {!make}.
         [slice_length] is not that important but we default it to
         {!Slice.io_buffer_size}, so that channel and fd readers that
         may ajust their own buffers on writers adjust nicely for

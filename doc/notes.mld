@@ -1,23 +1,52 @@
-
 {0 Design notes}
-
-- No arbitrary getter/setter on mutable fields and changing them makes
-  a new reader/writer (not in the applicative sense, we don't deal
-  with purely functional structures). This is by design so that reader
-  and writer filters part a composition can't fiddle with these
-  fields.
 
 - We settle on [length]s rather than [sizes] because that's what
   the [Stdlib] generally uses.
 
 - We use [first], [last] and [length] for slice indexing and [pos],
   [parent_pos] for streams. That way the terminology does not overlap
-  which makes it for a clearer exposition.
+  which makes it for a clearer exposition. Indentally our usage of
+  [pos] is constent with the [Stdlib] (though the index vs position
+  terminology should not have been introduced in my opinion).
 
 - The design tries to enforce well formed streams. For example no
   spurious empty slices (they terminate streams), or calls to
-  enumerators and iterators after eod.
+  enumerators and iterators after eod. In particular in {!Bytes.Slice}
+  we mention in the names that users are made aware that they may
+  produce {!Slice.eod} since producing or pushing them terminates
+  streams.
 
-- In {!Bytes.Slice} we make sure that users are made aware that they
-  may produce {!Slice.eod} in the names since producing or pushing
-  them terminate streams.
+- No arbitrary getter/setter on mutable fields and changing them makes
+  a new reader/writer (not in the applicative sense, we don't deal
+  with purely functional structures). This is by design so that reader
+  and writer filters part a composition can't fiddle with these
+  fields. Also for now we decided to hide this function.
+
+{1:upstream Upstreaming}
+
+A few things to consider if we want, {b after we have determined that
+this API works well}, to upstream {!Bytesrw.Bytes}.
+
+- The labels with lengths are not abbreviated, we have [~length] and
+  [~slice_length], the Stdlib uses [~len]. A counter here is to
+  mention that this corresponds to the name of the fields
+  of the structures and there is little point to invent new names
+  (and say {!Slice.len} would by inconsistent with
+  [{String,Bytes}.length]).
+
+- The [?first ?last] subrange interface was rejected by upstream for
+  strings. For wrong reasons in my opinion. Aesthetics of [+/-1]
+  (counter 1: clarity; counter 2: depends on your use case, you then
+  also need to add +/-1) and provability (?). It's a pity since it's a
+  very usable interface that avoids a lot of footgunish index
+  computations and brings general code clarity. In general you want
+  both a position + length and an inclusive range interface (and FWIW
+  it's also consistent with OCaml's own inclusive [for] loop).
+
+- Dependencies. A few things will need to be dispatched differently
+  module wise, basically the channel stuff should move to the
+  [{In,Out}channel] modules and the buffer stuff to the [Buffer]
+  module. And the formatters won't make it or will end up in the
+  long-winded [Format]. But I don't think any functionality would be
+  lost except perhaps the nice hex dump formatter {!Bytes.pp_hex}
+  which is maybe too much code.

@@ -162,7 +162,7 @@ let decompress_reads ?slice_length ?dict ?params r =
           Zbuf.src_set_slice src slice; decode ctx ~src ~dst
   in
   let slice_length = Some dst.Zbuf.size in
-  Bytes.Reader.make ~start_from:r ~slice_length read
+  Bytes.Reader.make' ~parent:r ~slice_length read
 
 let decompress_writes ?slice_length ?dict ?params w =
   let ctx = make_dctx ?dict ?params () in
@@ -187,7 +187,7 @@ let decompress_writes ?slice_length ?dict ?params w =
   let slice_length = match slice_length with
   | None -> Some (dstream_in_size ()) | Some _ as l -> l
   in
-  Bytes.Writer.make ~start_from:w ~slice_length write
+  Bytes.Writer.make' ~parent:w ~slice_length write
 
 (* Compression *)
 
@@ -297,7 +297,7 @@ let compress_reads ?slice_length ?dict ?params r =
           Zbuf.src_set_slice src slice; encode ctx ~src ~dst
   in
   let slice_length = Some dst.Zbuf.size in
-  Bytes.Reader.make ~start_from:r ~slice_length read
+  Bytes.Reader.make' ~parent:r ~slice_length read
 
 let compress_writes ?slice_length ?dict ?params w =
   let ctx = make_cctx ?dict ?params () in
@@ -324,4 +324,4 @@ let compress_writes ?slice_length ?dict ?params w =
   let slice_length = match slice_length with
   | None -> Some (cstream_in_size ()) | Some _ as l -> l
   in
-  Bytes.Writer.make ~start_from:w ~slice_length write
+  Bytes.Writer.make' ~parent:w ~slice_length write

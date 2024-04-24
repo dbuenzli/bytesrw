@@ -61,8 +61,8 @@ val decompress_reads :
   ?params:Dctx_params.t -> Bytes.Reader.t -> Bytes.Reader.t
 (** [decompress_reads r] decompresses the [zstd] compressed reads of [r].
     {ul
-    {- [dict] is the decompression dictionary, if any.}
     {- [params] defaults to {!Dctx_params.default}}
+    {- [dict] is the decompression dictionary, if any.}
     {- [slice_length] defaults to {!dstream_out_size}.}
     {- If you get to create [r] use {!dstream_in_size} for its slices.}}  *)
 
@@ -72,8 +72,8 @@ val decompress_writes :
 (** [decompress_writes w] decompresses [zstd] compressed writes and
     writes the result on [w].
     {ul
-    {- [dict] is the decompression dictionary, if any.}
     {- [params] defaults to {!Dctx_params.default}}
+    {- [dict] is the decompression dictionary, if any.}
     {- [slice_length] defaults to {!dstream_in_size}}
     {- Compressed slice lengths abides to [w]'s desire but if you get to
        create it use {!dstream_out_size}.}} *)
@@ -132,10 +132,9 @@ val compress_reads :
   Bytes.Reader.t -> Bytes.Reader.t
 (** [compress_reads r] compresses the reads of [r] with [zstd].
     {ul
-    {- [dict] is the compression dictionary, if any.}
     {- [params] defaults to {!Cctx_params.default}.}
+    {- [dict] is the compression dictionary, if any.}
     {- [slice_length] defaults to {!cstream_out_size}.}
-    {- [stream_offset] defaults to [r]'s stream offset.}
     {- If you get to create [r] use {!cstream_in_size} for its slices.}} *)
 
 val compress_writes :
@@ -144,8 +143,8 @@ val compress_writes :
 (** [compress_writes w] compresses to [zstd] writes and writes the
     result on [w].
     {ul
-    {- [dict] is the compression dictionary, if any.}
     {- [params] defaults to {!Cctx_params.default}.}
+    {- [dict] is the compression dictionary, if any.}
     {- [slice_length] defaults to {!cstream_in_size}.}
     {- Decompressed slice length abides to [w]'s desire but if you get to
        create it use {!cstream_out_size}.}} *)

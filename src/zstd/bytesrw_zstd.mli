@@ -63,8 +63,8 @@ val decompress_reads :
     {ul
     {- [dict] is the decompression dictionary, if any.}
     {- [params] defaults to {!Dctx_params.default}}
-    {- [slice_length] defaults to {!ddst_slice_length}.}
-    {- If you get to create [r] use {!dsrc_slice_length} for its slices.}}  *)
+    {- [slice_length] defaults to {!dstream_out_size}.}
+    {- If you get to create [r] use {!dstream_in_size} for its slices.}}  *)
 
 val decompress_writes :
   ?slice_length:Bytes.Slice.length -> ?dict:Ddict.t ->
@@ -74,9 +74,9 @@ val decompress_writes :
     {ul
     {- [dict] is the decompression dictionary, if any.}
     {- [params] defaults to {!Dctx_params.default}}
-    {- [slice_length] defaults to {!dsrc_slice_length}}
+    {- [slice_length] defaults to {!dstream_in_size}}
     {- Compressed slice lengths abides to [w]'s desire but if you get to
-       create it use {!ddst_slice_length}.}} *)
+       create it use {!dstream_out_size}.}} *)
 
 (** {1:compress Compress} *)
 
@@ -134,9 +134,9 @@ val compress_reads :
     {ul
     {- [dict] is the compression dictionary, if any.}
     {- [params] defaults to {!Cctx_params.default}.}
-    {- [slice_length] defaults to {!cdst_slice_length}.}
+    {- [slice_length] defaults to {!cstream_out_size}.}
     {- [stream_offset] defaults to [r]'s stream offset.}
-    {- If you get to create [r] use {!csrc_slice_length} for its slices.}} *)
+    {- If you get to create [r] use {!cstream_in_size} for its slices.}} *)
 
 val compress_writes :
   ?slice_length:int -> ?dict:Cdict.t -> ?params:Cctx_params.t ->
@@ -146,9 +146,9 @@ val compress_writes :
     {ul
     {- [dict] is the compression dictionary, if any.}
     {- [params] defaults to {!Cctx_params.default}.}
-    {- [slice_length] defaults to {!dsrc_slice_length}.}
+    {- [slice_length] defaults to {!cstream_in_size}.}
     {- Decompressed slice length abides to [w]'s desire but if you get to
-       create it use {!ddst_slice_length}.}} *)
+       create it use {!cstream_out_size}.}} *)
 
 (** {1:lib Library parameters} *)
 
@@ -164,18 +164,18 @@ val max_clevel : unit -> Cctx_params.clevel
 val default_clevel : unit -> Cctx_params.clevel
 (** [default_clevel ()] is the default compression level. *)
 
-val csrc_slice_length : unit -> int
-(** [csrc_slice_length ()] is the recommended length of source slices
+val cstream_in_size : unit -> int
+(** [cstream_in_size ()] is the recommended length of input slices
     on compression. *)
 
-val cdst_slice_length : unit -> int
-(** [cdst_slice_length ()] is the recommended length of destination
-    slices on compression. *)
+val cstream_out_size : unit -> int
+(** [cstream_out_size ()] is the recommended length of output slices
+    on compression. *)
 
-val dsrc_slice_length : unit -> int
-(** [dsrc_slice_length ()] is the recommended length of source slices
+val dstream_in_size : unit -> int
+(** [dstream_in_size ()] is the recommended length of input slices
     on decompression. *)
 
-val ddst_slice_length : unit -> int
-(** [ddst_slice_length ()] is the recommended length of destination
+val dstream_out_size : unit -> int
+(** [dstream_out_size ()] is the recommended length of output
     slices on decompression. *)

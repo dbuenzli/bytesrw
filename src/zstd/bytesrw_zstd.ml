@@ -35,10 +35,6 @@ external cstream_in_size : unit -> int = "ocaml_bytesrw_ZSTD_CStreamInSize"
 external cstream_out_size : unit -> int = "ocaml_bytesrw_ZSTD_CStreamOutSize"
 external dstream_in_size : unit -> int = "ocaml_bytesrw_ZSTD_DStreamInSize"
 external dstream_out_size : unit -> int = "ocaml_bytesrw_ZSTD_DStreamOutSize"
-let csrc_slice_length = cstream_in_size
-let cdst_slice_length = cstream_out_size
-let dsrc_slice_length = dstream_in_size
-let ddst_slice_length = dstream_out_size
 
 (* [Zbuf.t] values are used to communicate with C. It is a counter
    part to ZSTD_inBuffer and ZSTD_outBuffer on the OCaml side. *)
@@ -146,7 +142,7 @@ let[@inline] not_flushed ~eof ~src ~dst =
 let decompress_reads ?slice_length ?dict ?params r =
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
-  let dst = Zbuf.make ?slice_length ddst_slice_length in
+  let dst = Zbuf.make ?slice_length dstream_out_size in
   let state = ref Await in
   let eof = ref false (* true on end of frames *) in
   let rec decode ctx ~src ~dst =
@@ -171,7 +167,7 @@ let decompress_reads ?slice_length ?dict ?params r =
 let decompress_writes ?slice_length ?dict ?params w =
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
-  let dst = Zbuf.make_for_writer w ~none:ddst_slice_length in
+  let dst = Zbuf.make_for_writer w ~none:dstream_out_size in
   let eof = ref false (* true on end of frames *) in
   let rec decode ctx ~src ~dst =
     eof := decompress ctx ~src ~dst;
@@ -189,7 +185,7 @@ let decompress_writes ?slice_length ?dict ?params w =
       Zbuf.src_set_slice src slice; decode ctx ~src ~dst
   in
   let slice_length = match slice_length with
-  | None -> Some (dsrc_slice_length ()) | Some _ as l -> l
+  | None -> Some (dstream_in_size ()) | Some _ as l -> l
   in
   Bytes.Writer.make ~start_from:w ~slice_length write
 
@@ -270,7 +266,7 @@ type compress_state = Await | Flush | Flush_eod
 let compress_reads ?slice_length ?dict ?params r =
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in
-  let dst = Zbuf.make ?slice_length cdst_slice_length in
+  let dst = Zbuf.make ?slice_length cstream_out_size in
   let state = ref Await in
   let eodir = ref false (* true when zstd_e_end has been encoded *) in
   let rec encode_e_end ctx ~src ~dst =
@@ -306,7 +302,7 @@ let compress_reads ?slice_length ?dict ?params r =
 let compress_writes ?slice_length ?dict ?params w =
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in
-  let dst = Zbuf.make_for_writer w ~none:cdst_slice_length in
+  let dst = Zbuf.make_for_writer w ~none:cstream_out_size in
   let rec encode_e_end ctx ~src ~dst =
     let is_eodir = compress ctx ~src ~dst ~end_dir:zstd_e_end in
     if not (Zbuf.dst_is_empty dst)
@@ -326,6 +322,6 @@ let compress_writes ?slice_length ?dict ?params w =
   | slice -> Zbuf.src_set_slice src slice; encode ctx ~src ~dst
   in
   let slice_length = match slice_length with
-  | None -> Some (csrc_slice_length ()) | Some _ as l -> l
+  | None -> Some (cstream_in_size ()) | Some _ as l -> l
   in
   Bytes.Writer.make ~start_from:w ~slice_length write

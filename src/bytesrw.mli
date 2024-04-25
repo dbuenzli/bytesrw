@@ -217,6 +217,50 @@ module Bytes : sig
         the next byte to read or write. It can also be seen as the
         count of bytes read or written by a stream reader or
         writer. *)
+
+    (** {1:kinds Stream format} *)
+
+    type format = string
+    (** The type for stream formats. An identifier for the format of
+        read or written bytes. Favour lowercased file extensions
+        without the dot or mime types. *)
+
+    (** {1:stream_errors Stream errors} *)
+
+    type error = ..
+    (** The type for stream errors. Stream formats add their own cases
+        to this type. *)
+
+    type error_context
+    (** The type for error contexts. *)
+
+    exception Error of (error * error_context)
+    (** The exception raised by streams reader, writers and their
+        setup functions. *)
+
+    val error_message : error * error_context -> string
+    (** [error_message e] turns error [e] into an error message for humans. *)
+
+    val error_to_result : error * error_context -> ('a, string) result
+    (** [error_to_result e] is [Result.Error (error_message e)]. *)
+
+    type 'e format_error
+    (** The type for describing errors of type ['e] for a stream format. *)
+
+    val make_format_error :
+      format:format -> case:('e -> error) -> message:(error -> string) ->
+      'e format_error
+    (** [make_format_error ~format ~case ~message] describes the type
+        of error for format [format]:
+        {ul
+        {- [format] identifies the stream {!format}.}
+        {- [case] is the function that injects the type into {!error}.}
+        {- [message] is a function that must stringify the results of [case].}}
+    *)
+
+    val error : ?context:[`R| `W] -> 'e format_error -> 'e -> 'a
+    (** [error fmt e] errors with [e] for a stream [fmt] by raising an
+        {!Error} exception. *)
   end
 
   (** Byte stream readers.
@@ -325,6 +369,13 @@ module Bytes : sig
 
         {b Warning.} This uses {!push_back} and should not be
         used as a general lookahead mecanism by stream readers. *)
+
+    (** {1:erroring Erroring} *)
+
+    val read_error : 'e Stream.format_error -> t -> 'e -> 'a
+    (** [read_error fmt r e] errors with [e] the last read for a
+        stream format [fmt] made on [r] by raising the {!Stream.Error}
+        exception. *)
 
     (** {1:convert Converting} *)
 
@@ -488,6 +539,13 @@ module Bytes : sig
         to [w] until the end of file is reached at which point
         {!Slice.eod} is written iff [eod] is true. The maximal length
         of written slices are [w]'s {!slice_length}. *)
+
+    (** {1:erroring Erroring} *)
+
+    val write_error : 'e Stream.format_error -> t -> 'e -> 'a
+    (** [write_error fmt w e] errors with [e] the last write
+        for a stream forat [fmt] made on [w] by raising the {!Stream.Error}
+        exception. *)
 
    (** {1:convert Converting} *)
 

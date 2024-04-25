@@ -13,12 +13,12 @@ open Bytesrw
 
 (** {1:errors Errors} *)
 
-exception Error of string
-(** The exception for [zstd] errors.
+type Bytes.Stream.error += Error of string (** *)
+(** The type for [zstd] stream errors.
 
     Except for the {{!lib}library parameters}, all functions of this
-    module and resulting reader and writers may raise this
-    exception. *)
+    module and resulting reader and writers may raise
+    {!Bytesrw.Bytes.Stream.Error} with this error. *)
 
 (** {1:decompress Decompress} *)
 

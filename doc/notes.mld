@@ -1,57 +1,129 @@
 {0 Design notes}
 
-- We settle on [length]s rather than [sizes] because that's what
+{1:wf Well formed streams}
+
+The design tries to enforce well-formed streams as a sequence of {e
+non-empty} slices terminated by {!Bytesrw.Bytes.Slice.eod}. We want to
+ensure that [read] and [write] functions of stream readers and writers
+are not called with unexpected empty slices or that they are called after
+they returned or were called with {!Bytesrw.Bytes.Slice.eod}.
+
+For example the {!Bytesrw.Bytes.Slice} creation functions raise
+[Invalid_argument] when they unexpectedly produce an empty slice and
+those that can produce them have dedicated names that include [_eod]
+to make users and code readers aware that this might terminate the stream.
+
+{1:semi Semi-applicative design}
+
+No setters on mutable fields. The function that change them (which we
+decided to hide for now) makes a new reader/writer. This of course
+does not turn readers and writers into applicative structures but it
+makes sure that [read] and [write] functions cannot fiddle with these
+fields in compositions.
+
+{1:errors Error strategy}
+
+The error strategy may look involved but it caters for:
+
+- Simple strategies like {!Bytesrw_zstd} where a single case is used
+  for all errors.
+- Complex strategies where a dedicated structured error type is used,
+  possibly distinguishing between setup/reader/writer errors
+
+while retaining the ability to pattern match on the error of specific
+streams and making sure informative human error messages can always be
+produced.
+
+For users it means that when they use streams:
+
+- There is a single exception to guard against and this exception can
+  trivially be turned into an error message.
+- Pattern matching on errors can still be used on a per stream format
+  basis.  This is needed for example for stream fromats that deal with
+  substreams of other formats: since streams can be layered on top of
+  each other and a lower level stream could error while you are
+  dealing with your own format, that error should not be caught
+  (XXX but what about ambiguities ?, should we add auto generated
+  stream ids ?).
+
+To enforce good behaviour by stream reader and writers the following
+type structure is used:
+
+- There is an extensible {!Bytesrw.Bytes.Stream.error} types to
+  which stream formats add they own case.
+- The {!Bytesrw.Bytes.Error} exception which holds a value of type
+  [error] cannot be directly raised as it demands the creation of a
+  {!Bytesrw.Bytes.error_context} value for which there is no constructor.
+- This means that all raises go through either {!Bytesrw.Bytes.Stream.error},
+  or {!Bytesrw.Bytes.Reader.read_error} or {!Bytesrw.Bytes.Writer.write_error}.
+  These functions ask for a {!Bytes.Bytes.Stream.format_error},
+  whose creation asks stream formats to identify themelves and describe
+  how their errors can be stringified.
+
+Effectively this system can be seen as an OCaml-like exception system
+inside the {!Bytes.Bytes.Stream.Error} exception.
+
+{1:names Names}
+
+- We settle on [length]s rather than [size]s because that's what
   the [Stdlib] generally uses.
 
 - We use [first], [last] and [length] for slice indexing and [pos],
   [parent_pos] for streams. That way the terminology does not overlap
   which makes it for a clearer exposition. Indentally our usage of
   [pos] is constent with the [Stdlib] (though the index vs position
-  terminology should not have been introduced in my opinion).
-
-- The design tries to enforce well formed streams. For example no
-  spurious calls with empty slices (they terminate streams), or calls
-  to reader and writer read/write functions after they return/were
-  given Slice.eod. Also in {!Bytesrw.Bytes.Slice} we make sure to mention in
-  the names they may produce {!Bytesrw.Bytes.Slice.eod} since producing
-  or pushing them terminates streams.
-
-- No arbitrary getter/setter on mutable fields and changing them makes
-  a new reader/writer (not in the applicative sense, we don't deal
-  with purely functional structures). This is by design so that reader
-  and writer filters part a composition can't fiddle with these
-  fields. Also for now we decided to hide this function.
+  terminology is unfortunate in my opinion).
 
 {1:upstream Upstreaming}
 
-A few things to consider if we want, {b after we have determined that
-this API works well}, to upstream {!Bytesrw.Bytes}.
+{b If we determine that this API works well} we should consider
+proposing to upstream the extension of {!Bytesrw.Bytes}. The code is
+mostly trivial it's "just" three data structures. But added code
+is more code to maintain.
 
-- The labels with lengths are not abbreviated, we have [~length] and
-  [~slice_length], the Stdlib uses [~len]. A counter here is to
-  mention that this corresponds to the name of the fields
-  of the structures and there is little point to invent new names
-  (and say [Bytes.Slice.len] would by inconsistent with
-  [{String,Bytes}.length]).
+However here are a few things to consider:
 
-- The [?first ?last] subrange interface was rejected by upstream for
-  strings. For wrong reasons in my opinion. Aesthetics of [+/-1]
-  (counter 1: clarity; counter 2: depends on your use case, you then
-  also need to add +/-1) and provability (?). It's a pity since it's a
-  very usable interface that avoids a lot of footgunish index
-  computations and brings general code clarity. In general you want
-  both a position + length and an inclusive range interface (and FWIW
-  it's also consistent with OCaml's own inclusive [for] loop).
+{ul
+{- The labels with lengths are not abbreviated, we have [~length] and
+   [~slice_length], the Stdlib uses [~len]. A counter here is to
+   mention that this corresponds to the name of the fields
+   of the structures and there is little point to multiply the names
+   for the same thing (and using [Bytes.Slice.len] would be weird and
+   inconsistent with [{String,Bytes}.length]).}
 
-- Dependencies. A few things will need to be dispatched differently
-  module wise, basically the channel stuff should move to the
-  [{In,Out}channel] modules and the buffer stuff to the [Buffer]
-  module. And the formatters won't make it or will end up in the
-  long-winded [Format]. But I don't think any functionality would be
-  lost except perhaps the nice hex dump formatter {!Bytesrw.Bytes.pp_hex}
-  which is maybe too much code.
+{- While most functions use a [first] + [length] for specifying ranges
+   a few functions are also provided with the (extremely nice I have to
+   say) inclusive [?first], [?last] range mechanism which was was
+   {{:https://github.com/ocaml/ocaml/pull/9893}percieved negatively} by
+   upstream for strings. For wrong reasons in my opinion revolving
+   around aesthetics of [+/-1] (counter 1: clarity; counter 2: depends
+   on your use case, you then also need to add +/-1) and provability
+   (?). It's a pity since it's a very usable interface that avoids a
+   lot of footgunish index computations and brings general code reading
+   clarity by requiring less mental labor. It's also consistent with
+   OCaml's own inclusive [for] loop and certainly not
+   {{:https://en.wikipedia.org/wiki/Comparison_of_programming_languages_(array)#Slicing}an
+  anomaly} in the language design space. See the also the discussion
+  {{:https://github.com/ocaml/ocaml/pull/10480#issuecomment-887928919}here}.}
 
-- Safety. There are two places where we don't copy a bytes/string
-  because we assume that the users abide the Slice validity
-  rule. Perhaps upstream will want no unsafe usage. These places can
-  be found with `git grep 'Unsafe is ok'`.
+{- Dependencies. A few things will need to be dispatched differently
+   module wise.
+
+   Basically the channel stuff should move to the [{In,Out}channel]
+   modules and the buffer stuff to the [Buffer] module. The
+   formatters won't make it or will end up in the unusably long-winded
+   [Format].
+
+   Besides that I don't think any functionality would be lost, in
+   particular we made sure not to use [Format] in the
+   {!Bytes.Stream.error} interface.
+
+   One thing I can see not make it is perhaps the nice hex dump
+   formatter {!Bytesrw.Bytes.pp_hex} which is maybe too much code for
+   upstream to take.}
+
+{- Safety. There are two places where we don't copy a bytes/string
+   because we assume that the users abide the Slice validity
+   rule. Notably {!Bytes.Reader.of_string}. Upstream will likely want
+   no unsafe usage. These places can be found with [git grep 'Unsafe is
+   ok'].}}

@@ -23,7 +23,16 @@ open Zstd_consts
 (* Errors. Stubs raise [Failure] in case of error which we then
    convert to this exception. *)
 
-exception Error of string
+type Bytes.Stream.error += Error of string
+
+let format_error =
+  let case msg = Error msg in
+  let message = function Error msg -> msg | _ -> assert false in
+  Bytes.Stream.make_format_error ~format:"zstd" ~case ~message
+
+let error e = Bytes.Stream.error format_error e
+let read_error r e = Bytes.Reader.read_error format_error r e
+let write_error r e = Bytes.Writer.write_error format_error r e
 
 (* Library parameters *)
 
@@ -117,72 +126,73 @@ module Ddict = struct (* Could be expanded to full ZSTD_DDict support. *)
 end
 
 let dctx_load_dictionary ctx dict = match dctx_load_dictionary ctx dict with
-| exception Failure e -> free_dctx ctx; raise (Error e)
+| exception Failure e -> free_dctx ctx; error e
 | () -> ()
 
 let make_dctx ?dict ?(params = Dctx_params.default) () =
   match create_dctx () with
-  | exception Failure e -> raise (Error e)
+  | exception Failure e -> error e
   | ctx ->
       Dctx_params.set ctx params;
       Option.iter (dctx_load_dictionary ctx) dict;
       ctx
 
-let decompress ctx ~src ~dst = match decompress_stream ctx ~src ~dst with
-| exception Failure e -> free_dctx ctx; raise (Error e)
-| is_eof -> is_eof
+let decompress error ctx ~src ~dst = match decompress_stream ctx ~src ~dst with
+| is_eof -> is_eof | exception Failure e -> free_dctx ctx; error e
 
 type decompress_state = Await | Flush
 
-let err_unexpected_eod () = raise (Error "Unexpected end of compressed data")
+let err_unexpected_eod () = error "Unexpected end of compressed data"
 
 let[@inline] not_flushed ~eof ~src ~dst =
   not (Zbuf.src_is_consumed src) || (Zbuf.dst_is_full dst && not eof)
 
 let decompress_reads ?slice_length ?dict ?params r =
+  let error = read_error r in
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
   let dst = Zbuf.make ?slice_length dstream_out_size in
   let state = ref Await in
   let eof = ref false (* true on end of frames *) in
-  let rec decode ctx ~src ~dst =
-    eof := decompress ctx ~src ~dst;
+  let rec decode error ctx ~src ~dst =
+    eof := decompress error ctx ~src ~dst;
     if Zbuf.dst_is_empty dst then (state := Await; read ()) else
     let slice = Zbuf.dst_to_slice dst in
     state := if not_flushed ~eof:!eof ~src ~dst then Flush else Await;
     Zbuf.dst_clear dst;
     slice
   and read () = match !state with
-  | Flush -> decode ctx ~src ~dst
+  | Flush -> decode error ctx ~src ~dst
   | Await ->
       match Bytes.Reader.read r with
       | slice when Bytes.Slice.is_eod slice ->
           free_dctx ctx; if !eof then slice else err_unexpected_eod ()
       | slice ->
-          Zbuf.src_set_slice src slice; decode ctx ~src ~dst
+          Zbuf.src_set_slice src slice; decode error ctx ~src ~dst
   in
   let slice_length = Some dst.Zbuf.size in
   Bytes.Reader.make' ~parent:r ~slice_length read
 
 let decompress_writes ?slice_length ?dict ?params w =
+  let error = write_error w in
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
   let dst = Zbuf.make_for_writer w ~none:dstream_out_size in
   let eof = ref false (* true on end of frames *) in
-  let rec decode ctx ~src ~dst =
-    eof := decompress ctx ~src ~dst;
+  let rec decode error ctx ~src ~dst =
+    eof := decompress error ctx ~src ~dst;
     if Zbuf.dst_is_empty dst then () (* await *) else
     let slice = Zbuf.dst_to_slice dst in
     let not_flushed = not_flushed ~eof:!eof ~src ~dst in
     Zbuf.dst_clear dst;
     Bytes.Writer.write w slice;
-    if not_flushed then decode ctx ~src ~dst else () (* await *)
+    if not_flushed then decode error ctx ~src ~dst else () (* await *)
   and write = function
   | slice when Bytes.Slice.is_eod slice ->
       free_dctx ctx;
       if !eof then Bytes.Writer.write_eod w else err_unexpected_eod ()
   | slice ->
-      Zbuf.src_set_slice src slice; decode ctx ~src ~dst
+      Zbuf.src_set_slice src slice; decode error ctx ~src ~dst
   in
   let slice_length = match slice_length with
   | None -> Some (dstream_in_size ()) | Some _ as l -> l
@@ -245,41 +255,41 @@ module Cdict = struct (* Could be expanded to full ZSTD_CDict support. *)
 end
 
 let cctx_load_dictionary ctx dict = match cctx_load_dictionary ctx dict with
-| exception Failure e -> free_cctx ctx; raise (Error e)
+| exception Failure e -> free_cctx ctx; error e
 | () -> ()
 
 let make_cctx ?dict ?(params = Cctx_params.default) () =
   match create_cctx () with
-  | exception Failure e -> raise (Error e)
+  | exception Failure e -> error e
   | ctx ->
       Cctx_params.set ctx params;
       Option.iter (cctx_load_dictionary ctx) dict;
       ctx
 
-let compress ctx ~src ~dst ~end_dir =
+let compress error ctx ~src ~dst ~end_dir =
   match compress_stream2 ctx ~src ~dst ~end_dir with
-  | exception Failure e -> free_cctx ctx; raise (Error e)
-  | is_eodir -> is_eodir
+  | is_eodir -> is_eodir | exception Failure e -> free_cctx ctx; error e
 
 type compress_state = Await | Flush | Flush_eod
 
 let compress_reads ?slice_length ?dict ?params r =
+  let error = read_error r in
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in
   let dst = Zbuf.make ?slice_length cstream_out_size in
   let state = ref Await in
   let eodir = ref false (* true when zstd_e_end has been encoded *) in
-  let rec encode_e_end ctx ~src ~dst =
+  let rec encode_e_end error ctx ~src ~dst =
     if !eodir then (free_cctx ctx; Bytes.Slice.eod) else begin
-      eodir := compress ctx ~src ~dst ~end_dir:zstd_e_end;
-      if Zbuf.dst_is_empty dst then encode_e_end ctx ~src ~dst else
+      eodir := compress error ctx ~src ~dst ~end_dir:zstd_e_end;
+      if Zbuf.dst_is_empty dst then encode_e_end error ctx ~src ~dst else
       let slice = Zbuf.dst_to_slice dst in
       Zbuf.dst_clear dst;
       slice
     end
   in
-  let rec encode ctx ~src ~dst =
-    ignore (compress ctx ~src ~dst ~end_dir:zstd_e_continue);
+  let rec encode error ctx ~src ~dst =
+    ignore (compress error ctx ~src ~dst ~end_dir:zstd_e_continue);
     if Zbuf.dst_is_empty dst then (state := Await; read ()) else
     let slice = Zbuf.dst_to_slice dst in
     let flush = Zbuf.dst_is_full dst || not (Zbuf.src_is_consumed src)in
@@ -287,39 +297,41 @@ let compress_reads ?slice_length ?dict ?params r =
     Zbuf.dst_clear dst;
     slice
   and read () = match !state with
-  | Flush -> encode ctx ~src ~dst
-  | Flush_eod -> encode_e_end ctx ~src ~dst
+  | Flush -> encode error ctx ~src ~dst
+  | Flush_eod -> encode_e_end error ctx ~src ~dst
   | Await ->
       match Bytes.Reader.read r with
       | slice when Bytes.Slice.is_eod slice ->
-          state := Flush_eod; encode_e_end ctx ~src ~dst
+          state := Flush_eod; encode_e_end error ctx ~src ~dst
       | slice ->
-          Zbuf.src_set_slice src slice; encode ctx ~src ~dst
+          Zbuf.src_set_slice src slice; encode error ctx ~src ~dst
   in
   let slice_length = Some dst.Zbuf.size in
   Bytes.Reader.make' ~parent:r ~slice_length read
 
 let compress_writes ?slice_length ?dict ?params w =
+  let error = write_error w in
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in
   let dst = Zbuf.make_for_writer w ~none:cstream_out_size in
-  let rec encode_e_end ctx ~src ~dst =
-    let is_eodir = compress ctx ~src ~dst ~end_dir:zstd_e_end in
+  let rec encode_e_end error ctx ~src ~dst =
+    let is_eodir = compress error ctx ~src ~dst ~end_dir:zstd_e_end in
     if not (Zbuf.dst_is_empty dst)
     then (Bytes.Writer.write w (Zbuf.dst_to_slice dst); Zbuf.dst_clear dst);
-    if is_eodir then Bytes.Writer.write_eod w else encode_e_end ctx ~src ~dst
+    if is_eodir then Bytes.Writer.write_eod w else
+    encode_e_end error ctx ~src ~dst
   in
-  let rec encode ctx ~src ~dst =
-    ignore (compress ctx ~src ~dst ~end_dir:zstd_e_continue);
+  let rec encode error ctx ~src ~dst =
+    ignore (compress error ctx ~src ~dst ~end_dir:zstd_e_continue);
     if Zbuf.dst_is_empty dst then () (* await *) else
     let slice = Zbuf.dst_to_slice dst in
     let flush = Zbuf.dst_is_full dst || not (Zbuf.src_is_consumed src) in
     Zbuf.dst_clear dst;
     Bytes.Writer.write w slice;
-    if flush then encode ctx ~src ~dst else () (* await *)
+    if flush then encode error ctx ~src ~dst else () (* await *)
   and write = function
-  | slice when Bytes.Slice.is_eod slice -> encode_e_end ctx ~src ~dst
-  | slice -> Zbuf.src_set_slice src slice; encode ctx ~src ~dst
+  | slice when Bytes.Slice.is_eod slice -> encode_e_end error ctx ~src ~dst
+  | slice -> Zbuf.src_set_slice src slice; encode error ctx ~src ~dst
   in
   let slice_length = match slice_length with
   | None -> Some (cstream_in_size ()) | Some _ as l -> l

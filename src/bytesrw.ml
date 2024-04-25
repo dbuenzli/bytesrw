@@ -6,7 +6,11 @@
 module Bytes = struct
   include Bytes
 
+  let strf = Printf.sprintf
   let invalid_argf fmt = Printf.ksprintf invalid_arg fmt
+
+  let err_channel_pos kind pos =
+    strf "%s: channel position %Ld doesn't fit on int" kind pos
 
   module Slice = struct
     let err_invalid ~first ~length ~len =
@@ -19,12 +23,14 @@ module Bytes = struct
     let err_empty_range ~first ~last ~len =
       invalid_argf "invalid slice: first:%d last:%d bytes:%d" first last len
 
+    let err_length l =
+      invalid_argf "invalid slice length: %d is not positive" l
+
     (* Slice lengths *)
 
     type length = int
-
-    let err_length l = invalid_argf "invalid slice length: %d is not positive" l
     let check_length l = if l <= 0 then err_length l else l
+
     let pp_length_option ppf = function
     | None -> Format.pp_print_string ppf "<none>"
     | Some len -> Format.pp_print_int ppf len
@@ -167,8 +173,49 @@ module Bytes = struct
 
   module Stream = struct
     type pos = int
-    let err_channel_pos kind pos =
-      Printf.sprintf "%s: channel position %Ld doesn't fit on int" kind pos
+    type format = string
+    type error = ..
+    type error_context =
+      { context : [`R|`W] option;
+        format : format;
+        message : error -> string;
+        parent_pos : pos;
+        pos : pos; }
+
+    exception Error of (error * error_context)
+
+    let error_message (error, m) =
+      let context = match m.context with
+      | Some `R -> "reader " | Some `W -> "writer" | None -> ""
+      in
+      let message = m.message error in
+      strf "%s%s:%d/%d: %s" context m.format m.parent_pos m.pos message
+
+    let error_to_result e = Result.Error (error_message e)
+
+    type 'e format_error =
+      { format : format;
+        case : 'e -> error;
+        message : error -> string; }
+
+    let make_format_error ~format ~case ~message = { format; case; message }
+
+    let error' ~parent_pos ~pos ?context fmt e =
+      let format = fmt.format and message = fmt.message in
+      let ctx = { context; format; message; parent_pos; pos } in
+      raise (Error (fmt.case e, ctx))
+
+    let error ?context fmt e =
+      error' ~pos:0 ~parent_pos:0 (* FIXME *) ?context fmt e
+
+    let init () =
+      let printer = function
+      | Error e -> Some ("Bytes.Stream.Error: " ^ error_message e)
+      | _ -> None
+      in
+      Printexc.register_printer printer
+
+    let () = init ()
   end
 
   module Reader = struct
@@ -261,6 +308,11 @@ module Bytes = struct
           in
           loop (Bytes.create n) 0 n r s
 
+    (* Error *)
+
+    let read_error fmt r e =
+      Stream.error' ~context:`R ~parent_pos:r.parent_pos ~pos:r.pos fmt e
+
     (* Converting *)
 
     let of_bytes ?parent_pos ?slice_length b =
@@ -303,7 +355,8 @@ module Bytes = struct
           match Int64.unsigned_to_int pos with
           | Some p -> p
           | None ->
-              raise (Sys_error (Stream.err_channel_pos "Bytes.Reader" pos))
+              (* FIXME which kind of error ? *)
+              raise (Sys_error (err_channel_pos "Bytes.Reader" pos))
       in
       make ~parent_pos ~slice_length read
 
@@ -435,6 +488,11 @@ module Bytes = struct
       let blen = Option.value ~default:Slice.io_buffer_size w.slice_length in
       loop w ic (Bytes.create blen)
 
+    (* Erroring *)
+
+    let write_error fmt w e =
+      Stream.error' ~context:`W ~parent_pos:w.parent_pos ~pos:w.pos fmt e
+
     (* Converting *)
 
     let of_out_channel
@@ -455,7 +513,8 @@ module Bytes = struct
           match Int64.unsigned_to_int pos with
           | Some pos -> pos
           | None ->
-              raise (Sys_error (Stream.err_channel_pos "Bytes.Writer" pos))
+              (* FIXME which kind of error ? *)
+              raise (Sys_error (err_channel_pos "Bytes.Writer" pos))
       in
       make ~parent_pos ~slice_length write
 

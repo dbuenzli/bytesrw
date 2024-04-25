@@ -57,19 +57,17 @@ Bytesrw_zstd
 {1:todo TODO}
 
 {ul
-{- Use size maybe ? But size is never used by the stdlib.}
 {- [Bytesrw_unix].}
 {- Small howto and a simple tutorial to devise your own. Show read
    sniffing.}
-{- Sort out an error convention. Perhaps
-   have a Bytes.Stream_error exception and an extensible type.}
 {- [Bytesrw_zstd], add per frame control,
    figure out the mulithreaded compression support (we'd need to copy
-   the bytes), add stream positions to errors.}
-{- Possibly we could add an hmap to readers and writers. But let's KISS
-   for now.}
+   the bytes). Decide whether to add simple direct funs on [string].}
+{- [Slice], add bigbytes converters.}
+{- We could add an hmap to readers and writers. But let's KISS for now.}
 {- Push backs. Should we disallow pushing back to a negative position (in
-   which case {!Bytesrw.Bytes.Reader.empty} can become a value again) ?}
-{- Slices, add bigbytes converters.}}
+   which case {!Bytesrw.Bytes.Reader.empty} can become a value again) ?
+   We might want to push a header before a stream. But then we should
+   provide {!Bytes.Reader.append} at some point. }}
 
 See also the {{!page-notes}design notes}.

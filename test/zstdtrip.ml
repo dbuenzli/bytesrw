@@ -53,7 +53,7 @@ let trip mode clevel no_checksum processor in_size out_size show_count =
     if show_count then log_count i o;
     Ok 0
   with
-  | Bytesrw_zstd.Error e -> Error e
+  | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
 
 open Cmdliner
 

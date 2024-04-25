@@ -232,15 +232,13 @@ module Bytes : sig
     val make :
       ?parent_pos:int -> ?slice_length:Slice.length -> (unit -> Slice.t) -> t
     (** [make read] is a reader from the function [read] which
-        enumerates the slices of a byte stream. The [read] function must
-        satisfy the following properties:
+        enumerates the slices of a byte stream. The contract
+        between the reader and [read] is as follows:
         {ul
-        {- [read ()] returns {!Slice.t} values until it returns
-           a {!Slice.eod}. Once {!Slice.eod} is returned, further calls to
-           [read] always return {!Slice.eod}}
-        {- Returned slices must remain {{!Slice.validity}valid for reading}
-           until the next call to [read ()].}}
-
+        {- The slice returned by a call to [read] must remain
+           {{!Slice.validity}valid for reading} until the next call to [read].}
+        {- The reader guarantees to dereference [read] and never call it
+           again as soon as {!Slice.eod} is returned by [read].}}
         [parent_pos] defaults to [0] and [slice_length] to [None]. *)
 
     val make' :
@@ -359,15 +357,15 @@ module Bytes : sig
       ?parent_pos:Stream.pos -> ?slice_length:Slice.length ->
       (Slice.t -> unit) -> t
     (** [make write] is a writer from the function [write] which
-        iterates over the slices of a byte stream. The [write]
-        function is called as follows:
+        iterates over the slices of a byte stream. The contract
+        between the writer and [write] is as follows:
 
         {ul
-        {- [write] is called with {!Slice.t} values until it is called
-           with a {!Slice.eod} value. Once [write] was called with {!Slice.eod}
-           it will only ever be called with {!Slice.eod}.}
-        {- Slice values given to [write] must remain {{!Slice.validity}valid
-           for reading} until the [write] function returns.}}
+        {- The slice values given to [write] are {{!Slice.validity}valid
+           for reading} only until the [write] function returns.}
+        {- The writer guarantees that after [write] was called with
+           {!Slice.eod}, [write] is dereferenced by the writer and
+           will never be called again.}}
 
         [parent_pos] defaults to [0] and slice_length to [None]. *)
 
@@ -409,15 +407,23 @@ module Bytes : sig
        [from] which default to [r] itself. *)
     (**/**)
 
-    (** {1:writing Writing} *)
+    (** {1:writing Writing}
+
+        {b Note.} All these functions raise [Invalid_argument]
+        if a slice other than {!Slice.eod} is written after
+        a {!Slice.eod} was written. *)
 
     val write : t -> Slice.t -> unit
     (** [write w s] writes the slice [s] on [w]. [s] must remain
         {{!Slice.validity}valid for reading} until the function
-        returns. *)
+        returns.
+
+        The function raises [Invalid_argument] is [s] is written
+        after a {!Slice.eod} and [s] is not {!Slice.eod}. *)
 
     val write_eod : t -> unit
-    (** [write_eod w] is [write w Slice.eod]. *)
+    (** [write_eod w] is [write w Slice.eod]. Only {!Slice.eod}
+        can be written on [w] aftewards. *)
 
     val write_bytes : t -> bytes -> unit
     (** [write_bytes w b] writes the bytes [b] on [w] in

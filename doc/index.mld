@@ -58,13 +58,6 @@ Bytesrw_zstd
 
 {ul
 {- Use size maybe ? But size is never used by the stdlib.}
-{- Reader and writer, sneak over the data and mutate the read/write
-   function when [eod] has been seen ? Could be benificial not to
-   keep references on these closures. For readers this could also be
-   used to implement push back without having to create a new reader.}
-{- Not calling stuff after [Slice.eod] (rather than allowing
-   more calls with [Slice.eod]) is likely a better idea,
-   e.g. we don't want to flush a possibly closed fd.}
 {- [Bytesrw_unix].}
 {- Small howto and a simple tutorial to devise your own. Show read
    sniffing.}

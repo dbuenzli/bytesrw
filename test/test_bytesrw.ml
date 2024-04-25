@@ -20,16 +20,17 @@ let eq_eod sl =
   if not (Bytes.Slice.is_eod sl)
   then (log "%s <> Slice.eod" (Bytes.Slice.to_string sl); assert false)
 
+let bos s = Bytes.of_string s
+
 let test_slices () =
-  let b s = Bytes.of_string s in
   let err = assert_invalid_arg and eq = eq_slice in
   log "Testing Bytes.Slices";
-  eq (Bytes.Slice.make (b "1234") ~first:1 ~length:2) "23";
-  (err @@ fun () -> Bytes.Slice.make (b "1234") ~first:1 ~length:0);
-  eq_eod (Bytes.Slice.make_or_eod (b "1234") ~first:1 ~length:0);
-  eq (Bytes.Slice.of_bytes ~first:1 (b "1234") ) "234";
-  (err @@ fun () -> Bytes.Slice.of_bytes ~first:4 (b "1234"));
-  eq_eod (Bytes.Slice.of_bytes_or_eod ~first:4 (b "1234"));
+  eq (Bytes.Slice.make (bos "1234") ~first:1 ~length:2) "23";
+  (err @@ fun () -> Bytes.Slice.make (bos "1234") ~first:1 ~length:0);
+  eq_eod (Bytes.Slice.make_or_eod (bos "1234") ~first:1 ~length:0);
+  eq (Bytes.Slice.of_bytes ~first:1 (bos "1234") ) "234";
+  (err @@ fun () -> Bytes.Slice.of_bytes ~first:4 (bos "1234"));
+  eq_eod (Bytes.Slice.of_bytes_or_eod ~first:4 (bos "1234"));
   ()
 
 let test_read_length () =
@@ -60,11 +61,38 @@ let test_written_length () =
   assert (Buffer.contents b = "123456");
   ()
 
+let test_read_fun_eod () =
+  log "Testing Bytes.Reader.t end of stream";
+  let once = ref false in
+  let read () =
+    if !once then assert false else (once := true; Bytes.Slice.eod)
+  in
+  let r = Bytes.Reader.make read in
+  assert (Bytes.Slice.is_eod (Bytes.Reader.read r));
+  assert (Bytes.Slice.is_eod (Bytes.Reader.read r));
+  assert (Bytes.Slice.is_eod (Bytes.Reader.read r));
+  ()
+
+let test_write_fun_eod () =
+  log "Testing Bytes.Write.t end of stream";
+  let once = ref false in
+  let write _slice = if !once then assert false else once := true in
+  let w = Bytes.Writer.make write in
+  Bytes.Writer.write w Bytes.Slice.eod;
+  Bytes.Writer.write w Bytes.Slice.eod;
+  Bytes.Writer.write w Bytes.Slice.eod;
+  (assert_invalid_arg @@ fun () ->
+   Bytes.Writer.write w (Bytes.Slice.of_bytes (bos "nooooo!")));
+  ()
+
+
 let main () =
   log "Testing Bytesrw";
   test_slices ();
   test_read_length ();
   test_written_length ();
+  test_read_fun_eod ();
+  test_write_fun_eod ();
   log "\027[32;1mSuccess!\027[m";
   0
 

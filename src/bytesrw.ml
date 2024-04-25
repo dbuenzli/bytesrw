@@ -8,7 +8,6 @@ module Bytes = struct
 
   module Slice = struct
     let invalid_argf fmt = Printf.ksprintf invalid_arg fmt
-
     let err_invalid ~first ~length ~len =
       invalid_argf "invalid slice: first:%d length:%d bytes:%d" first length len
 
@@ -174,7 +173,7 @@ module Bytes = struct
     type t =
       { parent_pos : Stream.pos;
         mutable pos : int;
-        read : unit -> Slice.t;
+        mutable read : unit -> Slice.t;
         slice_length : Slice.length option }
 
     let make ?(parent_pos = 0) ?slice_length read =
@@ -208,7 +207,10 @@ module Bytes = struct
     (* Reading *)
 
     let read r =
-      let slice = r.read () in r.pos <- r.pos + Slice.length slice; slice
+      let slice = r.read () in
+      let len = Slice.length slice in
+      (if len = 0 then r.read <- read_eod);
+      r.pos <- r.pos + len; slice
 
     (* Converting *)
 
@@ -292,7 +294,7 @@ module Bytes = struct
       { parent_pos : int;
         mutable pos : int;
         slice_length : Slice.length option;
-        write : Slice.t -> unit; }
+        mutable write : Slice.t -> unit; }
 
     let make ?(parent_pos = 0) ?slice_length write =
       let slice_length = Option.map Slice.check_length slice_length in
@@ -325,9 +327,15 @@ module Bytes = struct
 
     (* Writing *)
 
+    let write_only_eod s =
+      if Slice.is_eod s then () else invalid_arg "slice written after eod"
+
     let write w slice =
-      w.pos <- w.pos + Slice.length slice;
-      w.write slice
+      let write = w.write in
+      let len = Slice.length slice in
+      (if len = 0 then w.write <- write_only_eod);
+      w.pos <- w.pos + len;
+      write slice
 
     let write_eod w = write w Slice.eod
     let write_bytes w b =

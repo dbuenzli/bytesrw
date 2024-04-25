@@ -10,11 +10,11 @@
   terminology should not have been introduced in my opinion).
 
 - The design tries to enforce well formed streams. For example no
-  spurious empty slices (they terminate streams), or calls to
-  enumerators and iterators after eod. In particular in {!Bytes.Slice}
-  we mention in the names that users are made aware that they may
-  produce {!Slice.eod} since producing or pushing them terminates
-  streams.
+  spurious calls with empty slices (they terminate streams), or calls
+  to reader and writer read/write functions after they return/were
+  given Slice.eod. Also in {!Bytes.Slice} we make sure to mention in
+  the names they may produce {!Slice.eod} since producing or pushing
+  them terminates streams.
 
 - No arbitrary getter/setter on mutable fields and changing them makes
   a new reader/writer (not in the applicative sense, we don't deal

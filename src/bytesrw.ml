@@ -12,6 +12,10 @@ module Bytes = struct
     let err_invalid ~first ~length ~len =
       invalid_argf "invalid slice: first:%d length:%d bytes:%d" first length len
 
+    let err_invalid_sub ~first ~length ~len =
+      invalid_argf "invalid subslice: first:%d length:%d slice:%d"
+        first length len
+
     let err_empty_range ~first ~last ~len =
       invalid_argf "invalid slice: first:%d last:%d bytes:%d" first last len
 
@@ -59,16 +63,48 @@ module Bytes = struct
     (* Breaking *)
 
     let take n s =
-      if n <= 0 then eod else
-      if n >= s.length then s else
-      { s with length = n }
+      if n <= 0 || is_eod s then None else
+      if n >= s.length then Some s else
+      Some { s with length = n }
 
     let drop n s =
-      if n <= 0 then s else
-      if n >= s.length then eod else
-      { s with first = s.first + n }
+      if n >= s.length || is_eod s then None else
+      if n <= 0 then Some s else
+      Some { s with first = s.first + n }
 
-    let break n s = take n s, drop n s
+    let break n s = match take n s with
+    | None -> None
+    | Some l -> (match drop n s with None -> None | Some r -> Some (l, r))
+
+    let sub' ~allow_eod s ~first ~length =
+      let max = s.length - 1 in
+      if first < 0 || first > max ||
+         length < 0 || first + length > max ||
+         (length = 0 && not allow_eod)
+      then err_invalid_sub ~first ~length ~len:(max + 1) else
+      if length = 0 then eod else
+      { bytes = s.bytes; first = s.first + first; length }
+
+    let sub s ~first ~length = sub' ~allow_eod:false s ~first ~length
+    let sub_or_eod s ~first ~length = sub' ~allow_eod:true s ~first ~length
+
+    let subrange' ~allow_eod ?(first = 0) ?last s =
+      let max = length s - 1 in
+      let last = match last with
+      | None -> max | Some last -> if last > max then max else last
+      in
+      let first = if first < 0 then 0 else first in
+      if first <= last then
+        { bytes = s.bytes; first = s.first + first; length = last - first + 1 }
+      else
+      if allow_eod then eod else
+      err_empty_range ~first ~last ~len:(max + 1)
+
+    let subrange ?first ?last s =
+      subrange' ~allow_eod:false ?first ?last s
+
+    let subrange_or_eod ?first ?last s =
+      subrange' ~allow_eod:true ?first ?last s
 
     (* Converting *)
 
@@ -79,8 +115,7 @@ module Bytes = struct
       in
       let first = if first < 0 then 0 else first in
       if first <= last then { bytes; first; length = last - first + 1 } else
-      if allow_eod then eod else
-      err_empty_range ~first ~last ~len:(max + 1)
+      if allow_eod then eod else err_empty_range ~first ~last ~len:(max + 1)
 
     let of_bytes ?first ?last bytes =
       of_bytes' ~allow_eod:false ?first ?last bytes

@@ -87,19 +87,50 @@ module Bytes : sig
     (** [length s] is the byte length of [s]. This returns [0]
         (only on) {!eod}. *)
 
-    (** {1:breaking Breaking slices} *)
+    (** {1:breaking Breaking slices}
 
-    val take : int -> t -> t
-    (** [take n s] is the slice made of the first [n] bytes of [s]
-        This is {!eod} if [n <= 0] and [s] itself if [n >= length s]. *)
+        {b Warning.} In these operations index specification are in {e
+        slice space} which starts at 0 at the slice's {!first}
+        bytes. *)
 
-    val drop : int -> t -> t
+    val take : int -> t -> t option
+    (** [take start n s] is the slice made of the first [n] bytes
+        starting at [first] in slice space. This is [None] if the
+        operation results in {!eod}, including if [s] is {!eod}. *)
+
+    val drop : int -> t -> t option
     (** [drop n s] is the slice made of the bytes of [s] without its
-        first [n] bytes. This is {!eod} if [n > length s] and [s] itself
-        if [n < 0] *)
+        first [n] bytes. This is [None] if the operation results in {!eod},
+        including if [s] is {!eod}. *)
 
-    val break : int -> t -> t * t
-    (** [break n s] is [take n s, drop n s]. *)
+    val break : int -> t -> (t * t) option
+    (** [break n s] is [(take n s, drop n s)] but returns [None]
+        if any result is [None]. *)
+
+    val sub : t -> first:int -> length:int -> t
+    (** [sub s ~first ~length] is the slice made of the consecutive bytes
+        of the range [b] whose indices exist in the non-empty
+        slice space range \[[first];[first + length - 1]\]. Raises
+        [Invalid_argument] if the interval is empty or out of bounds.
+        See also {!sub_or_eod}. *)
+
+    val sub_or_eod : t -> first:int -> length:int -> t
+    (** [sub_or_eod] is like {!sub} except that if the interval is
+       empty, {!eod} is returned. *)
+
+    val subrange : ?first:int -> ?last:int -> t -> t
+    (** [subrange ~first ~last s] is the slice made of the consecutive
+        bytes of the range of [s] whose indices exist in the non-empty
+        slice space range \[[first];[last]\] in slice space.
+
+        [first] defaults to [0] and [last] to [Slice.length s - 1].
+        Note that both [first] and [last] can be any integer. If
+        [s] is {!eod} or if [first > last] the interval is empty
+        and [Invalid_argument] is raised. See also {!subrange_or_eod}. *)
+
+    val subrange_or_eod : ?first:int -> ?last:int -> t -> t
+    (** [subrange_or_eod] is like {!of_bytes} except that if
+        the bytes are empty or if [first > last], {!eod} is returned. *)
 
     (** {1:converting Converting} *)
 
@@ -111,7 +142,7 @@ module Bytes : sig
         [first] defaults to [0] and [last] to [Bytes.length s - 1].
         Note that both [first] and [last] can be any integer. If
         [b] is empty or if [first > last] the interval is empty and
-        [Invalid_argument] is raised. *)
+        [Invalid_argument] is raised. See also {!of_bytes_or_eod}. *)
 
     val of_bytes_or_eod : ?first:int -> ?last:int -> bytes -> t
     (** [of_bytes_or_eod] is like {!of_bytes} except that if the bytes

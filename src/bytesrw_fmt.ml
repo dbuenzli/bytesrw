@@ -11,21 +11,21 @@ let pp_raw_char ppf c = match Char.code c with
 | _ -> (* XXX We should try to decode utf-8 and if not then escape *)
     Format.pp_print_char ppf c
 
-let pp_head_hex count ppf b =
-  let max = Int.min count (Bytes.length b) - 1 in
+let pp_head_hex count ~first ~len ppf b =
+  let max = first + Int.min count len - 1 in
   if max < 0 then Format.pp_print_string ppf "<empty>" else begin
     Format.pp_print_char ppf 'x';
-    for i = 0 to max
+    for i = first to max
     do pp_hex_char ppf (Bytes.get_uint8 b i) done;
-    if Bytes.length b - 1 > max then Format.fprintf ppf "@<1>%s" "…";
+    if len - 1 > max then Format.fprintf ppf "@<1>%s" "…";
   end
 
-let pp_head_raw count ppf b =
-  let max = Int.min count (Bytes.length b) - 1 in
+let pp_head_raw count ~first ~len ppf b =
+  let max = first + Int.min count len - 1 in
   if max < 0 then Format.pp_print_string ppf "<empty>" else begin
     Format.pp_print_char ppf '\"';
-    for i = 0 to max do Format.pp_print_char ppf (Bytes.get b i) done;
-    if Bytes.length b - 1 > max then Format.fprintf ppf "@<1>%s" "…";
+    for i = first to max do Format.pp_print_char ppf (Bytes.get b i) done;
+    if len - 1 > max then Format.fprintf ppf "@<1>%s" "…";
     Format.pp_print_char ppf '\"';
   end
 

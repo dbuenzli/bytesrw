@@ -13,6 +13,9 @@ let bos s = Bytes.of_string s
 let reader_of_list ss =
   Bytes.Reader.of_slice_seq (List.to_seq (List.map Bytes.Slice.of_string ss))
 
+let reader_to_list r =
+  List.of_seq (Seq.map Bytes.Slice.to_string (Bytes.Reader.to_slice_seq r))
+
 let assert_invalid_arg f =
   try f (); log "Expression did not raise"; assert false with
   | Invalid_argument _ -> ()
@@ -23,6 +26,10 @@ let eq_slice sl s =
 
 let eq_str s0 s1 =
   if s0 <> s1 then (log "%S <> %S" s0 s1; assert false) else ()
+
+let eq_slices r sl =
+  let sl' = reader_to_list r in
+  if sl' <> sl then (List.iter2 eq_str sl' sl; assert false)
 
 let eq_eod sl =
   if not (Bytes.Slice.is_eod sl)
@@ -91,7 +98,7 @@ let test_write_fun_eod () =
    Bytes.Writer.write w (Bytes.Slice.of_bytes (bos "nooooo!")));
   ()
 
-let test_push_backs () =
+let test_reader_push_backs () =
   log "Testing Bytes.Reader.push_back";
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
@@ -112,11 +119,38 @@ let test_push_backs () =
   assert (Bytes.Reader.pos r1 = 0);
   eq_slice (Bytes.Reader.read r1) "a";
   assert (Bytes.Reader.pos r1 = 1);
-  (assert_invalid_arg @@ fun () ->
-   Bytes.Reader.push_back r1 Bytes.Slice.eod);
+  Bytes.Reader.push_back r1 Bytes.Slice.eod;
+  assert (Bytes.Reader.pos r1 = 1);
+  eq_str (Bytes.Reader.to_string r1) "bbccc";
   ()
 
-let test_sniff () =
+let test_reader_sub_skip () =
+  log "Testing Bytes.Reader.{sub,skip}";
+  let r () = reader_of_list ["a"; "bb"; "ccc"] in
+  let r0 = r () in
+  eq_str (Bytes.Reader.to_string (Bytes.Reader.sub 2 r0)) "ab";
+  eq_str (Bytes.Reader.to_string r0) "bccc";
+  let r0 = r () in
+  eq_str (Bytes.Reader.to_string (Bytes.Reader.sub 128 r0)) "abbccc";
+  eq_str (Bytes.Reader.to_string r0) "";
+  let r0 = r () in
+  let () = Bytes.Reader.skip 2 r0 in
+  eq_str (Bytes.Reader.to_string r0) "bccc";
+  let r0 = r () in
+  let () = Bytes.Reader.skip 128 r0 in
+  eq_str (Bytes.Reader.to_string r0) "";
+  ()
+
+let test_reader_append () =
+  log "Testing Bytes.Reader.append";
+  let r0 () = reader_of_list ["a"; "bb"; "ccc"] in
+  let r1 () = reader_of_list ["d"; "ee"] in
+  eq_str Bytes.Reader.(to_string (append (r0 ()) (r1 ()))) "abbcccdee";
+  eq_str Bytes.Reader.(to_string (append (r0 ()) (empty ()))) "abbccc";
+  eq_str Bytes.Reader.(to_string (append (empty ()) (r1 ()))) "dee";
+  ()
+
+let test_reader_sniff () =
   log "Testing Bytes.Reader.sniff";
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
@@ -137,6 +171,17 @@ let test_sniff () =
   eq_str (Bytes.Reader.to_string r5) "";
   ()
 
+let test_reader_of_slice () =
+  log "Testing Bytes.Reader.of_slice" ;
+  let r ~slice_length () =
+    Bytes.Reader.of_slice ?slice_length (Bytes.Slice.of_string "bla")
+  in
+  eq_slices (r ~slice_length:None ()) ["bla"];
+  eq_slices (r ~slice_length:(Some 1) ()) ["b"; "l"; "a"];
+  eq_slices (r ~slice_length:(Some 2) ()) ["bl"; "a"];
+  eq_slices (r ~slice_length:(Some 5) ()) ["bla"];
+  ()
+
 let main () =
   log "Testing Bytesrw";
   test_slices ();
@@ -144,8 +189,11 @@ let main () =
   test_written_length ();
   test_read_fun_eod ();
   test_write_fun_eod ();
-  test_push_backs ();
-  test_sniff ();
+  test_reader_push_backs ();
+  test_reader_sub_skip ();
+  test_reader_append ();
+  test_reader_sniff ();
+  test_reader_of_slice ();
   log "\027[32;1mSuccess!\027[m";
   0
 

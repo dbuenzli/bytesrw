@@ -153,7 +153,10 @@ module Bytes = struct
       Format.fprintf ppf "@[<v>%a@,%a@]" pp_meta s pp_bytes s
 
     let pp_head ~hex c ppf s =
-      let pp_head = Bytesrw_fmt.(if hex then pp_head_hex else pp_head_raw) c in
+      let pp_head =
+        Bytesrw_fmt.(if hex then pp_head_hex else pp_head_raw)
+          c ~first:s.first ~len:s.length
+      in
       Format.fprintf ppf "@[%a %a@]" pp_meta s pp_head s.bytes
 
     let pp' ?(head = 4) ?(hex = true) () ppf s =
@@ -186,10 +189,10 @@ module Bytes = struct
 
     let error_message (error, m) =
       let context = match m.context with
-      | Some `R -> "reader " | Some `W -> "writer" | None -> ""
+      | Some `R -> " reader" | Some `W -> " writer" | None -> ""
       in
       let message = m.message error in
-      strf "%s%s:%d/%d: %s" context m.format m.parent_pos m.pos message
+      strf "%s%s:%d/%d: %s" m.format context m.parent_pos m.pos message
 
     let error_to_result e = Result.Error (error_message e)
 
@@ -205,7 +208,7 @@ module Bytes = struct
       let ctx = { context; format; message; parent_pos; pos } in
       raise (Error (fmt.case e, ctx))
 
-    let error ?context fmt e =
+    let error fmt ?context e =
       error' ~pos:0 ~parent_pos:0 (* FIXME *) ?context fmt e
 
     let init () =
@@ -261,16 +264,28 @@ module Bytes = struct
       (if len = 0 then r.read <- read_eod);
       r.pos <- r.pos + len; slice
 
-    (* Push back
+    let rec discard r = if Slice.is_eod (read r) then () else discard r
 
-       We disallow pushing back Slice.eod because we want to
-       be able to accurately detect the end of stream condition. *)
+    (* Appending *)
 
-    let err_eod_push = "cannot push back eod"
+    let append r0 r1 =
+      let slice_length = match r0.slice_length, r1.slice_length with
+      | None, None -> None
+      | Some l0, Some l1 -> Some (Int.max l0 l1)
+      | Some l,  None | None, Some l -> (Some l)
+      in
+      let r = make ?slice_length read_eod in
+      let read_r0 () = match r0.read () with
+      | s when Slice.is_eod s -> r.read <- r1.read; r1.read ()
+      | s -> s
+      in
+      r.read <- read_r0; r
+
+    (* Push back *)
 
     let push_back r s =
       let read = r.read in
-      if Slice.is_eod s then invalid_arg err_eod_push else
+      if Slice.is_eod s then () else
       let next_read () = r.read <- read; s in
       r.read <- next_read;
       r.pos <- r.pos - Slice.length s
@@ -308,12 +323,59 @@ module Bytes = struct
           in
           loop (Bytes.create n) 0 n r s
 
+    let sub ?slice_length n r =
+      if n < 0 then empty () else
+      if n = 0 then empty () else
+      let count = ref n in
+      let read () =
+        if !count <= 0 then Slice.eod else
+        let s = read r in
+        let slen = Slice.length s in
+        if slen <= !count then (count := !count - slen; s) else
+        match Slice.break !count s with
+        | None -> assert false
+        | Some (ret, back) -> count := 0; push_back r back; ret
+      in
+      let sub = make ?slice_length read in
+      sub.pos <- r.pos; sub
+
+    let skip n r =
+      if n < 0 then () else
+      if n = 0 then () else
+      let rec loop r count =
+        if count <= 0 then () else
+        let s = read r in
+        match Slice.length s with
+        | 0 -> ()
+        | l when l <= count -> loop r (count - l)
+        | l ->
+            match Slice.drop count s with
+            | None -> assert false | Some back -> push_back r back;
+      in
+      loop r n
+
     (* Error *)
 
-    let read_error fmt r e =
-      Stream.error' ~context:`R ~parent_pos:r.parent_pos ~pos:r.pos fmt e
+    let read_error fmt r ?pos e =
+      let pos = match pos with
+      | None -> r.pos | Some p when p < 0 -> r.pos + p | Some p -> p
+      in
+      Stream.error' ~context:`R ~parent_pos:r.parent_pos ~pos fmt e
+
+    let invalid_cut_read r =
+      invalid_argf "Cannot read right part of cut yet (pos:%d)" r.pos
 
     (* Converting *)
+
+    let read_bytes ~first ~length ~slice_length bytes =
+      let first = ref 0 in
+      let read () =
+        if !first >= length then Slice.eod else
+        let length = Int.min slice_length (length - !first) in
+        let s = Slice.make bytes ~first:!first ~length in
+        first := !first + length; s
+      in
+      read
 
     let of_bytes ?parent_pos ?slice_length b =
       let blen = Bytes.length b in
@@ -326,13 +388,7 @@ module Bytes = struct
         let read () = let v = !s in s := Slice.eod; v in
         make ?parent_pos ~slice_length read
       end else begin
-        let first = ref 0 in
-        let read () =
-          if !first >= blen then Slice.eod else
-          let length = Int.min slice_length (blen - !first) in
-          let s = Slice.make b ~first:!first ~length in
-          first := !first + length; s
-        in
+        let read = read_bytes ~first:0 ~length:blen ~slice_length b in
         make ?parent_pos ~slice_length read
       end
 
@@ -359,6 +415,15 @@ module Bytes = struct
               raise (Sys_error (err_channel_pos "Bytes.Reader" pos))
       in
       make ~parent_pos ~slice_length read
+
+    let of_slice ?parent_pos ?slice_length s =
+      if Slice.is_eod s then empty () else
+      let slice_length = match slice_length with
+      | None -> Slice.length s | Some l -> l
+      in
+      let first = Slice.first s and length = Slice.length s in
+      let read = read_bytes ~first ~length ~slice_length (Slice.bytes s) in
+      make ?parent_pos ~slice_length read
 
     let of_slice_seq ?parent_pos ?slice_length seq =
       let seq = ref seq in
@@ -490,8 +555,11 @@ module Bytes = struct
 
     (* Erroring *)
 
-    let write_error fmt w e =
-      Stream.error' ~context:`W ~parent_pos:w.parent_pos ~pos:w.pos fmt e
+    let write_error fmt w ?pos e =
+      let pos = match pos with
+      | None -> w.pos | Some p when p < 0 -> w.pos + p | Some p -> p
+      in
+      Stream.error' ~context:`W ~parent_pos:w.parent_pos ~pos fmt e
 
     (* Converting *)
 

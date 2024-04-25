@@ -21,7 +21,7 @@ end
 open Zstd_consts
 
 (* Errors. Stubs raise [Failure] in case of error which we then
-   convert to this exception. *)
+   turn into Bytes.Stream.Error with the following error. *)
 
 type Bytes.Stream.error += Error of string
 
@@ -142,7 +142,7 @@ let decompress error ctx ~src ~dst = match decompress_stream ctx ~src ~dst with
 
 type decompress_state = Await | Flush
 
-let err_unexpected_eod () = error "Unexpected end of compressed data"
+let err_unexpected_eod error = error "Unexpected end of compressed data"
 
 let[@inline] not_flushed ~eof ~src ~dst =
   not (Zbuf.src_is_consumed src) || (Zbuf.dst_is_full dst && not eof)
@@ -166,7 +166,7 @@ let decompress_reads ?slice_length ?dict ?params r =
   | Await ->
       match Bytes.Reader.read r with
       | slice when Bytes.Slice.is_eod slice ->
-          free_dctx ctx; if !eof then slice else err_unexpected_eod ()
+          free_dctx ctx; if !eof then slice else err_unexpected_eod error
       | slice ->
           Zbuf.src_set_slice src slice; decode error ctx ~src ~dst
   in
@@ -190,7 +190,7 @@ let decompress_writes ?slice_length ?dict ?params w =
   and write = function
   | slice when Bytes.Slice.is_eod slice ->
       free_dctx ctx;
-      if !eof then Bytes.Writer.write_eod w else err_unexpected_eod ()
+      if !eof then Bytes.Writer.write_eod w else err_unexpected_eod error
   | slice ->
       Zbuf.src_set_slice src slice; decode error ctx ~src ~dst
   in

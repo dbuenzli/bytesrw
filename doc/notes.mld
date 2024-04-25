@@ -49,19 +49,20 @@ For users it means that when they use streams:
 To enforce good behaviour by stream reader and writers the following
 type structure is used:
 
-- There is an extensible {!Bytesrw.Bytes.Stream.error} types to
+- There is an extensible {!Bytesrw.Bytes.Stream.type-error} types to
   which stream formats add they own case.
-- The {!Bytesrw.Bytes.Error} exception which holds a value of type
+- The {!Bytesrw.Bytes.Stream.Error} exception which holds a value of type
   [error] cannot be directly raised as it demands the creation of a
-  {!Bytesrw.Bytes.error_context} value for which there is no constructor.
-- This means that all raises go through either {!Bytesrw.Bytes.Stream.error},
+  {!Bytesrw.Bytes.Stream.error_context} value for which there is no constructor.
+- This means that all raises go through either
+  {!Bytesrw.Bytes.Stream.type-error},
   or {!Bytesrw.Bytes.Reader.read_error} or {!Bytesrw.Bytes.Writer.write_error}.
-  These functions ask for a {!Bytes.Bytes.Stream.format_error},
+  These functions ask for a {!Bytesrw.Bytes.Stream.format_error},
   whose creation asks stream formats to identify themelves and describe
   how their errors can be stringified.
 
 Effectively this system can be seen as an OCaml-like exception system
-inside the {!Bytes.Bytes.Stream.Error} exception.
+inside the {!Bytesrw.Bytes.Stream.Error} exception.
 
 {1:names Names}
 
@@ -70,7 +71,7 @@ inside the {!Bytes.Bytes.Stream.Error} exception.
 
 - We use [first], [last] and [length] for slice indexing and [pos],
   [parent_pos] for streams. That way the terminology does not overlap
-  which makes it for a clearer exposition. Indentally our usage of
+  which makes it for a clearer exposition. Incidentally our usage of
   [pos] is constent with the [Stdlib] (though the index vs position
   terminology is unfortunate in my opinion).
 
@@ -116,7 +117,7 @@ However here are a few things to consider:
 
    Besides that I don't think any functionality would be lost, in
    particular we made sure not to use [Format] in the
-   {!Bytes.Stream.error} interface.
+   {!Bytesrw.Bytes.Stream.type-error} interface.
 
    One thing I can see not make it is perhaps the nice hex dump
    formatter {!Bytesrw.Bytes.pp_hex} which is maybe too much code for
@@ -124,6 +125,6 @@ However here are a few things to consider:
 
 {- Safety. There are two places where we don't copy a bytes/string
    because we assume that the users abide the Slice validity
-   rule. Notably {!Bytes.Reader.of_string}. Upstream will likely want
+   rule. Notably {!Bytesrw.Bytes.Reader.of_string}. Upstream will likely want
    no unsafe usage. These places can be found with [git grep 'Unsafe is
    ok'].}}

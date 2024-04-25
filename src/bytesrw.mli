@@ -8,6 +8,7 @@
     Open the module to use it. This adds these modules:
     {!modules:
     Bytes.Slice
+    Bytes.Stream
     Bytes.Reader
     Bytes.Writer}
     to the {!Stdlib.Bytes} module. *)
@@ -61,7 +62,7 @@ module Bytes : sig
 
     val make_or_eod : bytes -> first:int -> length:int -> t
     (** [make_or_eod] is like {!make} but returns {!eod} instead of
-        raising [Invalid_argument] if [length] is not positive. *)
+        raising [Invalid_argument] if [length] is not zero. *)
 
     val copy : tight:bool -> t -> t
     (** [copy ~tight s] is a copy of [s]. If [tight] is [true], the
@@ -72,7 +73,7 @@ module Bytes : sig
 
     val eod : t
     (** [eod] is a slice to denote the end of data. It is the only slice
-        with [length d = 0] and [bytes eod == Bytes.empty]. *)
+        with [length d = 0]. Its bytes are {!Bytes.empty}. *)
 
     val is_eod : t -> bool
     (** [is_eod s] is [true] iff [s == eod]. *)
@@ -96,14 +97,15 @@ module Bytes : sig
         bytes. *)
 
     val take : int -> t -> t option
-    (** [take start n s] is the slice made of the first [n] bytes
+    (** [take n s] is the slice made of the first [n] bytes
         starting at [first] in slice space. This is [None] if the
-        operation results in {!eod}, including if [s] is {!eod}. *)
+        operation results in {!eod}, including if [s] is {!eod} or if
+        [n < 0]. *)
 
     val drop : int -> t -> t option
     (** [drop n s] is the slice made of the bytes of [s] without its
         first [n] bytes. This is [None] if the operation results in {!eod},
-        including if [s] is {!eod}. *)
+        including if [s] is {!eod} or if [n < 0]. *)
 
     val break : int -> t -> (t * t) option
     (** [break n s] is [(take n s, drop n s)] but returns [None]
@@ -258,7 +260,7 @@ module Bytes : sig
         {- [message] is a function that must stringify the results of [case].}}
     *)
 
-    val error : ?context:[`R| `W] -> 'e format_error -> 'e -> 'a
+    val error : 'e format_error -> ?context:[`R| `W] -> 'e -> 'a
     (** [error fmt e] errors with [e] for a stream [fmt] by raising an
         {!Error} exception. *)
   end
@@ -344,14 +346,22 @@ module Bytes : sig
         [read] on [r].  Once {!Slice.eod} is returned, {!Slice.eod} is
         always returned. *)
 
-    (** {1:pushback Push backs} *)
+    val discard : t -> unit
+    (** [discard r] reads and discards slices until {!Slice.eod} is returned.
+        See also {!skip}. *)
+
+    (** {1:append Appending} *)
+
+    val append : t -> t -> t
+    (** [append r0 r1] reads from [r0] and then from [r1]. The resulting
+        [slice_length] is the maximal length of [r0] and [r1] (if any). *)
+
+    (** {1:pushback Push backs and subreading} *)
 
     val push_back : t -> Slice.t -> unit
-    (** [push_back r s] pushes the slice [s] back on [r]. The next
-        {!read} on [r] returns [s] and the stream position is
-        rewinded by [Slice.length s].
-
-        [push_back] raises [Invalid_argument] if [s] is {!Slice.eod}.
+    (** [push_back r s] pushes the slice [s] back on [r]. If [s]
+        is {!Slice.eod} this has no effect. Otherwise the stream position is
+        rewinded by [Slice.length s] and the next {!read} on [r] returns [s].
 
         {b Warning.} This should not be used as a general lookahead
         mecanism by stream readers. Codecs should devise their own
@@ -359,23 +369,41 @@ module Bytes : sig
         {{!sniff}sniffing} and breaking streams into substreams at
         precise positions.
 
-        {b Warning.} If [r] is traced by a call to {!traced_reads}
-        it won't see the push backs. *)
+        {b Warning.} If [r] is traced by a call to {!trace_reads}
+        it won't see the push backs. This is  *)
 
     val sniff : int -> t -> string
-    (** [sniff n r] sniffs [n] bytes from [r].  These bytes will still
-        be returned by {!read} calls. Less than [n] bytes are
-        returned if the end of stream is reached before.
+    (** [sniff n r] sniffs [n] bytes from [r]. These bytes will still
+        be returned by {!read} calls. Less than [n] bytes are returned
+        if the end of stream is reached before.
 
         {b Warning.} This uses {!push_back} and should not be
         used as a general lookahead mecanism by stream readers. *)
 
+    val sub : ?slice_length:int -> int -> t -> t
+    (** [sub n r] reads at most [n] bytes from [r]. {b Once} the subreader
+        returns {!Slice.eod}, [r] is positioned exactly after the bytes
+        read by the subreader and can be read again to access leftover data.
+        [slice_length] defaults to the value of [r]. The position
+        of the subreader is set to [r]'s current position. *)
+
+    val skip : int -> t -> unit
+    (** [skip n r] is like {!sub} but it skips at most [n] bytes from [r]. *)
+
     (** {1:erroring Erroring} *)
 
-    val read_error : 'e Stream.format_error -> t -> 'e -> 'a
+    val read_error : 'e Stream.format_error -> t -> ?pos:int -> 'e -> 'a
     (** [read_error fmt r e] errors with [e] the last read for a
         stream format [fmt] made on [r] by raising the {!Stream.Error}
-        exception. *)
+        exception. [pos] is the position reported for the error
+        it defaults to [r]'s pos. If the value is negative it is substracted
+        from the latter (e.g. subtracting the length of the last slice
+        would report an error at the first byte of the slice).  *)
+
+    val invalid_cut_read : t -> 'a
+    (** [invalid_cut_read r] raises [Invalid_argument]. This function
+        can be used when a stream is cut and a read is attempted before
+        the left part was consumed. *)
 
     (** {1:convert Converting} *)
 
@@ -396,6 +424,12 @@ module Bytes : sig
         of [ic] with slices of maximal length [slice_length] which
         defaults to {!Slice.io_buffer_size}. [parent_pos] default to
         {!In_channel.pos}. *)
+
+    val of_slice :
+      ?parent_pos:Stream.pos -> ?slice_length:Slice.length -> Slice.t -> t
+    (** [of_slice s] reads [r] with slice of maximal length
+        [slice_length] which default to [Slice.length s]. [parent_pos]
+        defaults to [0]. *)
 
     val of_slice_seq :
       ?parent_pos:Stream.pos -> ?slice_length:Slice.length -> Slice.t Seq.t -> t
@@ -425,14 +459,17 @@ module Bytes : sig
         {{!Out_channel.flush}flushed} after each slice except
         {!Slice.eod}. *)
 
+    (** {1:tracing Tracing} *)
+
+    val trace_reads : (Slice.t -> unit) -> t -> t
+    (** [trace_reads f w] invokes [f] with the slice before returning
+        them with {!read}. Note that {!push_back}s are not traced, so
+        this can be used reliably for checksuming. *)
+
     (** {1:fmt Formatting and inspecting} *)
 
     val pp : Format.formatter -> t -> unit
     (** [pp] formats readers for inspection. *)
-
-    val trace_reads : (Slice.t -> unit) -> t -> t
-    (** [trace_reads f w] invokes [f] with the slice before
-        returning them with {!read}. *)
   end
 
   (** Byte stream writers.
@@ -542,10 +579,13 @@ module Bytes : sig
 
     (** {1:erroring Erroring} *)
 
-    val write_error : 'e Stream.format_error -> t -> 'e -> 'a
+    val write_error : 'e Stream.format_error -> t -> ?pos:int -> 'e -> 'a
     (** [write_error fmt w e] errors with [e] the last write
-        for a stream forat [fmt] made on [w] by raising the {!Stream.Error}
-        exception. *)
+        for a stream format [fmt] made on [w] by raising the {!Stream.Error}
+        exception. [pos] is the position reported for the error
+        it defaults to [w]'s pos. If the value is negative it is substracted
+        from the latter (e.g. subtracting the length of the last slice
+        would report an error at the first byte of the slice). *)
 
    (** {1:convert Converting} *)
 

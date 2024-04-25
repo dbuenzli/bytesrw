@@ -7,6 +7,18 @@ plugin(byte) = "bytesrw.cma"
 plugin(native) = "bytesrw.cmxs"
 exists_if = "bytesrw.cma bytesrw.cmxa"
 
+package "kit" (
+  directory = "kit"
+  description = "The bytesrw.kit library"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw"
+  archive(byte) = "bytesrw_kit.cma"
+  archive(native) = "bytesrw_kit.cmxa"
+  plugin(byte) = "bytesrw_kit.cma"
+  plugin(native) = "bytesrw_kit.cmxs"
+  exists_if = "bytesrw_kit.cma bytesrw_kit.cmxa"
+)
+
 package "zlib" (
   directory = "zlib"
   description = "Read and write deflate, zlib and gzip compressed bytes"

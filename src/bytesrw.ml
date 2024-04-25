@@ -229,30 +229,37 @@ module Bytes = struct
       r.pos <- r.pos - Slice.length s
 
     let err_negative_sniff n = invalid_argf "negative sniff length: %d" n
+
     let sniff n r =
       if n < 0 then err_negative_sniff n else
       if n = 0 then "" else
-      let rec loop b i rem s = match read s with
-      | s when Slice.is_eod s ->
-          let sniff_len = n - rem  in
-          if sniff_len = 0 then "" else
-          let back = Slice.make b ~first:0 ~length:sniff_len in
-          push_back r back;
-          Bytes.sub_string b 0 sniff_len
+      match read r with
+      | s when Slice.is_eod s -> ""
+      | s when n <= Slice.length s ->
+          push_back r s; Bytes.sub_string (Slice.bytes s) (Slice.first s) n
       | s ->
-          let slen = Slice.length s in
-          let n = Int.min slen rem in
-          Bytes.blit (Slice.bytes s) (Slice.first s) b i n;
-          let rem = rem - n in
-          if rem > 0 then loop b (i + n) rem r else
-          let s0 = Slice.make b ~first:0 ~length:(Bytes.length b) in
-          (match Slice.drop n s with None -> () | Some s1 -> push_back r s1);
-          push_back r s0;
-          (* Unsafe is ok: the consumer of s0 is not supposed to mutate the
-             bytes. *)
-          Bytes.unsafe_to_string b
-      in
-      loop (Bytes.create n) 0 n r
+          (* We have to go over multiple slices. *)
+          let rec loop b i rem r = function
+          | s when Slice.is_eod s ->
+              let sniff_len = n - rem (* assert (sniff_len > 0) *) in
+              let back = Slice.make b ~first:0 ~length:sniff_len in
+              push_back r back;
+              Bytes.sub_string b 0 sniff_len
+          | s ->
+              let slen = Slice.length s in
+              let n = Int.min slen rem in
+              Bytes.blit (Slice.bytes s) (Slice.first s) b i n;
+              let rem = rem - n in
+              if rem > 0 then loop b (i + n) rem r (read r) else
+              let s0 = Slice.make b ~first:0 ~length:(Bytes.length b) in
+              (match Slice.drop n s with
+              | None -> () | Some s1 -> push_back r s1);
+              push_back r s0;
+              (* Unsafe is ok: the consumer of s0 is not supposed to mutate the
+                 bytes. *)
+              Bytes.unsafe_to_string b
+          in
+          loop (Bytes.create n) 0 n r s
 
     (* Converting *)
 

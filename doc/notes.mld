@@ -12,9 +12,9 @@
 - The design tries to enforce well formed streams. For example no
   spurious calls with empty slices (they terminate streams), or calls
   to reader and writer read/write functions after they return/were
-  given Slice.eod. Also in {!Bytes.Slice} we make sure to mention in
-  the names they may produce {!Slice.eod} since producing or pushing
-  them terminates streams.
+  given Slice.eod. Also in {!Bytesrw.Bytes.Slice} we make sure to mention in
+  the names they may produce {!Bytesrw.Bytes.Slice.eod} since producing
+  or pushing them terminates streams.
 
 - No arbitrary getter/setter on mutable fields and changing them makes
   a new reader/writer (not in the applicative sense, we don't deal
@@ -31,7 +31,7 @@ this API works well}, to upstream {!Bytesrw.Bytes}.
   [~slice_length], the Stdlib uses [~len]. A counter here is to
   mention that this corresponds to the name of the fields
   of the structures and there is little point to invent new names
-  (and say {!Slice.len} would by inconsistent with
+  (and say [Bytes.Slice.len] would by inconsistent with
   [{String,Bytes}.length]).
 
 - The [?first ?last] subrange interface was rejected by upstream for
@@ -48,5 +48,10 @@ this API works well}, to upstream {!Bytesrw.Bytes}.
   [{In,Out}channel] modules and the buffer stuff to the [Buffer]
   module. And the formatters won't make it or will end up in the
   long-winded [Format]. But I don't think any functionality would be
-  lost except perhaps the nice hex dump formatter {!Bytes.pp_hex}
+  lost except perhaps the nice hex dump formatter {!Bytesrw.Bytes.pp_hex}
   which is maybe too much code.
+
+- Safety. There are two places where we don't copy a bytes/string
+  because we assume that the users abide the Slice validity
+  rule. Perhaps upstream will want no unsafe usage. These places can
+  be found with `git grep 'Unsafe is ok'`.

@@ -150,6 +150,10 @@ module Bytes : sig
     (** [of_bytes_or_eod] is like {!of_bytes} except that if the bytes
         are empty or if [first > last], {!eod} is returned. *)
 
+    val of_string : string -> t
+    (** [of_string] is [of_bytes (String.of_bytes s)]. {b Warning.}
+        This creates a copy of [s]. *)
+
     val to_bytes : t -> bytes
     (** [to_bytes t] copies the range of [s] to a new [bytes] value. *)
 
@@ -182,7 +186,7 @@ module Bytes : sig
       ?ppf:Format.formatter -> id:string -> t -> unit
     (** [tracer ~pp ~ppf ~id] is a function that formats slices on
         [ppf] (defaults to {!Format.err_formatter}) with [pp]
-        (defaults to {!pp)) and the identifier [id]. Use with
+        (defaults to {!pp}) and the identifier [id]. Use with
         {!Reader.trace_reads} or {!Writer.trace_writes}. *)
 
     (** {1:other Other} *)
@@ -247,8 +251,8 @@ module Bytes : sig
         {!pos} of [parent] and {!slice_length} by the slice length of
         [parent], unless explicitly specified. *)
 
-    val empty : t
-    (** [empty] is an empty byte stream. It always returns
+    val empty : unit -> t
+    (** [empty ()] is an empty byte stream. It always returns
         {!Slice.eod}.  The {!parent_pos} is [0] and
         the {!slice_length} is [None]. *)
 
@@ -296,6 +300,32 @@ module Bytes : sig
         [read] on [r].  Once {!Slice.eod} is returned, {!Slice.eod} is
         always returned. *)
 
+    (** {1:pushback Push backs} *)
+
+    val push_back : t -> Slice.t -> unit
+    (** [push_back r s] pushes the slice [s] back on [r]. The next
+        {!read} on [r] returns [s] and the stream position is
+        rewinded by [Slice.length s].
+
+        [push_back] raises [Invalid_argument] if [s] is {!Slice.eod}.
+
+        {b Warning.} This should not be used as a general lookahead
+        mecanism by stream readers. Codecs should devise their own
+        buffering structures. But it is useful for stream content
+        {{!sniff}sniffing} and breaking streams into substreams at
+        precise positions.
+
+        {b Warning.} If [r] is traced by a call to {!traced_reads}
+        it won't see the push backs. *)
+
+    val sniff : int -> t -> string
+    (** [sniff n r] sniffs [n] bytes from [r].  These bytes will still
+        be returned by {!read} calls. Less than [n] bytes are
+        returned if the end of stream is reached before.
+
+        {b Warning.} This uses {!push_back} and should not be
+        used as a general lookahead mecanism by stream readers. *)
+
     (** {1:convert Converting} *)
 
     val of_bytes :
@@ -316,8 +346,21 @@ module Bytes : sig
         defaults to {!Slice.io_buffer_size}. [parent_pos] default to
         {!In_channel.pos}. *)
 
+    val of_slice_seq :
+      ?parent_pos:Stream.pos -> ?slice_length:Slice.length -> Slice.t Seq.t -> t
+    (** [of_slice_seq seq] reads the slices produced by [eq].
+        [parent_pos] defaults to [0] and [slice_length] defaults to
+        [None]. *)
+
     val to_string : t -> string
     (** [to_string r] reads [r] until {!Slice.eod} into a string [s]. *)
+
+    val to_slice_seq : t -> Slice.t Seq.t
+    (** [to_slice_seq r] reads [r] until {!Slice.eod} into a sequence.
+
+        {b Warning.} A slice returned by the sequence is only
+        {{!Slice.validity}valid for reading} until the next slice is
+        requested from the sequence. *)
 
     val add_to_buffer : Buffer.t -> t -> unit
     (** [add_to_buffer b r] reads [r] and adds its slices to [b] until

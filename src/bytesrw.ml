@@ -6,8 +6,9 @@
 module Bytes = struct
   include Bytes
 
+  let invalid_argf fmt = Printf.ksprintf invalid_arg fmt
+
   module Slice = struct
-    let invalid_argf fmt = Printf.ksprintf invalid_arg fmt
     let err_invalid ~first ~length ~len =
       invalid_argf "invalid slice: first:%d length:%d bytes:%d" first length len
 
@@ -69,7 +70,7 @@ module Bytes = struct
     let drop n s =
       if n >= s.length || is_eod s then None else
       if n <= 0 then Some s else
-      Some { s with first = s.first + n }
+      Some { s with first = s.first + n; length = s.length - n }
 
     let break n s = match take n s with
     | None -> None
@@ -122,6 +123,7 @@ module Bytes = struct
     let of_bytes_or_eod ?first ?last bytes =
       of_bytes' ~allow_eod:true ?first ?last bytes
 
+    let of_string s = of_bytes (Bytes.of_string s)
     let to_bytes s = Bytes.sub s.bytes s.first s.length
     let to_string s = Bytes.sub_string s.bytes s.first s.length
     let add_to_buffer b s = Buffer.add_subbytes b s.bytes s.first s.length
@@ -188,7 +190,7 @@ module Bytes = struct
       { parent_pos; pos = 0; read; slice_length }
 
     let read_eod = Fun.const Slice.eod
-    let empty =
+    let empty () =
       { parent_pos = 0; pos = 0; read = read_eod; slice_length = None }
 
     (* Stream properties *)
@@ -211,6 +213,46 @@ module Bytes = struct
       let len = Slice.length slice in
       (if len = 0 then r.read <- read_eod);
       r.pos <- r.pos + len; slice
+
+    (* Push back
+
+       We disallow pushing back Slice.eod because we want to
+       be able to accurately detect the end of stream condition. *)
+
+    let err_eod_push = "cannot push back eod"
+
+    let push_back r s =
+      let read = r.read in
+      if Slice.is_eod s then invalid_arg err_eod_push else
+      let next_read () = r.read <- read; s in
+      r.read <- next_read;
+      r.pos <- r.pos - Slice.length s
+
+    let err_negative_sniff n = invalid_argf "negative sniff length: %d" n
+    let sniff n r =
+      if n < 0 then err_negative_sniff n else
+      if n = 0 then "" else
+      let rec loop b i rem s = match read s with
+      | s when Slice.is_eod s ->
+          let sniff_len = n - rem  in
+          if sniff_len = 0 then "" else
+          let back = Slice.make b ~first:0 ~length:sniff_len in
+          push_back r back;
+          Bytes.sub_string b 0 sniff_len
+      | s ->
+          let slen = Slice.length s in
+          let n = Int.min slen rem in
+          Bytes.blit (Slice.bytes s) (Slice.first s) b i n;
+          let rem = rem - n in
+          if rem > 0 then loop b (i + n) rem r else
+          let s0 = Slice.make b ~first:0 ~length:(Bytes.length b) in
+          (match Slice.drop n s with None -> () | Some s1 -> push_back r s1);
+          push_back r s0;
+          (* Unsafe is ok: the consumer of s0 is not supposed to mutate the
+             bytes. *)
+          Bytes.unsafe_to_string b
+      in
+      loop (Bytes.create n) 0 n r
 
     (* Converting *)
 
@@ -258,6 +300,13 @@ module Bytes = struct
       in
       make ~parent_pos ~slice_length read
 
+    let of_slice_seq ?parent_pos ?slice_length seq =
+      let seq = ref seq in
+      let read () = match !seq () with
+      | Seq.Nil -> Slice.eod | Seq.Cons (slice, next) -> seq := next; slice
+      in
+      make ?parent_pos ?slice_length read
+
     let rec add_to_buffer b r = match read r with
     | s when Slice.is_eod s -> ()
     | s -> Slice.add_to_buffer b s; add_to_buffer b r
@@ -266,6 +315,13 @@ module Bytes = struct
       let blen = Option.value ~default:1024 r.slice_length in
       let b = Buffer.create blen in
       add_to_buffer b r; Buffer.contents b
+
+    let to_slice_seq r =
+      let dispense () = match read r with
+      | slice when Slice.is_eod slice -> None
+      | slice -> Some slice
+      in
+      Seq.of_dispenser dispense
 
     let output_to_out_channel ?(flush_slices = false) oc r =
       let () = Out_channel.set_binary_mode oc true in

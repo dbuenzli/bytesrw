@@ -68,6 +68,8 @@ Bytesrw_zstd
    the bytes), add stream positions to errors.}
 {- Possibly we could add an hmap to readers and writers. But let's KISS
    for now.}
+{- Push backs. Should we disallow pushing back to a negative position (in
+   which case {!Bytesrw.Bytes.Reader.empty} can become a value again) ?}
 {- Slices, add bigbytes converters.}}
 
 See also the {{!page-notes}design notes}.

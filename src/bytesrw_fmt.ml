@@ -16,7 +16,7 @@ let pp_head_hex count ppf b =
   if max < 0 then Format.pp_print_string ppf "<empty>" else begin
     Format.pp_print_char ppf 'x';
     for i = 0 to max
-    do pp_raw_char ppf (Bytes.get b i) done;
+    do pp_hex_char ppf (Bytes.get_uint8 b i) done;
     if Bytes.length b - 1 > max then Format.fprintf ppf "@<1>%s" "…";
   end
 

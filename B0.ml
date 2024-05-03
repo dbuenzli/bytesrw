@@ -3,9 +3,12 @@ open B0_kit.V000
 (* Library names *)
 
 let bytesrw = B0_ocaml.libname "bytesrw"
+let bytesrw_kit = B0_ocaml.libname "bytesrw.kit"
+let bytesrw_unix = B0_ocaml.libname "bytesrw.unix"
 let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
 let bytesrw_zstd = B0_ocaml.libname "bytesrw.zstd"
-let bytesrw_kit = B0_ocaml.libname "bytesrw.kit"
+
+let unix = B0_ocaml.libname "unix"
 let cmdliner = B0_ocaml.libname "cmdliner"
 
 (* Libraries *)
@@ -18,6 +21,11 @@ let bytesrw_kit_lib =
   let srcs = [ `Dir ~/"src/kit" ] in
   let requires = [bytesrw] in
   B0_ocaml.lib bytesrw_kit ~srcs ~requires
+
+let bytesrw_unix_lib =
+  let srcs = [ `Dir ~/"src/unix" ] in
+  let requires = [bytesrw; unix] in
+  B0_ocaml.lib bytesrw_unix ~srcs ~requires
 
 let bytesrw_zlib_lib =
   let srcs = [ `Dir ~/"src/zlib" ] in
@@ -48,8 +56,13 @@ let test_bytesrw = test ~requires:[bytesrw_zlib] ~/"test/test_bytesrw.ml"
 let test_utf = test ~requires:[bytesrw_kit] ~/"test/test_utf.ml"
 let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
 let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
-let zstdtrip = test ~requires:[bytesrw_zstd; cmdliner] ~/"test/zstdtrip.ml"
-let gziptrip = test ~requires:[bytesrw_zlib; cmdliner] ~/"test/gziptrip.ml"
+
+let trip_requires = [cmdliner; unix; bytesrw_unix]
+let zstdtrip =
+  test ~requires:(bytesrw_zstd :: trip_requires) ~/"test/zstdtrip.ml"
+
+let gziptrip =
+  test ~requires:(bytesrw_zlib :: trip_requires) ~/"test/gziptrip.ml"
 
 (* Packs *)
 

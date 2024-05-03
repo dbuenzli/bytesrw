@@ -19,6 +19,18 @@ package "kit" (
   exists_if = "bytesrw_kit.cma bytesrw_kit.cmxa"
 )
 
+package "unix" (
+  directory = "unix"
+  description = "The bytesrw.unix library"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw unix"
+  archive(byte) = "bytesrw_unix.cma"
+  archive(native) = "bytesrw_unix.cmxa"
+  plugin(byte) = "bytesrw_unix.cma"
+  plugin(native) = "bytesrw_unix.cmxs"
+  exists_if = "bytesrw_unix.cma bytesrw_unix.cmxa"
+)
+
 package "zlib" (
   directory = "zlib"
   description = "Read and write deflate, zlib and gzip compressed bytes"

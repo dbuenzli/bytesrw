@@ -11,6 +11,7 @@ let () =
   let zlib = Conf.value c zlib in
   Ok [ Pkg.mllib ~api:["Bytesrw"] "src/bytesrw.mllib";
        Pkg.mllib "src/kit/bytesrw_kit.mllib" ~dst_dir:"kit";
+       Pkg.mllib "src/unix/bytesrw_unix.mllib" ~dst_dir:"unix";
        Pkg.mllib ~cond:zlib "src/zlib/bytesrw_zlib.mllib" ~dst_dir:"zlib";
        Pkg.clib ~cond:zlib "src/zlib/libbytesrw_zlib_stubs.clib"
          ~lib_dst_dir:"zlib";

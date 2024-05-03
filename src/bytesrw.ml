@@ -398,6 +398,7 @@ module Bytes = struct
       | Some p -> p
       | None ->
           let pos = In_channel.pos ic in
+          if pos < 0L then 0 else
           match Int64.unsigned_to_int pos with
           | Some p -> p
           | None -> raise (Sys_error (err_channel_pos "Bytes.Reader" pos))
@@ -575,6 +576,7 @@ module Bytes = struct
       | Some pos -> pos
       | None ->
           let pos = Out_channel.pos oc in
+          if pos < 0L then 0 else
           match Int64.unsigned_to_int pos with
           | Some pos -> pos
           | None -> raise (Sys_error (err_channel_pos "Bytes.Writer" pos))

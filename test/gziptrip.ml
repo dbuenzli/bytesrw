@@ -17,20 +17,20 @@ let filter_stdio_with_bytes_writer ~out_size:osize filter =
   Bytes.Writer.write_reader ~eod:true (filter o) i;
   i, o
 
-let decompress processor params ~in_size ~out_size = match processor with
+let decompress processor ~in_size ~out_size = match processor with
 | `Reader ->
-    let d = Bytesrw_zstd.decompress_reads ?slice_length:out_size ~params in
+    let d = Bytesrw_zlib.Gzip.decompress_reads ?slice_length:out_size in
     filter_stdio_with_bytes_reader ~in_size d
 | `Writer ->
-    let d = Bytesrw_zstd.decompress_writes ?slice_length:in_size ~params in
+    let d = Bytesrw_zlib.Gzip.decompress_writes ?slice_length:in_size in
     filter_stdio_with_bytes_writer ~out_size d
 
-let compress processor params ~in_size ~out_size = match processor with
+let compress processor ~in_size ~out_size = match processor with
 | `Reader ->
-    let c = Bytesrw_zstd.compress_reads ?slice_length:out_size ~params in
+    let c = Bytesrw_zlib.Gzip.compress_reads ?slice_length:out_size in
     filter_stdio_with_bytes_reader ~in_size c
 | `Writer ->
-    let c = Bytesrw_zstd.compress_writes ?slice_length:in_size ~params in
+    let c = Bytesrw_zlib.Gzip.compress_writes ?slice_length:in_size in
     filter_stdio_with_bytes_writer ~out_size c
 
 let log_count i o =
@@ -39,16 +39,11 @@ let log_count i o =
   let pct = Float.to_int ((float o /. float i) *. 100.) in
   Printf.eprintf "i:%d o:%d o/i:%d%%\n%!" i o pct
 
-let trip mode clevel no_checksum processor in_size out_size show_count =
+let trip mode clevel processor in_size out_size show_count =
   try
     let i, o = match mode with
-    | `Decompress ->
-        let params = Bytesrw_zstd.Dctx_params.make () in
-        decompress processor params ~in_size ~out_size
-    | `Compress ->
-        let checksum = not no_checksum in
-        let params = Bytesrw_zstd.Cctx_params.make ~clevel ~checksum () in
-        compress processor params ~in_size ~out_size
+    | `Decompress -> decompress processor ~in_size ~out_size
+    | `Compress -> compress processor ~in_size ~out_size
     in
     if show_count then log_count i o;
     Ok 0
@@ -58,7 +53,7 @@ let trip mode clevel no_checksum processor in_size out_size show_count =
 open Cmdliner
 
 let cmd =
-  let doc = "Zstd (De)compression from stdin to stdout" in
+  let doc = "Gzip (De)compression from stdin to stdout" in
   let mode =
     let c = `Compress, Arg.info ["z"; "compress"] ~doc:"Compress." in
     let d = `Decompress, Arg.info ["d"; "decompress"] ~doc:"Decompress." in
@@ -80,21 +75,17 @@ let cmd =
   let clevel =
     let doc =
       Printf.sprintf "Use compression level $(docv) (%d-%d)"
-        (Bytesrw_zstd.min_clevel ()) (Bytesrw_zstd.max_clevel ())
+        (Bytesrw_zlib.default_compression) (Bytesrw_zlib.best_compression)
     in
-    Arg.(value & opt int (Bytesrw_zstd.default_clevel ()) &
+    Arg.(value & opt int (Bytesrw_zlib.default_compression) &
          info ["l"] ~doc ~docv:"LEVEL")
-  in
-  let no_checksum =
-    let doc = "Do not add integrity checksums" in
-    Arg.(value & flag & info ["no-check"] ~doc)
   in
   let show_count =
     let doc = "Show on $(b,stderr) final amount of bytes read and written." in
     Arg.(value & flag & info ["show-count"] ~doc)
   in
-  Cmd.v (Cmd.info "zstdtrip" ~version:"%%VERSION%%" ~doc) @@
-  Term.(const trip $ mode $ clevel $ no_checksum $ processor $
+  Cmd.v (Cmd.info "gziptrip" ~version:"%%VERSION%%" ~doc) @@
+  Term.(const trip $ mode $ clevel $ processor $
         in_size $ out_size $ show_count)
 
 let main () = Cmd.eval_result' cmd

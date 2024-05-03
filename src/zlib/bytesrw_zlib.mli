@@ -38,9 +38,7 @@ module Deflate : sig
 
   (** {1:decompress Decompress} *)
 
-  val decompress_reads :
-    ?leftover:bool -> ?slice_length:Bytes.Slice.length -> Bytes.Reader.t ->
-    Bytes.Reader.t
+  val decompress_reads : ?leftover:bool -> Bytes.Reader.filter
   (** [decompress_reads r] filters the reads of [r] by decompressing
       a [deflate] stream. If [leftover] is:
       {ul
@@ -51,8 +49,7 @@ module Deflate : sig
          after the end of the [deflate] stream and can be read again to
          perform other non-filtered reads.}} *)
 
-  val decompress_writes :
-    ?slice_length:Bytes.Slice.length -> Bytes.Writer.t -> Bytes.Writer.t
+  val decompress_writes : Bytes.Writer.filter
   (** [decompress_writes w] filters writes on [w] by decompressing a
       [deflate] stream until {!Bytes.Slice.eod} is written, if leftover
       data remains an error is raised. The last {!Bytes.Slice.eod} is not
@@ -61,16 +58,12 @@ module Deflate : sig
 
   (** {1:compress Compress} *)
 
-  val compress_reads :
-    ?level:level -> ?slice_length:Bytes.Slice.length ->
-    Bytes.Reader.t -> Bytes.Reader.t
+  val compress_reads : ?level:level -> Bytes.Reader.filter
   (** [compress_reads ~level r] filters the reads of [r] by compressing
       them to a [deflate] stream at level [level] (defaults to
       {!default_compression}). *)
 
-  val compress_writes :
-    ?level:level -> ?slice_length:Bytes.Slice.length ->
-    Bytes.Writer.t -> Bytes.Writer.t
+  val compress_writes : ?level:level -> Bytes.Writer.filter
   (** [compress_writes ~level w] filters writes on [w] by compressing
       them to a [deflate] stream at level [level] (defaults to
       {!default_compression}) until {!Bytes.Slice.eod} is written. The
@@ -83,9 +76,7 @@ module Zlib : sig
 
   (** {1:decompress Decompress} *)
 
-  val decompress_reads :
-    ?leftover:bool -> ?slice_length:Bytes.Slice.length -> Bytes.Reader.t ->
-    Bytes.Reader.t
+  val decompress_reads : ?leftover:bool -> Bytes.Reader.filter
   (** [decompress_reads r] filters the reads of [r] by decompressing
       a [zlib] stream. If [leftover] is:
       {ul
@@ -96,8 +87,7 @@ module Zlib : sig
          after the end of the [zlib] stream and can be read again to
          perform other non-filtered reads.}} *)
 
-  val decompress_writes :
-    ?slice_length:Bytes.Slice.length -> Bytes.Writer.t -> Bytes.Writer.t
+  val decompress_writes : Bytes.Writer.filter
   (** [decompress_writes w] filters writes on [w] by decompressing a
       [zlib] stream until {!Bytes.Slice.eod} is written, if leftover
       data remains an error is raised. The last {!Bytes.Slice.eod} is not
@@ -106,16 +96,12 @@ module Zlib : sig
 
   (** {1:compress Compress} *)
 
-  val compress_reads :
-    ?level:level -> ?slice_length:Bytes.Slice.length ->
-    Bytes.Reader.t -> Bytes.Reader.t
+  val compress_reads : ?level:level -> Bytes.Reader.filter
   (** [compress_reads ~level r] filters the reads of [r] by compressing
       them to a [zlib] stream at level [level] (defaults to
       {!default_compression}). *)
 
-  val compress_writes :
-    ?level:level -> ?slice_length:Bytes.Slice.length ->
-    Bytes.Writer.t -> Bytes.Writer.t
+  val compress_writes : ?level:level -> Bytes.Writer.filter
   (** [compress_writes ~level w] filters writes on [w] by compressing
       them to a [zlib] stream at level [level] (defaults to
       {!default_compression}) until {!Bytes.Slice.eod} is written. The
@@ -132,9 +118,7 @@ module Gzip : sig
 
   (** {1:decompress Decompress} *)
 
-  val decompress_reads :
-    ?all_members:bool -> ?slice_length:Bytes.Slice.length -> Bytes.Reader.t ->
-    Bytes.Reader.t
+  val decompress_reads : ?all_members:bool -> Bytes.Reader.filter
   (** [decompress_reads r] filters the reads of [r] by decompressing [gzip]
       members. If [all_members] is
       {ul
@@ -146,8 +130,7 @@ module Gzip : sig
          other non-filtered reads (e.g. a new [gzip] member or other unrelated
          data).}} *)
 
-  val decompress_writes :
-    ?slice_length:Bytes.Slice.length -> Bytes.Writer.t -> Bytes.Writer.t
+  val decompress_writes : Bytes.Writer.filter
   (** [decompress_writes w] filters the writes on [w] by decompressing
       sequences of [gzip] members until [Bytes.Slice.eod] is written.
       The latter is not written on [w] and at this point [w] can
@@ -155,16 +138,12 @@ module Gzip : sig
 
   (** {1:compress Compress} *)
 
-  val compress_reads :
-    ?level:level -> ?slice_length:Bytes.Slice.length ->
-    Bytes.Reader.t -> Bytes.Reader.t
+  val compress_reads : ?level:level -> Bytes.Reader.filter
   (** [compress_reads ~level r] filters the reads of [r] by
       compressing them to as a single [gzip] member at level [level]
       (defaults to {!default_compression}). *)
 
-  val compress_writes :
-    ?level:level -> ?slice_length:Bytes.Slice.length ->
-    Bytes.Writer.t -> Bytes.Writer.t
+  val compress_writes : ?level:level -> Bytes.Writer.filter
   (** [compress_writes ~level w] filters the writes on [w] by
       compressing them to a single [gzip] member at level [level]
       (defaults to {!default_compression}) until {!Bytes.Slice.eod} is

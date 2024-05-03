@@ -15,13 +15,15 @@ Optional support for compressed bytes depends on the C [`zlib`]
 and [`libzstd`] libraries.
 
 [`zlib`]: https://zlib.net
-[`libzstd`]: https://zstd.net
+[`libzstd`]: http://zstd.net
 
 Homepage: <https://erratique.ch/software/bytesrw/>"""
 maintainer: "Daniel Bünzli <daniel.buenzl i@erratique.ch>"
 authors: "The bytesrw programmers"
 license: "ISC"
-tags: ["bytes" "streaming" "org:erratique"]
+tags: [
+  "bytes" "streaming" "zstd" "zlib" "gzip" "deflate" "base64" "org:erratique"
+]
 homepage: "https://erratique.ch/software/bytesrw"
 doc: "https://erratique.ch/software/bytesrw/doc"
 bug-reports: "https://github.com/dbuenzli/bytesrw/issues"

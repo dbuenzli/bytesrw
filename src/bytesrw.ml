@@ -313,7 +313,7 @@ module Bytes = struct
           in
           loop (Bytes.create n) 0 n r s
 
-    let sub ?slice_length n r =
+    let sub n ?slice_length r =
       if n <= 0 then empty () else
       let count = ref n in
       let read () =
@@ -453,6 +453,14 @@ module Bytes = struct
       in
       loop r oc
 
+    (* Filters *)
+
+    type filter = ?slice_length:Slice.length -> t -> t
+
+    let filter_string (fs : filter list) s =
+      let filter r f = f ?slice_length:None r in
+      to_string (List.fold_left filter (of_string s) fs)
+
     (* Formatting *)
 
     let pp ppf r =
@@ -579,6 +587,15 @@ module Bytes = struct
       | s -> Slice.(Buffer.add_subbytes b (bytes s) (first s) (length s))
       in
       make ?pos ?slice_length write
+
+    (* Filters *)
+
+    type filter = ?slice_length:Slice.length -> t -> t
+    let filter_string fs s =
+      let b = Buffer.create (String.length s) in
+      let filter w f = f ?slice_length:None w in
+      let w = List.fold_left filter (of_buffer b) fs in
+      write_string w s; write_eod w; Buffer.contents b
 
     (* Formatting *)
 

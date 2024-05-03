@@ -57,8 +57,6 @@ Bytesrw_zstd
 {1:todo TODO}
 
 {ul
-{- Add signatures for filters and perhaps a function
-   to easily apply a filter form string to string.}
 {- [Bytesrw_unix].}
 {- Small howto and a simple tutorial to devise your own. Show read
    sniffing.}

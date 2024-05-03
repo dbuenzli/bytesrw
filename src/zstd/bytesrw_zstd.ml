@@ -147,7 +147,7 @@ let err_unexpected_eod error = error "Unexpected end of compressed data"
 let[@inline] not_flushed ~eof ~src ~dst =
   not (Zbuf.src_is_consumed src) || (Zbuf.dst_is_full dst && not eof)
 
-let decompress_reads ?slice_length ?dict ?params r =
+let decompress_reads ?dict ?params ?slice_length r =
   let error = read_error r in
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
@@ -173,7 +173,7 @@ let decompress_reads ?slice_length ?dict ?params r =
   let slice_length = Some dst.Zbuf.size in
   Bytes.Reader.make' ~parent:r ~slice_length read
 
-let decompress_writes ?slice_length ?dict ?params w =
+let decompress_writes ?dict ?params ?slice_length w =
   let error = write_error w in
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
@@ -272,7 +272,7 @@ let compress error ctx ~src ~dst ~end_dir =
 
 type compress_state = Await | Flush | Flush_eod
 
-let compress_reads ?slice_length ?dict ?params r =
+let compress_reads ?dict ?params ?slice_length r =
   let error = read_error r in
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in
@@ -309,7 +309,7 @@ let compress_reads ?slice_length ?dict ?params r =
   let slice_length = Some dst.Zbuf.size in
   Bytes.Reader.make' ~parent:r ~slice_length read
 
-let compress_writes ?slice_length ?dict ?params w =
+let compress_writes ?dict ?params ?slice_length w =
   let error = write_error w in
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in

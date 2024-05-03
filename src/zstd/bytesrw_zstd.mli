@@ -57,8 +57,7 @@ module Ddict : sig
 end
 
 val decompress_reads :
-  ?slice_length:Bytes.Slice.length -> ?dict:Ddict.t ->
-  ?params:Dctx_params.t -> Bytes.Reader.t -> Bytes.Reader.t
+  ?dict:Ddict.t -> ?params:Dctx_params.t -> Bytes.Reader.filter
 (** [decompress_reads r] decompresses the [zstd] compressed reads of [r].
     {ul
     {- [params] defaults to {!Dctx_params.default}}
@@ -67,8 +66,7 @@ val decompress_reads :
     {- If you get to create [r] use {!dstream_in_size} for its slices.}}  *)
 
 val decompress_writes :
-  ?slice_length:Bytes.Slice.length -> ?dict:Ddict.t ->
-  ?params:Dctx_params.t -> Bytes.Writer.t -> Bytes.Writer.t
+  ?dict:Ddict.t -> ?params:Dctx_params.t -> Bytes.Writer.filter
 (** [decompress_writes w] decompresses [zstd] compressed writes and
     writes the result on [w].
     {ul
@@ -128,8 +126,7 @@ module Cdict : sig
 end
 
 val compress_reads :
-  ?slice_length:int -> ?dict:Cdict.t -> ?params:Cctx_params.t ->
-  Bytes.Reader.t -> Bytes.Reader.t
+  ?dict:Cdict.t -> ?params:Cctx_params.t -> Bytes.Reader.filter
 (** [compress_reads r] compresses the reads of [r] with [zstd].
     {ul
     {- [params] defaults to {!Cctx_params.default}.}
@@ -138,8 +135,7 @@ val compress_reads :
     {- If you get to create [r] use {!cstream_in_size} for its slices.}} *)
 
 val compress_writes :
-  ?slice_length:int -> ?dict:Cdict.t -> ?params:Cctx_params.t ->
-  Bytes.Writer.t -> Bytes.Writer.t
+  ?dict:Cdict.t -> ?params:Cctx_params.t -> Bytes.Writer.filter
 (** [compress_writes w] compresses to [zstd] writes and writes the
     result on [w].
     {ul

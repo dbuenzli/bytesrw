@@ -77,14 +77,12 @@ Bytesrw_zstd
    need to start buffering internally b) We potentially return less,
    like `read` and you need to make your own buffering again.
    Perhaps it's better to keep the low level we have now.}
-{- In the end I'm not so sure [parent_pos] makes that much
-   sense. In a lot of cases it seems easy to make it report nonsense (e.g. when
-   concatenating) besides I'm not sure one level is enough. Maybe
-   the call stack is what we need here…}
 {- On stream cuts. When we cut streams we raise [Invalid_argument] if we try to
    consume the right part before the left returned [eod]. We could try to add
    a sync mecanism, it would default to raise, but you could plug it with
    a blocking effect.}
-{- Review slice_length propagation, everywhere.}}
+{- Review slice_length propagation, everywhere.}
+{- Review tracing.}
+}
 
 See also the {{!page-notes}design notes}.

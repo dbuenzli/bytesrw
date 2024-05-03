@@ -70,10 +70,10 @@ inside the {!Bytesrw.Bytes.Stream.Error} exception.
   the [Stdlib] generally uses.
 
 - We use [first], [last] and [length] for slice indexing and [pos],
-  [parent_pos] for streams. That way the terminology does not overlap
-  which makes it for a clearer exposition. Incidentally our usage of
-  [pos] is constent with the [Stdlib] (though the index vs position
-  terminology is unfortunate in my opinion).
+  for streams. That way the terminology does not overlap which makes
+  it for a clearer exposition. Incidentally our usage of [pos] is
+  constent with the [Stdlib] (though the index vs position terminology
+  is unfortunate in my opinion).
 
 {1:upstream Upstreaming}
 

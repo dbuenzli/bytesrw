@@ -20,6 +20,37 @@ end
 
 open Zstd_consts
 
+(* [Zbuf.t] values are used to communicate buffers with C. It is a counter
+   part to ZSTD_inBuffer and ZSTD_outBuffer on the OCaml side. *)
+
+module Zbuf = struct
+  type t = (* keep in sync with ocaml_zbuf_fields enum in C *)
+    { mutable bytes : Bytes.t;
+      mutable size : int; (* last read or write position + 1 *)
+      mutable pos : int; (* next read or write position *) }
+
+  let make_empty () = { bytes = Bytes.empty; size = 0; pos = 0 }
+  let make size =
+    { bytes = Bytes.create (Bytes.Slice.check_length size); size; pos = 0 }
+
+  let src_is_consumed buf = buf.pos >= buf.size
+  let src_rem buf = buf.size - buf.pos
+  let src_set_slice buf s =
+    buf.bytes <- Bytes.Slice.bytes s;
+    buf.size <- Bytes.Slice.first s + Bytes.Slice.length s;
+    buf.pos <- Bytes.Slice.first s
+
+  let src_to_slice_or_eod buf =
+    let src_rem = src_rem buf in
+    if src_rem = 0 then Bytes.Slice.eod else
+    Bytes.Slice.make buf.bytes ~first:buf.pos ~length:src_rem
+
+  let dst_clear buf = buf.pos <- 0
+  let dst_is_empty buf = buf.pos = 0
+  let dst_is_full buf = buf.pos = buf.size
+  let dst_to_slice buf = Bytes.Slice.make buf.bytes ~first:0 ~length:buf.pos
+end
+
 (* Errors. Stubs raise [Failure] in case of error which we then
    turn into Bytes.Stream.Error with the following error. *)
 
@@ -31,8 +62,8 @@ let format_error =
   Bytes.Stream.make_format_error ~format:"zstd" ~case ~message
 
 let error e = Bytes.Stream.error format_error e
-let read_error r e = Bytes.Reader.error format_error r e
-let write_error r e = Bytes.Writer.error format_error r e
+let reader_error r e = Bytes.Reader.error format_error r e
+let writer_error r e = Bytes.Writer.error format_error r e
 
 (* Library parameters *)
 
@@ -44,39 +75,6 @@ external cstream_in_size : unit -> int = "ocaml_bytesrw_ZSTD_CStreamInSize"
 external cstream_out_size : unit -> int = "ocaml_bytesrw_ZSTD_CStreamOutSize"
 external dstream_in_size : unit -> int = "ocaml_bytesrw_ZSTD_DStreamInSize"
 external dstream_out_size : unit -> int = "ocaml_bytesrw_ZSTD_DStreamOutSize"
-
-(* [Zbuf.t] values are used to communicate with C. It is a counter
-   part to ZSTD_inBuffer and ZSTD_outBuffer on the OCaml side. *)
-
-module Zbuf = struct
-  type t = (* keep in sync with ocaml_zbuf_fields enum in C *)
-    { mutable bytes : Bytes.t;
-      mutable size : int;
-      mutable pos : int; (* next read or write position *) }
-
-  let make_empty () = { bytes = Bytes.empty; size = 0; pos = 0 }
-  let make ?slice_length default_length =
-    let size = match slice_length with
-    | None -> default_length ()
-    | Some size -> Bytes.Slice.check_length size
-    in
-    { bytes = Bytes.create size; size; pos = 0 }
-
-  let make_for_writer w ~none = (* Adapts to [w]'s desire, if any. *)
-    let slice_length = Bytes.Writer.slice_length w in
-    make ?slice_length none
-
-  let src_is_consumed buf = buf.pos >= buf.size
-  let src_set_slice buf s =
-    buf.bytes <- Bytes.Slice.bytes s;
-    buf.size <- Bytes.Slice.first s + Bytes.Slice.length s;
-    buf.pos <- Bytes.Slice.first s
-
-  let dst_clear buf = buf.pos <- 0
-  let dst_is_empty buf = buf.pos = 0
-  let dst_is_full buf = buf.pos = buf.size
-  let dst_to_slice buf = Bytes.Slice.make buf.bytes ~first:0 ~length:buf.pos
-end
 
 (* Decompression *)
 
@@ -146,11 +144,10 @@ let err_unexpected_eod error = error "Unexpected end of compressed data"
 let[@inline] not_flushed ~eof ~src ~dst =
   not (Zbuf.src_is_consumed src) || (Zbuf.dst_is_full dst && not eof)
 
-let decompress_reads ?dict ?params ?slice_length r =
-  let error = read_error r in
+let decompress_reads ?dict ?params ?(slice_length = dstream_out_size ()) r =
   let ctx = make_dctx ?dict ?params () in
-  let src = Zbuf.make_empty () in
-  let dst = Zbuf.make ?slice_length dstream_out_size in
+  let src = Zbuf.make_empty () and dst = Zbuf.make slice_length in
+  let error = reader_error r in
   let state = ref Await in
   let eof = ref false (* true on end of frames *) in
   let rec decode error ctx ~src ~dst =
@@ -169,14 +166,13 @@ let decompress_reads ?dict ?params ?slice_length r =
       | slice ->
           Zbuf.src_set_slice src slice; decode error ctx ~src ~dst
   in
-  let slice_length = Some dst.Zbuf.size in
-  Bytes.Reader.make' ~parent:r ~slice_length read
+  Bytes.Reader.make ~pos:0 ~slice_length read
 
-let decompress_writes ?dict ?params ?slice_length w =
-  let error = write_error w in
+let decompress_writes ?dict ?params ?(slice_length = dstream_in_size ()) w =
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
-  let dst = Zbuf.make_for_writer w ~none:dstream_out_size in
+  let dst = Zbuf.make (Bytes.Writer.slice_length w) in
+  let error = writer_error w in
   let eof = ref false (* true on end of frames *) in
   let rec decode error ctx ~src ~dst =
     eof := decompress error ctx ~src ~dst;
@@ -193,10 +189,7 @@ let decompress_writes ?dict ?params ?slice_length w =
   | slice ->
       Zbuf.src_set_slice src slice; decode error ctx ~src ~dst
   in
-  let slice_length = match slice_length with
-  | None -> Some (dstream_in_size ()) | Some _ as l -> l
-  in
-  Bytes.Writer.make' ~parent:w ~slice_length write
+  Bytes.Writer.make ~pos:0 ~slice_length write
 
 (* Compression *)
 
@@ -270,11 +263,10 @@ let compress error ctx ~src ~dst ~end_dir =
 
 type compress_state = Await | Flush | Flush_eod
 
-let compress_reads ?dict ?params ?slice_length r =
-  let error = read_error r in
+let compress_reads ?dict ?params ?(slice_length = cstream_out_size ()) r =
   let ctx = make_cctx ?dict ?params () in
-  let src = Zbuf.make_empty () in
-  let dst = Zbuf.make ?slice_length cstream_out_size in
+  let src = Zbuf.make_empty () and dst = Zbuf.make slice_length in
+  let error = reader_error r in
   let state = ref Await in
   let eodir = ref false (* true when zstd_e_end has been encoded *) in
   let rec encode_e_end error ctx ~src ~dst =
@@ -304,14 +296,13 @@ let compress_reads ?dict ?params ?slice_length r =
       | slice ->
           Zbuf.src_set_slice src slice; encode error ctx ~src ~dst
   in
-  let slice_length = Some dst.Zbuf.size in
-  Bytes.Reader.make' ~parent:r ~slice_length read
+  Bytes.Reader.make ~pos:0 ~slice_length read
 
-let compress_writes ?dict ?params ?slice_length w =
-  let error = write_error w in
+let compress_writes ?dict ?params ?(slice_length = cstream_in_size ()) w =
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in
-  let dst = Zbuf.make_for_writer w ~none:cstream_out_size in
+  let dst = Zbuf.make (Bytes.Writer.slice_length w) in
+  let error = writer_error w in
   let rec encode_e_end error ctx ~src ~dst =
     let is_eodir = compress error ctx ~src ~dst ~end_dir:zstd_e_end in
     if not (Zbuf.dst_is_empty dst)
@@ -331,7 +322,4 @@ let compress_writes ?dict ?params ?slice_length w =
   | slice when Bytes.Slice.is_eod slice -> encode_e_end error ctx ~src ~dst
   | slice -> Zbuf.src_set_slice src slice; encode error ctx ~src ~dst
   in
-  let slice_length = match slice_length with
-  | None -> Some (cstream_in_size ()) | Some _ as l -> l
-  in
-  Bytes.Writer.make' ~parent:w ~slice_length write
+  Bytes.Writer.make ~pos:0 ~slice_length write

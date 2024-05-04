@@ -70,17 +70,6 @@ Bytesrw_zstd
    which case {!Bytesrw.Bytes.Reader.empty} can become a value again) ?
    We might want to push a header before a stream. But then we should
    provide {!Bytesrw.Bytes.Reader.val-append} at some point.}
-{- Readers. Should we provide an interface for specifying the number
-   of bytes to read ? That would entail storing last read in the reader.
-   But then if too much is requested then either a) we
-   need to start buffering internally b) We potentially return less,
-   like `read` and you need to make your own buffering again.
-   Perhaps it's better to keep the low level we have now.}
-{- On stream cuts. When we cut streams we raise [Invalid_argument] if we try to
-   consume the right part before the left returned [eod]. We could try to add
-   a sync mecanism, it would default to raise, but you could plug it with
-   a blocking effect.}
-{- Review slice_length propagation, everywhere.}
 {- Review tracing.}
 {- What should we do with channel/unix reader/writer exceptions
    convert their exceptions to Bytes.Stream.Error or not ?}

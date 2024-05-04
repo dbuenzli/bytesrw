@@ -34,10 +34,6 @@ module Bytes = struct
     let unix_io_buffer_size = 65536
     let default_length = io_buffer_size
 
-    let pp_length_option ppf = function
-    | None -> Format.pp_print_string ppf "<none>"
-    | Some len -> Format.pp_print_int ppf len
-
     (* Slices *)
 
     type t = { bytes : Bytes.t; first : int; length : int }
@@ -231,30 +227,16 @@ module Bytes = struct
     type t =
       { mutable pos : int;
         mutable read : unit -> Slice.t;
-        slice_length : Slice.length option }
+        slice_length : Slice.length }
 
-    let make ?(pos = 0) ?slice_length read =
-      let slice_length = Option.map Slice.check_length slice_length in
-      { pos; read; slice_length }
-
-    let make' ~parent ?slice_length read =
-      let slice_length = match slice_length with
-      | None -> parent.slice_length | Some l -> Option.map Slice.check_length l
-      in
-      { pos = 0; read; slice_length }
+    let make ?(pos = 0) ?(slice_length = Slice.default_length) read =
+      { pos; read; slice_length = Slice.check_length slice_length }
 
     let read_eod = Fun.const Slice.eod
-    let empty () = { pos = 0; read = read_eod; slice_length = None }
-
+    let empty ?pos ?slice_length () = make read_eod
     let pos r = r.pos
     let read_length = pos
     let slice_length r = r.slice_length
-    let with_props ?from ?pos ?slice_length r =
-      let d = Option.value ~default:r from in
-      let pos = Option.value ~default:d.pos pos in
-      let slice_length = Option.value ~default:d.slice_length slice_length in
-      { r with pos; slice_length; }
-
     let error fmt r ?pos e =
       let pos = match pos with
       | None -> r.pos | Some p when p < 0 -> r.pos + p | Some p -> p
@@ -344,34 +326,32 @@ module Bytes = struct
       let action = match action with
       | Some act -> act | None -> error Stream.limit_error ?pos:None
       in
+      let slice_length = Option.value ~default:r.slice_length slice_length in
+      let lr = make ~pos:r.pos ~slice_length read_eod in
       let left = ref n in
-      let lr = make' ~parent:r ~slice_length read_eod in
       let read () =
-        if !left <= 0
-        then (lr.read <- read_eod; action lr n; Slice.eod) else
+        if !left <= 0 then (lr.read <- read_eod; action lr n; Slice.eod) else
         match read r with
         | slice when Slice.is_eod slice -> slice
         | slice ->
             let slen = Slice.length slice in
             left := !left - slen;
             if !left >= 0 then slice else
-            match Slice.break (slen + !left) slice with
-            | None -> assert false
-            | Some (ret, back) -> push_back r back; ret
+            let ret, back = Option.get (Slice.break (slen + !left) slice) in
+            push_back r back; ret
       in
       lr.read <- read; lr
 
     (* Appending *)
 
-    let append r0 r1 =
-      let slice_length = match r0.slice_length, r1.slice_length with
-      | None, None -> None
-      | Some l0, Some l1 -> Some (Int.max l0 l1)
-      | Some l,  None | None, Some l -> (Some l)
+    let append ?pos ?slice_length r0 r1 =
+      let slice_length = match slice_length with
+      | None -> Int.max r0.slice_length r1.slice_length | Some l -> l
       in
-      let r = make ?slice_length read_eod in
-      let read_r0 () = match r0.read () with
-      | s when Slice.is_eod s -> r.read <- r1.read; r1.read ()
+      let r = make ?pos ~slice_length read_eod in
+      let read_r1 () = read r1 in
+      let read_r0 () = match read r0 with
+      | s when Slice.is_eod s -> r.read <- read_r1; read_r1 ()
       | s -> s
       in
       r.read <- read_r0; r
@@ -396,9 +376,9 @@ module Bytes = struct
 
     let of_bytes ?pos ?slice_length b =
       let blen = Bytes.length b in
-      if blen = 0 then make ?pos ?slice_length read_eod else
+      if blen = 0 then empty ?pos ?slice_length () else
       let slice_length = match slice_length with
-      | None -> blen | Some slen -> Int.min (Slice.check_length slen) blen
+      | None -> blen | Some slen -> Int.min slen blen
       in
       if slice_length = blen then begin
         let s = ref (Slice.make b ~first:0 ~length:blen) in
@@ -433,7 +413,7 @@ module Bytes = struct
       make ~pos ~slice_length read
 
     let of_slice ?pos ?slice_length s =
-      if Slice.is_eod s then empty () else
+      if Slice.is_eod s then empty ?pos ?slice_length () else
       let slice_length = match slice_length with
       | None -> Slice.length s | Some l -> l
       in
@@ -453,8 +433,7 @@ module Bytes = struct
     | s -> Slice.add_to_buffer b s; add_to_buffer b r
 
     let to_string r =
-      let blen = Option.value ~default:1024 r.slice_length in
-      let b = Buffer.create blen in
+      let b = Buffer.create r.slice_length in
       add_to_buffer b r; Buffer.contents b
 
     let to_slice_seq r =
@@ -482,36 +461,22 @@ module Bytes = struct
     (* Formatting *)
 
     let pp ppf r =
-      Format.fprintf ppf "@[<1><reader pos:%d slice:%a>@]"
-        r.pos Slice.pp_length_option r.slice_length
+      Format.fprintf ppf "@[<1><reader pos:%d slice:%d>@]" r.pos r.slice_length
   end
 
   module Writer = struct
     type t =
       { mutable pos : int;
-        slice_length : Slice.length option;
+        slice_length : Slice.length;
         mutable write : Slice.t -> unit; }
 
-    let make ?(pos = 0) ?slice_length write =
-      let slice_length = Option.map Slice.check_length slice_length in
-      { pos; slice_length; write }
-
-    let make' ~parent ?slice_length write =
-      let slice_length = match slice_length with
-      | None -> parent.slice_length | Some l -> Option.map Slice.check_length l
-      in
-      { pos = 0; slice_length; write }
+    let make ?(pos = 0) ?(slice_length = Slice.default_length) write =
+      { pos; slice_length = Slice.check_length slice_length; write }
 
     let pos w = w.pos
     let slice_length w = w.slice_length
     let written_length w = w.pos
-    let with_props ?from ?pos ?slice_length w =
-      let d = Option.value ~default:w from in
-      let pos = Option.value ~default:d.pos pos in
-      let slice_length = Option.value ~default:d.slice_length slice_length in
-      { w with pos; slice_length }
-
-    let ignore ?pos () = make ?pos (fun s -> ())
+    let ignore ?pos ?slice_length () = make ?pos ?slice_length (fun s -> ())
     let error fmt w ?pos e =
       let pos = match pos with
       | None -> w.pos | Some p when p < 0 -> w.pos + p | Some p -> p
@@ -538,9 +503,7 @@ module Bytes = struct
         loop w slice_length b blen (first + length)
       in
       let blen = Bytes.length b in
-      let slice_length = match w.slice_length with
-      | None -> blen | Some slen -> Int.min slen blen
-      in
+      let slice_length = Int.min w.slice_length blen in
       loop w slice_length b blen 0
 
     let write_string w s =
@@ -561,8 +524,7 @@ module Bytes = struct
         if count = 0 then (if eod then write_eod w else ())  else
         (write w (Slice.make buf ~first:0 ~length:count); loop w ic buf)
       in
-      let blen = Option.value ~default:Slice.io_buffer_size w.slice_length in
-      loop w ic (Bytes.create blen)
+      loop w ic (Bytes.create w.slice_length)
 
     (* Tracing *)
 
@@ -576,12 +538,6 @@ module Bytes = struct
         ?pos ?(slice_length = Slice.io_buffer_size) ?(flush_slices = false) oc
       =
       let () = Out_channel.set_binary_mode oc true in
-      let write = function
-      | s when Slice.is_eod s -> ()
-      | s ->
-          Slice.(Out_channel.output oc (bytes s) (first s) (length s));
-          if flush_slices then Out_channel.flush oc
-      in
       let pos = match pos with
       | Some pos -> pos
       | None ->
@@ -591,13 +547,16 @@ module Bytes = struct
           | Some pos -> pos
           | None -> raise (Sys_error (err_channel_pos "Bytes.Writer" pos))
       in
+      let write = function
+      | slice when Slice.is_eod slice -> ()
+      | slice ->
+          Slice.output_to_out_channel oc slice;
+          if flush_slices then Out_channel.flush oc
+      in
       make ~pos ~slice_length write
 
     let of_buffer ?pos ?slice_length b =
-      let write = function
-      | s when Slice.is_eod s -> ()
-      | s -> Slice.(Buffer.add_subbytes b (bytes s) (first s) (length s))
-      in
+      let write s = if Slice.is_eod s then () else Slice.add_to_buffer b s in
       make ?pos ?slice_length write
 
     (* Filters *)
@@ -606,10 +565,10 @@ module Bytes = struct
 
     let limit ?action n ?slice_length w =
       let action = match action with
-      | None -> error Stream.limit_error ?pos:None
-      | Some limit -> limit
+      | Some act -> act | None -> error Stream.limit_error ?pos:None
       in
-      let lw = make' ~parent:w ~slice_length write_only_eod in
+      let slice_length = Option.value ~default:w.slice_length slice_length in
+      let lw = make ~pos:w.pos ~slice_length write_only_eod in
       let left = ref n in
       let write = function
       | slice when Slice.is_eod slice -> ()
@@ -634,8 +593,7 @@ module Bytes = struct
     (* Formatting *)
 
     let pp ppf w =
-      Format.fprintf ppf "@[<1><writer pos:%d slice:%a>@]"
-        w.pos Slice.pp_length_option w.slice_length
+      Format.fprintf ppf "@[<1><writer pos:%d slice:%d>@]" w.pos w.slice_length
   end
 
   let pp_hex = Bytesrw_fmt.pp_hex

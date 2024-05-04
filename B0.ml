@@ -52,7 +52,7 @@ let test ?(requires = []) src =
 
 let utf8codec = test ~/"test/utf8codec.ml"
 let test_examples = test ~requires:[bytesrw_zlib] ~/"test/examples.ml"
-let test_bytesrw = test ~requires:[bytesrw_zlib] ~/"test/test_bytesrw.ml"
+let test_bytesrw = test ~requires:[] ~/"test/test_bytesrw.ml"
 let test_utf = test ~requires:[bytesrw_kit] ~/"test/test_utf.ml"
 let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
 let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"

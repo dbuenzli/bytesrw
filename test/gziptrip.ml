@@ -5,49 +5,42 @@
 
 open Bytesrw
 
-let filter_stdio_with_bytes_reader unix ~in_size filter =
-  let i =
-    if unix
-    then Bytesrw_unix.bytes_reader_of_fd ?slice_length:in_size Unix.stdin
-    else Bytes.Reader.of_in_channel ?slice_length:in_size In_channel.stdin
-  in
-  let o =
-    if unix
-    then Bytesrw_unix.bytes_writer_of_fd Unix.stdout
-    else Bytes.Writer.of_out_channel Out_channel.stdout
-  in
+let stdin_reader unix ~slice_length = match unix with
+| true -> Bytesrw_unix.bytes_reader_of_fd ?slice_length Unix.stdin
+| false -> Bytes.Reader.of_in_channel ?slice_length In_channel.stdin
+
+let stdout_writer unix ~slice_length = match unix with
+| true -> Bytesrw_unix.bytes_writer_of_fd ?slice_length Unix.stdout
+| false -> Bytes.Writer.of_out_channel ?slice_length Out_channel.stdout
+
+let filter_stdio_with_reader_filter unix ~slice_length filter =
+  let i = stdin_reader unix ~slice_length in
+  let o = stdout_writer unix ~slice_length in
   Bytes.Writer.write_reader ~eod:true o (filter i);
   i, o
 
-let filter_stdio_with_bytes_writer unix ~out_size:osize filter =
-  let i =
-    if unix
-    then Bytesrw_unix.bytes_reader_of_fd Unix.stdin
-    else Bytes.Reader.of_in_channel In_channel.stdin
-  in
-  let o =
-    if unix
-    then Bytesrw_unix.bytes_writer_of_fd ?slice_length:osize Unix.stdout
-    else Bytes.Writer.of_out_channel ?slice_length:osize Out_channel.stdout
-  in
+let filter_stdio_with_writer_filter unix ~slice_length filter =
+  let i = stdin_reader unix ~slice_length in
+  let o = stdout_writer unix ~slice_length in
   Bytes.Writer.write_reader ~eod:true (filter o) i;
+  Bytes.Writer.write_eod o; (* Writer filters do not write eod *)
   i, o
 
-let decompress processor unix ~in_size ~out_size = match processor with
+let decompress processor unix ~slice_length = match processor with
 | `Reader ->
-    let d = Bytesrw_zlib.Gzip.decompress_reads ?slice_length:out_size in
-    filter_stdio_with_bytes_reader unix ~in_size d
+    let d = Bytesrw_zlib.Gzip.decompress_reads in
+    filter_stdio_with_reader_filter unix ~slice_length d
 | `Writer ->
-    let d = Bytesrw_zlib.Gzip.decompress_writes ?slice_length:in_size in
-    filter_stdio_with_bytes_writer unix ~out_size d
+    let d = Bytesrw_zlib.Gzip.decompress_writes in
+    filter_stdio_with_writer_filter unix ~slice_length d
 
-let compress processor unix ~in_size ~out_size = match processor with
+let compress processor unix ~slice_length = match processor with
 | `Reader ->
-    let c = Bytesrw_zlib.Gzip.compress_reads ?slice_length:out_size in
-    filter_stdio_with_bytes_reader unix ~in_size c
+    let c = Bytesrw_zlib.Gzip.compress_reads in
+    filter_stdio_with_reader_filter unix ~slice_length c
 | `Writer ->
-    let c = Bytesrw_zlib.Gzip.compress_writes ?slice_length:in_size in
-    filter_stdio_with_bytes_writer unix ~out_size c
+    let c = Bytesrw_zlib.Gzip.compress_writes in
+    filter_stdio_with_writer_filter unix ~slice_length c
 
 let log_count i o =
   let i = Bytes.Reader.read_length i in
@@ -55,11 +48,11 @@ let log_count i o =
   let pct = Float.to_int ((float o /. float i) *. 100.) in
   Printf.eprintf "i:%d o:%d o/i:%d%%\n%!" i o pct
 
-let trip mode clevel processor in_size out_size show_count unix =
+let trip mode clevel processor slice_length show_count unix =
   try
     let i, o = match mode with
-    | `Decompress -> decompress processor unix ~in_size ~out_size
-    | `Compress -> compress processor unix ~in_size ~out_size
+    | `Decompress -> decompress processor unix ~slice_length
+    | `Compress -> compress processor unix ~slice_length
     in
     if show_count then log_count i o;
     Ok 0
@@ -80,13 +73,9 @@ let cmd =
     let w = `Writer, Arg.info ["writer"] ~doc:"Use a bytes writer processor." in
     Arg.(value & vflag `Reader [r; w])
   in
-  let in_size =
-    let doc = "Input slices byte size." in
-    Arg.(value & opt (some int) None & info ["in-size"] ~doc ~docv:"SIZE")
-  in
-  let out_size =
-    let doc = "Output slices byte size." in
-    Arg.(value & opt (some int) None & info ["out-size"] ~doc ~docv:"SIZE")
+  let slice_length =
+    let doc = "IO byte slices size." in
+    Arg.(value & opt (some int) None & info ["io-size"] ~doc ~docv:"SIZE")
   in
   let clevel =
     let doc =
@@ -102,11 +91,11 @@ let cmd =
   in
   let unix =
     let doc = "Use OCaml Unix library I/O instead of Stdlib channels" in
-    Arg.(value & flag & info ["unix"] ~doc)
+    Arg.(value & flag & info ["unix-io"] ~doc)
   in
   Cmd.v (Cmd.info "gziptrip" ~version:"%%VERSION%%" ~doc) @@
   Term.(const trip $ mode $ clevel $ processor $
-        in_size $ out_size $ show_count $ unix)
+        slice_length $ show_count $ unix)
 
 let main () = Cmd.eval_result' cmd
 let () = if !Sys.interactive then () else exit (main ())

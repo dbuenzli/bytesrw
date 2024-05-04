@@ -11,8 +11,11 @@
     {{:https://www.rfc-editor.org/rfc/rfc1952}[gzip]}
     streams with the {{:https://zlib.net/}[zlib]} C library.
 
-    {b Note.} The default [slice_length] of the readers
-    created by this module is {!default_slice_length}. *)
+    {b Slice lengths.} The slice length of readers created by filters
+    of this module defaults to {!default_slice_length}. The hinted
+    slice length of writers created by filters of this module defaults to
+    {!default_slice_length} and they write on their writers with
+    slices that respect their desires. *)
 
 open Bytesrw
 
@@ -24,8 +27,6 @@ type Bytes.Stream.error += Error of string (** *)
     Except the {{!library}library parameters}, all functions of this
     module and resulting reader and writers may raise
     {!Bytesrw.Bytes.Stream.Error} with this error. *)
-
-(** {1:fmt Formats} *)
 
 type level = int
 (** The type for compression levels.
@@ -54,7 +55,7 @@ module Deflate : sig
       [deflate] stream until {!Bytes.Slice.eod} is written, if leftover
       data remains an error is raised. The last {!Bytes.Slice.eod} is not
       written on [w] and at this point [w] can be used again to perform other
-      non-filtered writes. *)
+      non-filtered writes.  *)
 
   (** {1:compress Compress} *)
 

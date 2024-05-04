@@ -36,25 +36,17 @@ module Zbuf = struct
       mutable pos : int; (* next read or write position *) }
 
   let make_empty () = { bytes = Bytes.empty; size = 0; pos = 0 }
-  let make ?slice_length default_slice_length =
-    let size = match slice_length with
-    | None -> default_slice_length
-    | Some size -> Bytes.Slice.check_length size
-    in
-    { bytes = Bytes.create size; size; pos = 0 }
-
-  let make_for_writer w ~none = (* Adapts to [w]'s desire, if any. *)
-    let slice_length = Bytes.Writer.slice_length w in
-    make ?slice_length none
+  let make size =
+    { bytes = Bytes.create (Bytes.Slice.check_length size); size; pos = 0 }
 
   let src_is_consumed buf = buf.pos >= buf.size
+  let src_rem buf = buf.size - buf.pos
   let src_set_slice buf s =
     buf.bytes <- Bytes.Slice.bytes s;
     buf.size <- Bytes.Slice.first s + Bytes.Slice.length s;
     buf.pos <- Bytes.Slice.first s
 
-  let src_rem buf = buf.size - buf.pos
-  let src_to_slice buf =
+  let src_to_slice_or_eod buf =
     let src_rem = src_rem buf in
     if src_rem = 0 then Bytes.Slice.eod else
     Bytes.Slice.make buf.bytes ~first:buf.pos ~length:src_rem
@@ -110,10 +102,12 @@ let err_unexp_eod ?pos error = error ?pos "Unexpected end of compressed data"
 let err_exp_eod ~leftover error =
   error ?pos:(Some (-(Bytes.Slice.length leftover))) "Expected end of data"
 
-let inflate_reads ~error ~reader_error ~eos_action ~window_bits ?slice_length r=
+let inflate_reads
+    ~error ~reader_error ~eos_action ~window_bits
+    ?(slice_length = default_slice_length) r
+  =
   let zs = make_z_stream_inflate ~error ~window_bits in
-  let src = Zbuf.make_empty () in
-  let dst = Zbuf.make ?slice_length default_slice_length in
+  let src = Zbuf.make_empty () and dst = Zbuf.make slice_length in
   let error = reader_error r in
   let state = ref Await in
   (* The following invariant must hold. [free_inflate_z_stream] is
@@ -124,7 +118,7 @@ let inflate_reads ~error ~reader_error ~eos_action ~window_bits ?slice_length r=
       state := Eod; free_inflate_z_stream zs; error ?pos:None e
   | eos ->
       state := begin
-        if eos then Eos { leftover = Zbuf.src_to_slice src } else
+        if eos then Eos { leftover = Zbuf.src_to_slice_or_eod src } else
         if not (Zbuf.src_is_consumed src) || (Zbuf.dst_is_full dst) then Flush
         else Await
       end;
@@ -167,14 +161,15 @@ let inflate_reads ~error ~reader_error ~eos_action ~window_bits ?slice_length r=
       end
   | Eod -> Bytes.Slice.eod
   in
-  let slice_length = Some dst.Zbuf.size in
-  Bytes.Reader.make' ~parent:r ~slice_length read
+  Bytes.Reader.make ~pos:0 ~slice_length read
 
-let inflate_writes ~error ~writer_error ~window_bits ?slice_length w =
+let inflate_writes
+    ~error ~writer_error ~window_bits ?(slice_length = default_slice_length) w
+  =
   let is_gzip = window_bits = window_bits_gzip in
   let zs = make_z_stream_inflate ~error ~window_bits in
   let src = Zbuf.make_empty () in
-  let dst = Zbuf.make ?slice_length default_slice_length in
+  let dst = Zbuf.make (Bytes.Writer.slice_length w) in
   let error = writer_error w in
   let eos = ref false in
   let rec decompress ~error zs ~src ~dst = match inflate zs ~src ~dst with
@@ -184,10 +179,10 @@ let inflate_writes ~error ~writer_error ~window_bits ?slice_length w =
         eos := is_eos;
         if is_gzip then
           (match inflate_reset zs with
-          | () -> () | exception Failure e -> writer_error w ?pos:None e)
+          | () -> () | exception Failure e -> error ?pos:None e)
         else
         if not (Zbuf.src_is_consumed src)
-        then err_exp_eod ~leftover:(Zbuf.src_to_slice src) (writer_error w)
+        then err_exp_eod ~leftover:(Zbuf.src_to_slice_or_eod src) error
       end;
       let flush_dst = Zbuf.dst_is_full dst && not is_eos in
       if not (Zbuf.dst_is_empty dst) then begin
@@ -200,13 +195,10 @@ let inflate_writes ~error ~writer_error ~window_bits ?slice_length w =
   let write = function
   | slice when Bytes.Slice.is_eod slice ->
       free_inflate_z_stream zs; (* Note: [write] is never called again *)
-      if !eos then () else err_unexp_eod (writer_error w)
+      if !eos then () else err_unexp_eod error
   | slice -> Zbuf.src_set_slice src slice; decompress ~error zs ~src ~dst
   in
-  let slice_length = match slice_length with
-  | None -> Some default_slice_length | Some _ as l -> l
-  in
-  Bytes.Writer.make' ~parent:w ~slice_length write
+  Bytes.Writer.make ~pos:0 ~slice_length write
 
 (* Compression *)
 
@@ -235,10 +227,12 @@ let make_z_stream_deflate ~error ~window_bits ?(level = default_compression) ()
   match create_deflate_z_stream ~level ~window_bits with
   | exception Failure e -> error e | zs -> zs
 
-let deflate_reads ~error ~reader_error ~window_bits ?level ?slice_length r =
+let deflate_reads
+    ~error ~reader_error ~window_bits ?level
+    ?(slice_length = default_slice_length) r
+  =
   let zs = make_z_stream_deflate ~error ~window_bits ?level () in
-  let src = Zbuf.make_empty () in
-  let dst = Zbuf.make ?slice_length default_slice_length in
+  let src = Zbuf.make_empty () and dst = Zbuf.make slice_length in
   let error = reader_error r in
   let state = ref Await in
   let rec compress_eod ~error zs ~src ~dst =
@@ -277,13 +271,15 @@ let deflate_reads ~error ~reader_error ~window_bits ?level ?slice_length r =
       end
   | Eod -> Bytes.Slice.eod
   in
-  let slice_length = Some default_slice_length in
-  Bytes.Reader.make' ~parent:r ~slice_length read
+  Bytes.Reader.make ~pos:0 ~slice_length read
 
-let deflate_writes ~error ~writer_error ~window_bits ?level ?slice_length w =
+let deflate_writes
+    ~error ~writer_error ~window_bits ?level
+    ?(slice_length = default_slice_length) w
+  =
   let zs = make_z_stream_deflate ~error ~window_bits ?level () in
   let src = Zbuf.make_empty () in
-  let dst = Zbuf.make ?slice_length default_slice_length in
+  let dst = Zbuf.make (Bytes.Writer.slice_length w) in
   let error = writer_error w in
   let write_dst w dst =
     if Zbuf.dst_is_empty dst then () else
@@ -310,10 +306,7 @@ let deflate_writes ~error ~writer_error ~window_bits ?level ?slice_length w =
   | slice when Bytes.Slice.is_eod slice -> compress_eod ~error w zs ~src ~dst
   | slice -> Zbuf.src_set_slice src slice; compress ~error w zs ~src ~dst
   in
-  let slice_length = match slice_length with
-  | None -> Some default_slice_length | Some _ as l -> l
-  in
-  Bytes.Writer.make' ~parent:w ~slice_length write
+  Bytes.Writer.make ~pos:0 ~slice_length write
 
 (* Compression formats *)
 

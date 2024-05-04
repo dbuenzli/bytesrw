@@ -13,14 +13,6 @@ For example the {!Bytesrw.Bytes.Slice} creation functions raise
 those that can produce them have dedicated names that include [_eod]
 to make users and code readers aware that this might terminate the stream.
 
-{1:semi Semi-applicative design}
-
-No setters on mutable fields. The function that change them (which we
-decided to hide for now) makes a new reader/writer. This of course
-does not turn readers and writers into applicative structures but it
-makes sure that [read] and [write] functions cannot fiddle with these
-fields in compositions.
-
 {1:errors Error strategy}
 
 The error strategy may look involved but it caters for:
@@ -56,7 +48,7 @@ type structure is used:
   {!Bytesrw.Bytes.Stream.error_context} value for which there is no constructor.
 - This means that all raises go through either
   {!Bytesrw.Bytes.Stream.type-error},
-  or {!Bytesrw.Bytes.Reader.read_error} or {!Bytesrw.Bytes.Writer.write_error}.
+  or {!Bytesrw.Bytes.Reader.error} or {!Bytesrw.Bytes.Writer.error}.
   These functions ask for a {!Bytesrw.Bytes.Stream.format_error},
   whose creation asks stream formats to identify themelves and describe
   how their errors can be stringified.
@@ -64,13 +56,22 @@ type structure is used:
 Effectively this system can be seen as an OCaml-like exception system
 inside the {!Bytesrw.Bytes.Stream.Error} exception.
 
-{1:primitives Signature of [read/write] primitive}
+{1:primitives Signature of [read/write] primitives}
 
 - Having [write] return the number of written bytes from the slice
   would be useful for certain scenario, most notably write filters.
   It would be the moral equivalent of readers' push backs, except
   in this case it's inconvenient for the client and leads to
   [really_write]… not desirable.
+
+- [read]. We do not provide an interface for specifying the number of
+  bytes to read. That would entail storing the last slice in the
+  reader. But then if too much is requested then either we need to
+  start buffering internally because of slice validity or potentially
+  return less but then this leads to [really_read] and buffering
+  again. The example of utf-8 text codec shows that we can really get
+  rid of buffering except for a tiny buffer for overlapping reads.  It
+  seems better to let higher level abstractions handle that.
 
 {1:names Names}
 

@@ -60,21 +60,23 @@ val decompress_reads :
   ?dict:Ddict.t -> ?params:Dctx_params.t -> Bytes.Reader.filter
 (** [decompress_reads r] decompresses the [zstd] compressed reads of [r].
     {ul
-    {- [params] defaults to {!Dctx_params.default}}
     {- [dict] is the decompression dictionary, if any.}
+    {- [params] defaults to {!Dctx_params.default}}
     {- [slice_length] defaults to {!dstream_out_size}.}
-    {- If you get to create [r] use {!dstream_in_size} for its slices.}}  *)
+    {- If you get to create [r] and it has no constraints on its own
+       use {!dstream_in_size} for its slices.}}  *)
 
 val decompress_writes :
   ?dict:Ddict.t -> ?params:Dctx_params.t -> Bytes.Writer.filter
 (** [decompress_writes w] decompresses [zstd] compressed writes and
     writes the result on [w].
     {ul
-    {- [params] defaults to {!Dctx_params.default}}
     {- [dict] is the decompression dictionary, if any.}
+    {- [params] defaults to {!Dctx_params.default}}
     {- [slice_length] defaults to {!dstream_in_size}}
     {- Compressed slice lengths abides to [w]'s desire but if you get to
-       create it use {!dstream_out_size}.}} *)
+       create it and it has no constraints on its own use
+       {!dstream_out_size}.}} *)
 
 (** {1:compress Compress} *)
 
@@ -129,21 +131,23 @@ val compress_reads :
   ?dict:Cdict.t -> ?params:Cctx_params.t -> Bytes.Reader.filter
 (** [compress_reads r] compresses the reads of [r] with [zstd].
     {ul
-    {- [params] defaults to {!Cctx_params.default}.}
     {- [dict] is the compression dictionary, if any.}
+    {- [params] defaults to {!Cctx_params.default}.}
     {- [slice_length] defaults to {!cstream_out_size}.}
-    {- If you get to create [r] use {!cstream_in_size} for its slices.}} *)
+    {- If you get to create [r] and it has no constraints on its own
+       use {!cstream_in_size} for its slices.}} *)
 
 val compress_writes :
   ?dict:Cdict.t -> ?params:Cctx_params.t -> Bytes.Writer.filter
 (** [compress_writes w] compresses to [zstd] writes and writes the
     result on [w].
     {ul
-    {- [params] defaults to {!Cctx_params.default}.}
     {- [dict] is the compression dictionary, if any.}
+    {- [params] defaults to {!Cctx_params.default}.}
     {- [slice_length] defaults to {!cstream_in_size}.}
     {- Decompressed slice length abides to [w]'s desire but if you get to
-       create it use {!cstream_out_size}.}} *)
+       create it and it has no constraints on its own use
+       {!cstream_out_size}.}} *)
 
 (** {1:lib Library parameters} *)
 

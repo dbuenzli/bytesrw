@@ -144,7 +144,9 @@ let err_unexpected_eod error = error "Unexpected end of compressed data"
 let[@inline] not_flushed ~eof ~src ~dst =
   not (Zbuf.src_is_consumed src) || (Zbuf.dst_is_full dst && not eof)
 
-let decompress_reads ?dict ?params ?(slice_length = dstream_out_size ()) r =
+let decompress_reads
+    ?dict ?params ?pos ?(slice_length = dstream_out_size ()) r
+  =
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () and dst = Zbuf.make slice_length in
   let error = reader_error r in
@@ -166,9 +168,11 @@ let decompress_reads ?dict ?params ?(slice_length = dstream_out_size ()) r =
       | slice ->
           Zbuf.src_set_slice src slice; decode error ctx ~src ~dst
   in
-  Bytes.Reader.make ~pos:0 ~slice_length read
+  Bytes.Reader.make ?pos ~slice_length read
 
-let decompress_writes ?dict ?params ?(slice_length = dstream_in_size ()) w =
+let decompress_writes
+    ?dict ?params ?pos ?(slice_length = dstream_in_size ()) w
+  =
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
   let dst = Zbuf.make (Bytes.Writer.slice_length w) in
@@ -189,7 +193,7 @@ let decompress_writes ?dict ?params ?(slice_length = dstream_in_size ()) w =
   | slice ->
       Zbuf.src_set_slice src slice; decode error ctx ~src ~dst
   in
-  Bytes.Writer.make ~pos:0 ~slice_length write
+  Bytes.Writer.make ?pos ~slice_length write
 
 (* Compression *)
 
@@ -263,7 +267,7 @@ let compress error ctx ~src ~dst ~end_dir =
 
 type compress_state = Await | Flush | Flush_eod
 
-let compress_reads ?dict ?params ?(slice_length = cstream_out_size ()) r =
+let compress_reads ?dict ?params ?pos ?(slice_length = cstream_out_size ()) r =
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () and dst = Zbuf.make slice_length in
   let error = reader_error r in
@@ -296,9 +300,9 @@ let compress_reads ?dict ?params ?(slice_length = cstream_out_size ()) r =
       | slice ->
           Zbuf.src_set_slice src slice; encode error ctx ~src ~dst
   in
-  Bytes.Reader.make ~pos:0 ~slice_length read
+  Bytes.Reader.make ?pos ~slice_length read
 
-let compress_writes ?dict ?params ?(slice_length = cstream_in_size ()) w =
+let compress_writes ?dict ?params ?pos ?(slice_length = cstream_in_size ()) w =
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in
   let dst = Zbuf.make (Bytes.Writer.slice_length w) in
@@ -322,4 +326,4 @@ let compress_writes ?dict ?params ?(slice_length = cstream_in_size ()) w =
   | slice when Bytes.Slice.is_eod slice -> encode_e_end error ctx ~src ~dst
   | slice -> Zbuf.src_set_slice src slice; encode error ctx ~src ~dst
   in
-  Bytes.Writer.make ~pos:0 ~slice_length write
+  Bytes.Writer.make ?pos ~slice_length write

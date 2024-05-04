@@ -11,11 +11,14 @@
     {{:https://www.rfc-editor.org/rfc/rfc1952}[gzip]}
     streams with the {{:https://zlib.net/}[zlib]} C library.
 
-    {b Slice lengths.} The slice length of readers created by filters
-    of this module defaults to {!default_slice_length}. The hinted
+    {b Slice lengths.} The slice length of readers created by
+    filters of this module defaults to {!default_slice_length}. The hinted
     slice length of writers created by filters of this module defaults to
     {!default_slice_length} and they write on their writers with
-    slices that respect their desires. *)
+    slices that respect their desires.
+
+    {b Positions.} The position of readers and writers created
+    by filters of this module default to [0]. *)
 
 open Bytesrw
 
@@ -24,7 +27,7 @@ open Bytesrw
 type Bytes.Stream.error += Error of string (** *)
 (** The type for [deflate], [zlib] and [gzip] stream errors.
 
-    Except the {{!library}library parameters}, all functions of this
+    Except for the {{!library}library parameters}, all functions of this
     module and resulting reader and writers may raise
     {!Bytesrw.Bytes.Stream.Error} with this error. *)
 

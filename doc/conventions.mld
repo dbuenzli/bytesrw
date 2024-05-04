@@ -2,31 +2,7 @@
 
 {1:rw Reader and writer makers}
 
-Should have [?parent_pos] and [?slice_length] with good defaults.
-
 {1:filter Filter signatures}
 
-Filters are reader and writers that transform reads and writes.
-
-If you transform readers or writers in a module [M] . Then the
-function should be:
-
-{[
-val M.{decode,encode}_reads :
-  ?params:params ->
-  ?slice_length:Bytes.Slice.length ->
-  Bytes.Reader.t -> Bytes.Reader.t
-
-val M.{decode,encode}_writes :
-  ?params:params ->
-  ?slice_length:Bytes.Slice.length -> Bytes.Writer.t -> Bytes.Writer.t
-]}
-
-More meaningful verbs can be replaced for [decode] and [encode]. Here
-are a few standards to use:
-{ul
-{- [decompress]/[compress] for compression formats}
-{- [encrypt]/[decrypt] for encryption}
-{- [checksum] for checksums.}}
-
-Writer filters must not write the {!Bytesrw.Bytes.Slice.eod}
+The conventions are described in
+{!Bytesrw.Bytes.Reader.filter} and  {!Bytesrw.Bytes.Writer.filter}

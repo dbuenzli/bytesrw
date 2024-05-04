@@ -103,7 +103,7 @@ let err_exp_eod ~leftover error =
   error ?pos:(Some (-(Bytes.Slice.length leftover))) "Expected end of data"
 
 let inflate_reads
-    ~error ~reader_error ~eos_action ~window_bits
+    ~error ~reader_error ~eos_action ~window_bits ?pos
     ?(slice_length = default_slice_length) r
   =
   let zs = make_z_stream_inflate ~error ~window_bits in
@@ -161,10 +161,11 @@ let inflate_reads
       end
   | Eod -> Bytes.Slice.eod
   in
-  Bytes.Reader.make ~pos:0 ~slice_length read
+  Bytes.Reader.make ?pos ~slice_length read
 
 let inflate_writes
-    ~error ~writer_error ~window_bits ?(slice_length = default_slice_length) w
+    ~error ~writer_error ~window_bits ?pos
+    ?(slice_length = default_slice_length) w
   =
   let is_gzip = window_bits = window_bits_gzip in
   let zs = make_z_stream_inflate ~error ~window_bits in
@@ -198,7 +199,7 @@ let inflate_writes
       if !eos then () else err_unexp_eod error
   | slice -> Zbuf.src_set_slice src slice; decompress ~error zs ~src ~dst
   in
-  Bytes.Writer.make ~pos:0 ~slice_length write
+  Bytes.Writer.make ?pos ~slice_length write
 
 (* Compression *)
 
@@ -228,7 +229,7 @@ let make_z_stream_deflate ~error ~window_bits ?(level = default_compression) ()
   | exception Failure e -> error e | zs -> zs
 
 let deflate_reads
-    ~error ~reader_error ~window_bits ?level
+    ~error ~reader_error ~window_bits ?level ?pos
     ?(slice_length = default_slice_length) r
   =
   let zs = make_z_stream_deflate ~error ~window_bits ?level () in
@@ -271,10 +272,10 @@ let deflate_reads
       end
   | Eod -> Bytes.Slice.eod
   in
-  Bytes.Reader.make ~pos:0 ~slice_length read
+  Bytes.Reader.make ?pos ~slice_length read
 
 let deflate_writes
-    ~error ~writer_error ~window_bits ?level
+    ~error ~writer_error ~window_bits ?level ?pos
     ?(slice_length = default_slice_length) w
   =
   let zs = make_z_stream_deflate ~error ~window_bits ?level () in
@@ -306,7 +307,7 @@ let deflate_writes
   | slice when Bytes.Slice.is_eod slice -> compress_eod ~error w zs ~src ~dst
   | slice -> Zbuf.src_set_slice src slice; compress ~error w zs ~src ~dst
   in
-  Bytes.Writer.make ~pos:0 ~slice_length write
+  Bytes.Writer.make ?pos ~slice_length write
 
 (* Compression formats *)
 
@@ -317,18 +318,19 @@ module Deflate = struct
   let writer_error = Bytes.Writer.error format_error
   let window_bits = window_bits_deflate
 
-  let decompress_reads ?(leftover = false) ?slice_length r =
+  let decompress_reads ?(leftover = false) ?pos ?slice_length r =
     let eos_action = if leftover then Stop else Parse_eod in
-    inflate_reads ~error ~reader_error ~eos_action ~window_bits ?slice_length r
+    inflate_reads ~error ~reader_error ~eos_action ~window_bits ?pos
+      ?slice_length r
 
-  let decompress_writes ?slice_length w =
-    inflate_writes ~error ~writer_error ~window_bits ?slice_length w
+  let decompress_writes ?pos ?slice_length w =
+    inflate_writes ~error ~writer_error ~window_bits ?pos ?slice_length w
 
-  let compress_reads ?level ?slice_length r =
-    deflate_reads ~error ~reader_error ~window_bits ?level ?slice_length r
+  let compress_reads ?level ?pos ?slice_length r =
+    deflate_reads ~error ~reader_error ~window_bits ?level ?pos ?slice_length r
 
-  let compress_writes ?level ?slice_length w =
-    deflate_writes ~error ~writer_error ~window_bits ?level ?slice_length w
+  let compress_writes ?level ?pos ?slice_length w =
+    deflate_writes ~error ~writer_error ~window_bits ?level ?pos ?slice_length w
 end
 
 module Zlib = struct
@@ -338,18 +340,19 @@ module Zlib = struct
   let writer_error = Bytes.Writer.error format_error
   let window_bits = window_bits_zlib
 
-  let decompress_reads ?(leftover = false) ?slice_length r =
+  let decompress_reads ?(leftover = false) ?pos ?slice_length r =
     let eos_action = if leftover then Stop else Parse_eod in
-    inflate_reads ~error ~reader_error ~eos_action ~window_bits ?slice_length r
+    inflate_reads ~error ~reader_error ~eos_action ~window_bits ?pos
+      ?slice_length r
 
-  let decompress_writes ?slice_length w =
-    inflate_writes ~error ~writer_error ~window_bits ?slice_length w
+  let decompress_writes ?pos ?slice_length w =
+    inflate_writes ~error ~writer_error ~window_bits ?pos ?slice_length w
 
-  let compress_reads ?level ?slice_length r =
-    deflate_reads ~error ~reader_error ~window_bits ?level ?slice_length r
+  let compress_reads ?level ?pos ?slice_length r =
+    deflate_reads ~error ~reader_error ~window_bits ?level ?pos ?slice_length r
 
-  let compress_writes ?level ?slice_length w =
-    deflate_writes ~error ~writer_error ~window_bits ?level ?slice_length w
+  let compress_writes ?level ?pos ?slice_length w =
+    deflate_writes ~error ~writer_error ~window_bits ?level ?pos ?slice_length w
 end
 
 module Gzip = struct
@@ -359,16 +362,17 @@ module Gzip = struct
   let writer_error = Bytes.Writer.error format_error
   let window_bits = window_bits_gzip
 
-  let decompress_reads ?(all_members = true) ?slice_length r =
+  let decompress_reads ?(all_members = true) ?pos ?slice_length r =
     let eos_action = if all_members then Append_next else Stop in
-    inflate_reads ~error ~reader_error ~eos_action ~window_bits ?slice_length r
+    inflate_reads ~error ~reader_error ~eos_action ~window_bits ?pos
+      ?slice_length r
 
-  let decompress_writes ?slice_length w =
-    inflate_writes ~error ~writer_error ~window_bits ?slice_length w
+  let decompress_writes ?pos ?slice_length w =
+    inflate_writes ~error ~writer_error ~window_bits ?pos ?slice_length w
 
-  let compress_reads ?level ?slice_length r =
-    deflate_reads ~error ~reader_error ~window_bits ?level ?slice_length r
+  let compress_reads ?level ?pos ?slice_length r =
+    deflate_reads ~error ~reader_error ~window_bits ?level ?pos ?slice_length r
 
-  let compress_writes ?level ?slice_length w =
-    deflate_writes ~error ~writer_error ~window_bits ?level ?slice_length w
+  let compress_writes ?level ?pos ?slice_length w =
+    deflate_writes ~error ~writer_error ~window_bits ?level ?pos ?slice_length w
 end

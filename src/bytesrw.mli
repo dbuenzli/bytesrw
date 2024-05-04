@@ -366,24 +366,32 @@ module Bytes : sig
 
     (** {1:filters Filters} *)
 
-    type filter = ?slice_length:Slice.length -> t -> t
+    type filter = ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t
     (** The type for byte stream reader filters.
 
         Given a reader [r], a filter [f] returns a filtering reader [f
-        r], that reads the stream from [r] and transforms it in some
+        r], that reads the stream of [r] and transforms it in some
         way. The following conventions should be followed for the
         filtering reader:
 
         {ul
-        {- If [slice_length] is unspecified, it should default to [r]'s value.}
-        {- If the filtered slices are in the same position space as [r]
-           then {!pos} should default to [r]'s position (e.g. {!sub}).
-           Otherwise it should start at [0] (e.g. on decompression filters).}
+        {- If [pos] is unspecfied, it should default to [r]'s position
+           only if the reads on the filtering reader are always in the same
+           position space as [r] (e.g. {!sub} or {!limit}). Otherwise
+           it should be [0] (e.g. on decompression filters) or anything
+           else that makes sense for the filter.}
+        {- If [slice_length] is unspecified, it should default
+           to [r]'s value or what makes more sense for the filter's
+           reads.}
         {- If the filter reader does not read all of [r]'s bytes, it
            must, after having returned {!Slice.eod}, leave [r] at the
            position of the leftover data so that it can be used again
            to perform non-filtered reads. {!push_back} can be used to
-           achieve that.}} *)
+           achieve that.}
+        {- If your filter is in a module [M], then its name should be
+           [M.{decode,encode}_reads] or another meaningful verb like
+           [M.{decompress,compress}_reads],
+           [M.{encrypt,decrypt}_reads], etc.}} *)
 
     val sub : int -> filter
     (** [sub n r] is a reader reading at most [n] bytes from [r]
@@ -407,8 +415,9 @@ module Bytes : sig
     (** {1:append Appending} *)
 
     val append : ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t -> t
-    (** [append r0 r1] reads from [r0] and then from [r1].
-        [slice_length] defaults to the maximal length of [r0] and [r1]. *)
+    (** [append r0 r1] reads from [r0] and then from [r1]. [pos]
+        defaults to [0] and [slice_length] defaults to the maximal
+        length of [r0] and [r1].  *)
 
     (** {1:tracing Tracing} *)
 
@@ -571,7 +580,7 @@ module Bytes : sig
 
     (** {1:filters Filters} *)
 
-    type filter = ?slice_length:Slice.length -> t -> t
+    type filter = ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t
     (** The type for byte stream writer filters.
 
         Given a writer [w], a filter [f] returns a filtering writer [f
@@ -580,16 +589,22 @@ module Bytes : sig
         followed for the filtering writer:
 
         {ul
+        {- If [pos] is unspecified it should default to [w]'s position
+           only if the writes are in the same position space as [w].
+           Otherwise it should be [0] (e.g. on compression filters).}
         {- If [slice_length] is unspecified it should default to [w]'s
-           value.}
-        {- If the filtered slices are in the same position space as [w]
-           then {!pos} should default to [r]'s position. Otherwise
-           it should start at [0] (e.g. on compression filters).}
+           value or a value that makes more sense for the filter's needs.}
+        {- The filtering writer should write slices on [w] that respects
+           its [slice_length] desires.}
         {- Once the filter writer receives {!Slice.eod}, it must
            stop and, if applicable, report an error if there was leftover
            data that it couldn't write. It must not write the {!Slice.eod}
            on [w], so that it can be used again to perform other non-filtered
-           writes}} *)
+           writes}
+        {- If your filter is in a module [M], then its name should be
+           [M.{decode,encode}_writes] or an other meaningful verb like
+           [M.{decompress,compress}_writes], [M.{encrypt,decrypt}_writes],
+           etc.}} *)
 
     val limit : ?action:(t -> int -> unit) -> int -> filter
     (** [limit n w] is a writer that writes at most [n] bytes on [w].

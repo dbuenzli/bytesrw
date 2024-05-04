@@ -7,7 +7,10 @@
 
     This module provides support for reading and writing
     {{:https://www.rfc-editor.org/rfc/rfc8878.html}[zstd]} compressed
-    streams with the {{:http://zstd.net/}[libzstd]} C library. *)
+    streams with the {{:http://zstd.net/}[libzstd]} C library.
+
+    {b Positions.} The positions of readers and writers created
+    by filters of this module default to [0]. *)
 
 open Bytesrw
 

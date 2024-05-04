@@ -305,9 +305,9 @@ module Bytes = struct
 
     (* Filters *)
 
-    type filter = ?slice_length:Slice.length -> t -> t
+    type filter = ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t
 
-    let sub n ?slice_length r =
+    let sub n ?pos ?slice_length r =
       if n <= 0 then empty () else
       let count = ref n in
       let read () =
@@ -319,15 +319,17 @@ module Bytes = struct
         | None -> assert false
         | Some (ret, back) -> count := 0; push_back r back; ret
       in
-      let sub = make ?slice_length read in
-      sub.pos <- r.pos; sub
+      let pos = Option.value ~default:r.pos pos in
+      let sub = make ~pos ?slice_length read in
+      sub
 
-    let limit ?action n ?slice_length r =
+    let limit ?action n ?pos ?slice_length r =
       let action = match action with
       | Some act -> act | None -> error Stream.limit_error ?pos:None
       in
       let slice_length = Option.value ~default:r.slice_length slice_length in
-      let lr = make ~pos:r.pos ~slice_length read_eod in
+      let pos = Option.value ~default:r.pos pos in
+      let lr = make ~pos ~slice_length read_eod in
       let left = ref n in
       let read () =
         if !left <= 0 then (lr.read <- read_eod; action lr n; Slice.eod) else
@@ -455,7 +457,7 @@ module Bytes = struct
       loop r oc
 
     let filter_string (fs : filter list) s =
-      let filter r f = f ?slice_length:None r in
+      let filter r f = f ?pos:None ?slice_length:None r in
       to_string (List.fold_left filter (of_string s) fs)
 
     (* Formatting *)
@@ -561,14 +563,15 @@ module Bytes = struct
 
     (* Filters *)
 
-    type filter = ?slice_length:Slice.length -> t -> t
+    type filter = ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t
 
-    let limit ?action n ?slice_length w =
+    let limit ?action n ?pos ?slice_length w =
       let action = match action with
       | Some act -> act | None -> error Stream.limit_error ?pos:None
       in
       let slice_length = Option.value ~default:w.slice_length slice_length in
-      let lw = make ~pos:w.pos ~slice_length write_only_eod in
+      let pos = Option.value ~default:w.pos pos in
+      let lw = make ~pos ~slice_length write_only_eod in
       let left = ref n in
       let write = function
       | slice when Slice.is_eod slice -> ()
@@ -586,7 +589,7 @@ module Bytes = struct
 
     let filter_string fs s =
       let b = Buffer.create (String.length s) in
-      let filter w f = f ?slice_length:None w in
+      let filter w f = f ?pos:None ?slice_length:None w in
       let w = List.fold_left filter (of_buffer b) fs in
       write_string w s; write_eod w; Buffer.contents b
 

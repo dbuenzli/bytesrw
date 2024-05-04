@@ -27,6 +27,13 @@ val guess_reader_encoding : Bytes.Reader.t -> encoding
     bytes and applying {{!encoding_guess_heuristic}this
     heuristic} which is subject to change in the future. *)
 
+(** {1:validate Validate} *)
+
+val ensure_reads : encoding -> Bytes.Reader.filter
+(** [ensure_reads encoding r] filters the reads of [r] to make
+    sure the stream is a valid [encoding] byte stream. Invalid
+    byte sequences *)
+
 (** {1:encoding_guess_heuristic Encoding guess heurisitic}
 
     {e Note, this was taken from Uutf. Twelve years laters I'm not sure it's

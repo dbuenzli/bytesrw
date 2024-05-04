@@ -64,6 +64,14 @@ type structure is used:
 Effectively this system can be seen as an OCaml-like exception system
 inside the {!Bytesrw.Bytes.Stream.Error} exception.
 
+{1:primitives Signature of [read/write] primitive}
+
+- Having [write] return the number of written bytes from the slice
+  would be useful for certain scenario, most notably write filters.
+  It would be the moral equivalent of readers' push backs, except
+  in this case it's inconvenient for the client and leads to
+  [really_write]… not desirable.
+
 {1:names Names}
 
 - We settle on [length]s rather than [size]s because that's what

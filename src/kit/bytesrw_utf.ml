@@ -34,3 +34,17 @@ let guess_reader_encoding r = match Bytes.Reader.sniff 3 r with
 | s when Char.code s.[0] > 0 && s.[1] = '\x00' -> `Utf_16le (* ASCII char *)
 | s when uchar_utf_8_byte_decode_length (Char.code s.[0]) <> 0 -> `Utf_8
 | s -> `Utf_16be (* UTF-16 -> UTF-16BE *)
+
+(* Validate *)
+
+let ensure_utf_8_reads ?pos ?slice_length r =
+  let read () = failwith "TODO" in
+  Bytes.Reader.make ?pos ?slice_length read
+
+let ensure_utf_16be_reads ?pos ?slice_length r = failwith "TODO"
+let ensure_utf_16le_reads ?pos ?slice_length r = failwith "TODO"
+
+let ensure_reads = function
+| `Utf_8 -> ensure_utf_8_reads
+| `Utf_16be -> ensure_utf_16be_reads
+| `Utf_16le -> ensure_utf_16le_reads

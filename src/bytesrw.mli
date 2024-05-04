@@ -20,9 +20,9 @@ module Bytes : sig
 
   (** {1:streams Byte streams} *)
 
-  (** Bytes slices.
+  (** Byte slices.
 
-      A bytes slice is a {e non-empty} consecutive range of bytes in a
+      A byte slice is a {e non-empty} consecutive range of bytes in a
       {!Bytes.t} value. The sole distinguished {e empty} slice {!Slice.eod}
       is used to indicate end of data. *)
   module Slice : sig
@@ -40,6 +40,19 @@ module Bytes : sig
     type length = int
     (** The type for slice lengths. A positive integer. *)
 
+    val default_length : length
+    (** [default_length] is {!io_buffer_size}. *)
+
+    val io_buffer_size : length
+    (** [io_buffer_size] is [65536] it should correspond to the value of
+        OCaml's IO_BUFFER_SIZE. See
+        {{:https://github.com/ocaml/ocaml/issues/5938}here}. *)
+
+    val unix_io_buffer_size : length
+    (** [unix_io_buffer_size] is [65536] it should correspond to the
+        value of OCaml's UNIX_BUFFER_SIZE. See
+        {{:https://github.com/ocaml/ocaml/issues/5938}here}. *)
+
     val check_length : int -> length
     (** [check_length l] is [l] if [l > 0] and raises
         [Invalid_argument] otherwise. *)
@@ -47,7 +60,7 @@ module Bytes : sig
     (** {1:slices Slices} *)
 
     type t
-    (** The type for bytes slices. *)
+    (** The type for byte slices. *)
 
     val make : bytes -> first:int -> length:length -> t
     (** [make b ~first ~length] are the bytes of [b] in the range
@@ -64,6 +77,16 @@ module Bytes : sig
     (** [make_or_eod] is like {!make} but returns {!eod} instead of
         raising [Invalid_argument] if [length] is not zero. *)
 
+    val bytes : t -> bytes
+    (** [bytes s] are the underlying bytes of the slice [s]. *)
+
+    val first : t -> int
+    (** [first s] is the index of the first byte of [s]. *)
+
+    val length : t -> int
+    (** [length s] is the byte length of [s]. This returns [0]
+        (only on) {!eod}. *)
+
     val copy : tight:bool -> t -> t
     (** [copy ~tight s] is a copy of [s]. If [tight] is [true], the
         copy contains only the bytes in the range of [s]. If not the
@@ -78,23 +101,11 @@ module Bytes : sig
     val is_eod : t -> bool
     (** [is_eod s] is [true] iff [s == eod]. *)
 
-    (** {1:props Properties} *)
-
-    val bytes : t -> bytes
-    (** [bytes s] are the underlying bytes of the slice [s]. *)
-
-    val first : t -> int
-    (** [first s] is the index of the first byte of [s]. *)
-
-    val length : t -> int
-    (** [length s] is the byte length of [s]. This returns [0]
-        (only on) {!eod}. *)
-
     (** {1:breaking Breaking slices}
 
         {b Warning.} In these operations index specification are in {e
         slice space} which starts at 0 at the slice's {!first}
-        bytes. *)
+        byte. *)
 
     val take : int -> t -> t option
     (** [take n s] is the slice made of the first [n] bytes
@@ -190,18 +201,6 @@ module Bytes : sig
         [ppf] (defaults to {!Format.err_formatter}) with [pp]
         (defaults to {!pp}) and the identifier [id]. Use with
         {!Reader.trace_reads} or {!Writer.trace_writes}. *)
-
-    (** {1:other Other} *)
-
-    val io_buffer_size : int
-    (** [io_buffer_size] is [65536] it should correspond to the value of
-        OCaml's IO_BUFFER_SIZE. See
-        {{:https://github.com/ocaml/ocaml/issues/5938}here}. *)
-
-    val unix_io_buffer_size : int
-    (** [unix_io_buffer_size] is [65536] it should correspond to the
-        value of OCaml's UNIX_BUFFER_SIZE. See
-        {{:https://github.com/ocaml/ocaml/issues/5938}here}. *)
   end
 
   (** Byte streams.
@@ -210,7 +209,7 @@ module Bytes : sig
       observed by {!Bytes.Reader}s and {!Bytes.Writer}s.  *)
   module Stream : sig
 
-    (** {1:positions Stream position} *)
+    (** {1:positions Positions} *)
 
     type pos = int
     (** The type for stream positions.
@@ -220,14 +219,14 @@ module Bytes : sig
         count of bytes read or written by a stream reader or
         writer. *)
 
-    (** {1:kinds Stream format} *)
+    (** {1:formats Formats} *)
 
     type format = string
     (** The type for stream formats. An identifier for the format of
         read or written bytes. Favour lowercased file extensions
         without the dot or mime types. *)
 
-    (** {1:stream_errors Stream errors} *)
+    (** {1:errors Errors} *)
 
     type error = ..
     (** The type for stream errors. Stream formats add their own cases
@@ -263,11 +262,19 @@ module Bytes : sig
     val error : 'e format_error -> ?context:[`R| `W] -> 'e -> 'a
     (** [error fmt e] errors with [e] for a stream [fmt] by raising an
         {!Error} exception. *)
+
+    (** {1:limits Limits} *)
+
+    type error += Limit of int (** The inclusive byte count limit. *)
+    (** The type for stream limits errors. *)
+
+    val limit_error : int format_error
+    (** [limit_error] is a stream limit error. *)
   end
 
   (** Byte stream readers.
 
-      Byte streams are sequences of {{!Slice}bytes slices}. A byte
+      Byte streams are sequences of {{!Slice}byte slices}. A byte
       stream reader provides read access to these slices in order, on
       demand, but only slice by slice: the slice you get is
       {{!Slice.validity}valid for reading} only until the next slice
@@ -288,7 +295,7 @@ module Bytes : sig
            {{!Slice.validity}valid for reading} until the next call to [read].}
         {- The reader guarantees to dereference [read] and never call it
            again as soon as {!Slice.eod} is returned by [read].}}
-        [pos] defaults to [0] and [slice_length] to [None]. *)
+        [pos] defaults to [0] and [slice_length] to {!Slice.default_length}. *)
 
     val make' :
       parent:t -> ?slice_length:Slice.length option -> (unit -> Slice.t) -> t
@@ -300,8 +307,6 @@ module Bytes : sig
     (** [empty ()] is an empty byte stream. It always returns
         {!Slice.eod}.  The {!pos} is [0] and the {!slice_length} is
         [None]. *)
-
-    (** {2:props Properties} *)
 
     val pos : t -> Stream.pos
     (** [pos r] is the {{!Stream.pos}stream position} of the next byte to
@@ -317,43 +322,16 @@ module Bytes : sig
         {b Warning.} Due to push backs negative values can be returned. *)
 
     val slice_length : t -> Slice.length option
-    (** [slice_length r] is a hint (if any) on the maximal length of
-        slices that [f] generates. *)
+    (** [slice_length r] is a hint on the maximal length of slices
+        that [f] generates. *)
 
-    (**/**)
-    val with_props : ?from:t -> ?pos:int -> ?slice_length:int option -> t -> t
-    (** [with_props r] is [r] with stream properties adjusted by the
-        given properties. Those unspecified take the value of [from]
-        which default to [r] itself. *)
-    (**/**)
-
-    (** {1:filters Filters} *)
-
-    type filter = ?slice_length:Slice.length -> t -> t
-    (** The type for byte stream reader filters.
-
-        Given a reader [r], a filter [f] returns a filter reader [f
-        r], that reads the stream from [r] and transforms it in some
-        way. The following conventions should be followed for the
-        filter reader:
-
-        {ul
-        {- If [slice_length] is unspecified, it should default to [r]'s value.}
-        {- If the filtered slices are in the same position space as [r]
-           then {!pos} should default to [r]'s position (e.g. {!sub}).
-           Otherwise it should start at [0] (e.g. on decompression filters).}
-        {- If the filter reader does not read all of [r]'s reads, it must,
-           after having produced {!Slice.eod}, leave [r] at the
-           position of the leftover data. {!push_back} can be used to
-           achieve that.}} *)
-
-    val filter_string : filter list -> string -> string
-    (** [filter_string fs s] is a convenience function
-        that applies the filters [fs], from left to right
-        to the string [s] it is equivalent to:
-        {[
-          to_string (List.fold_left (fun r f -> f r) (of_string s) fs)
-        ]} *)
+    val error : 'e Stream.format_error -> t -> ?pos:int -> 'e -> 'a
+    (** [error fmt r e] raises a {!Stream.Error} [e] of format
+        [fmt] for [r]. [pos] is the position reported for the error, it
+        defaults to [r]'s position. If the value is negative it is
+        substracted from the latter, e.g. subtracting the length of
+        the last slice would report an error at the first byte of the
+        slice.  *)
 
     (** {1:reads Reading} *)
 
@@ -363,31 +341,19 @@ module Bytes : sig
         [read] on [r]. Once {!Slice.eod} is returned, {!Slice.eod} is
         always returned. *)
 
-    val discard : t -> unit
-    (** [discard r] reads and discards slices until {!Slice.eod} is returned.
-        See also {!skip}. *)
-
-    (** {1:append Appending} *)
-
-    val append : t -> t -> t
-    (** [append r0 r1] reads from [r0] and then from [r1]. The resulting
-        [slice_length] is the maximal length of [r0] and [r1] (if any). *)
-
-    (** {1:pushback Push backs and subreading} *)
-
     val push_back : t -> Slice.t -> unit
     (** [push_back r s] pushes the slice [s] back on [r]. If [s]
         is {!Slice.eod} this has no effect. Otherwise the stream position is
         rewinded by [Slice.length s] and the next {!read} on [r] returns [s].
 
+        {b Note.} If [r] is traced by a call to {!trace_reads} it
+        won't see the push backs.
+
         {b Warning.} This should not be used as a general lookahead
         mecanism by stream readers. Codecs should devise their own
         buffering structures. But it is useful for stream content
         {{!sniff}sniffing} and breaking streams into substreams at
-        precise positions.
-
-        {b Warning.} If [r] is traced by a call to {!trace_reads}
-        it won't see the push backs. This is  *)
+        precise positions. *)
 
     val sniff : int -> t -> string
     (** [sniff n r] sniffs at most [n] bytes from [r]. These bytes will still
@@ -397,15 +363,59 @@ module Bytes : sig
         {b Warning.} This uses {!push_back} and should not be
         used as a general lookahead mecanism by stream readers. *)
 
-    val sub : int -> filter
-    (** [sub n r] reads at most [n] bytes from [r]. {b Once} the subreader
-        returns {!Slice.eod}, [r] is positioned exactly after the bytes
-        read by the subreader and can be read again to access leftover data.
-        [slice_length] defaults to the value of [r]. The position
-        of the subreader is set to [r]'s current position. *)
-
     val skip : int -> t -> unit
-    (** [skip n r] is like {!sub} but it skips at most [n] bytes from [r]. *)
+    (** [skip n r] is like skips at most [n] bytes from [r]. See also
+        {!discard}. *)
+
+    val discard : t -> unit
+    (** [discard r] reads and discards slices until {!Slice.eod} is returned.
+        See also {!skip}. *)
+
+    (** {1:filters Filters} *)
+
+    type filter = ?slice_length:Slice.length -> t -> t
+    (** The type for byte stream reader filters.
+
+        Given a reader [r], a filter [f] returns a filtering reader [f
+        r], that reads the stream from [r] and transforms it in some
+        way. The following conventions should be followed for the
+        filtering reader:
+
+        {ul
+        {- If [slice_length] is unspecified, it should default to [r]'s value.}
+        {- If the filtered slices are in the same position space as [r]
+           then {!pos} should default to [r]'s position (e.g. {!sub}).
+           Otherwise it should start at [0] (e.g. on decompression filters).}
+        {- If the filter reader does not read all of [r]'s bytes, it
+           must, after having returned {!Slice.eod}, leave [r] at the
+           position of the leftover data so that it can be used again
+           to perform non-filtered reads. {!push_back} can be used to
+           achieve that.}} *)
+
+    val sub : int -> filter
+    (** [sub n r] is a reader reading at most [n] bytes from [r]
+        before returning {!Slice.eod}. [sub] satisfies all the
+        {!type-filter} conventions and is not affected by push
+        backs. See also {!limit}. *)
+
+    val limit : ?action:(t -> int -> unit) -> int -> filter
+    (** [limit n r] is like {!sub} except it invokes [action] {b once}
+        with the filter reader before returning {!Slice.eod}. The
+        default [action] raises {!Stream.Limit} error. *)
+
+    val filter_string : filter list -> string -> string
+    (** [filter_string fs s] is a convenience function
+        that applies the filters [fs], from left to right
+        to the string [s] it is equivalent to:
+        {[
+          to_string (List.fold_left (fun r f -> f r) (of_string s) fs)
+        ]} *)
+
+    (** {1:append Appending} *)
+
+    val append : t -> t -> t
+    (** [append r0 r1] reads from [r0] and then from [r1]. The resulting
+        [slice_length] is the maximal length of [r0] and [r1]. *)
 
     (** {1:tracing Tracing} *)
 
@@ -413,22 +423,6 @@ module Bytes : sig
     (** [trace_reads f w] invokes [f] with the slice before returning
         them with {!read}. Note that {!push_back}s are not traced, so
         this can be used reliably for checksumming. *)
-
-    (** {1:erroring Erroring} *)
-
-    val read_error : 'e Stream.format_error -> t -> ?pos:int -> 'e -> 'a
-    (** [read_error fmt r e] errors with [e] the last read for a
-        stream format [fmt] made on [r] by raising the {!Stream.Error}
-        exception. [pos] is the position reported for the error
-        it defaults to [r]'s pos. If the value is negative it is substracted
-        from the latter (e.g. subtracting the length of the last slice
-        would report an error at the first byte of the slice).  *)
-
-    (*
-    val invalid_cut_read : t -> 'a
-    (** [invalid_cut_read r] raises [Invalid_argument]. This function
-        can be used when a stream is cut and a read is attempted before
-        the left part was consumed. *) *)
 
     (** {1:convert Converting} *)
 
@@ -491,7 +485,7 @@ module Bytes : sig
 
   (** Byte stream writers.
 
-      Byte streams are sequences of {{!Slice}bytes slices}. A byte
+      Byte streams are sequences of {{!Slice}byte slices}. A byte
       stream writer is given access to these slices in order but only
       slice by slice in its slice iteration function: slices only
       remain {{!Slice.validity}valid for reading} until the function
@@ -516,7 +510,7 @@ module Bytes : sig
            {!Slice.eod}, [write] is dereferenced by the writer and
            will never be called again.}}
 
-        [pos] defaults to [0] and slice_length to [None]. *)
+        [pos] defaults to [0] and slice_length to {!Slice.default_length}. *)
 
     val make' :
       parent:t -> ?slice_length:Slice.length option -> (Slice.t -> unit) -> t
@@ -526,8 +520,6 @@ module Bytes : sig
     val ignore : ?pos:int -> unit -> t
     (** [ignore ()] is a writer that ignores the writes that are pushed
         on it. The [pos] defaults to [0] and the {!slice_length} is [None]. *)
-
-    (** {2:props Properties} *)
 
     val pos : t -> Stream.pos
     (** [pos w] is the {{!Stream.pos}stream postion} of the next byte
@@ -549,37 +541,13 @@ module Bytes : sig
        [from] which default to [r] itself. *)
     (**/**)
 
-    (** {1:filters Filters} *)
-
-    type filter = ?slice_length:Slice.length -> t -> t
-    (** The type for byte stream writer filters.
-
-        Given a writer [w], a filter [f] returns a filter writer [f w],
-        that transforms the writes made on it in some way and then
-        writes them to [w]. The following conventions should be followed
-        for the filter writer:
-
-        {ul
-        {- If [slice_length] is unspecified it should efault to [w]'s
-           value.}
-        {- If the filtered slices are in the same position space as [w]
-           then {!pos} should default to [r]'s position. Otherwise
-           it should start at [0] (e.g. on compression filters).}
-        {- Once the filter writer receives {!Slice.eod}, it must
-           stop and, if applicable, report an error if there was leftover
-           data that it couldn't write. It must not write the {!Slice.eod}
-           on [w], so that it can be used again to perform other non-filtered
-           writes}} *)
-
-    val filter_string : filter list -> string -> string
-    (** [filter_string fs s] is a convenience function
-        that applies the filters [fs], from left to right
-        to the string [s] it is equivalent to:
-        {[
-          let b = Buffer.create (String.length s) in
-          let w = List.fold_left (fun w f -> f w) (of_buffer w) fs in
-          write_string w s; write_eod w; Buffer.contents b
-        ]} *)
+    val error : 'e Stream.format_error -> t -> ?pos:int -> 'e -> 'a
+    (** [write_error fmt w e] raises a {!Stream.Error} [e] of format
+        [fmt] for [w]. [pos] is the position reported for the error it
+        defaults to [w]'s pos. If the value is negative it is
+        substracted from the latter, e.g. subtracting the length of
+        the last slice would report an error at the first byte of the
+        slice. *)
 
     (** {1:writing Writing}
 
@@ -620,23 +588,53 @@ module Bytes : sig
         {!Slice.eod} is written iff [eod] is true. The maximal length
         of written slices are [w]'s {!slice_length}. *)
 
+    (** {1:filters Filters} *)
+
+    type filter = ?slice_length:Slice.length -> t -> t
+    (** The type for byte stream writer filters.
+
+        Given a writer [w], a filter [f] returns a filtering writer [f
+        w], that transforms the writes made on it in some way and then
+        writes them to [w]. The following conventions should be
+        followed for the filtering writer:
+
+        {ul
+        {- If [slice_length] is unspecified it should default to [w]'s
+           value.}
+        {- If the filtered slices are in the same position space as [w]
+           then {!pos} should default to [r]'s position. Otherwise
+           it should start at [0] (e.g. on compression filters).}
+        {- Once the filter writer receives {!Slice.eod}, it must
+           stop and, if applicable, report an error if there was leftover
+           data that it couldn't write. It must not write the {!Slice.eod}
+           on [w], so that it can be used again to perform other non-filtered
+           writes}} *)
+
+    val limit : ?action:(t -> int -> unit) -> int -> filter
+    (** [limit n w] is a writer that writes at most [n] bytes on [w].
+        Any leftover in the slice that exceeds the [n] bytes is
+        lost. After [n] bytes have been written on [w] the action
+        [action] is invoked once and the filtering writer accepts only
+        {!Slice.eod} afterwards.  The default [action] raises
+        {!Stream.Limit} error. *)
+
+    val filter_string : filter list -> string -> string
+    (** [filter_string fs s] is a convenience function
+        that applies the filters [fs], from left to right
+        to the string [s] it is equivalent to:
+        {[
+          let b = Buffer.create (String.length s) in
+          let w = List.fold_left (fun w f -> f w) (of_buffer w) fs in
+          write_string w s; write_eod w; Buffer.contents b
+        ]} *)
+
     (** {1:tracing Tracing} *)
 
     val trace_writes : (Slice.t -> unit) -> t -> t
     (** [trace_writes f w] invokes [f] with the slice before giving them to
         [w]. *)
 
-    (** {1:erroring Erroring} *)
-
-    val write_error : 'e Stream.format_error -> t -> ?pos:int -> 'e -> 'a
-    (** [write_error fmt w e] errors with [e] the last write
-        for a stream format [fmt] made on [w] by raising the {!Stream.Error}
-        exception. [pos] is the position reported for the error
-        it defaults to [w]'s pos. If the value is negative it is substracted
-        from the latter (e.g. subtracting the length of the last slice
-        would report an error at the first byte of the slice). *)
-
-   (** {1:convert Converting} *)
+    (** {1:convert Converting} *)
 
     val of_out_channel :
       ?pos:int -> ?slice_length:Slice.length -> ?flush_slices:bool ->

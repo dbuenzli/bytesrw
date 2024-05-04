@@ -45,9 +45,7 @@ CAMLprim value ocaml_bytesrw_ZSTD_DStreamOutSize (value unit)
 /* OCaml Zbuf.t value fields */
 
 enum ocaml_zbuf_fields
-{ ocaml_zbuf_bytes = 0,
-  ocaml_zbuf_size,
-  ocaml_zbuf_pos };
+{ ocaml_zbuf_bytes = 0, ocaml_zbuf_size, ocaml_zbuf_pos };
 
 /* Decompression */
 

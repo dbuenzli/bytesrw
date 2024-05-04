@@ -31,8 +31,8 @@ let format_error =
   Bytes.Stream.make_format_error ~format:"zstd" ~case ~message
 
 let error e = Bytes.Stream.error format_error e
-let read_error r e = Bytes.Reader.read_error format_error r e
-let write_error r e = Bytes.Writer.write_error format_error r e
+let read_error r e = Bytes.Reader.error format_error r e
+let write_error r e = Bytes.Writer.error format_error r e
 
 (* Library parameters *)
 
@@ -81,8 +81,7 @@ end
 (* Decompression *)
 
 type dctx (* Custom value holding a ZSTD_DCtx. We manually deallocate
-             them when we know but they have a finalizer which accepts
-             NULL pointers. *)
+  them when we know but they have a finalizer which accepts NULL pointers. *)
 
 external create_dctx : unit -> dctx = "ocaml_bytesrw_ZSTD_createDCtx"
 external free_dctx : dctx -> unit = "ocaml_bytesrw_ZSTD_freeDCtx"
@@ -202,8 +201,7 @@ let decompress_writes ?dict ?params ?slice_length w =
 (* Compression *)
 
 type cctx (* Custom value holding a ZSTD_CCtx. We manually deallocate
-             them when we know but they have a finalizer which accepts
-             NULL pointers, if needed. *)
+  them when we know but they have a finalizer which accepts NULL pointers. *)
 
 external create_cctx : unit -> cctx = "ocaml_bytesrw_ZSTD_createCCtx"
 external free_cctx : cctx -> unit = "ocaml_bytesrw_ZSTD_freeCCtx"

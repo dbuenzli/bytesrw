@@ -5,7 +5,8 @@
 
 (** {!Unix} bytes readers and writers.
 
-    {b Note.} The reads and writes are retried on {!Unix.EINTR}. *)
+    {b Note.} The reads and writes are retried on {!Unix.EINTR}.
+    The readers and writers raise {!Unix.Unix_error}. *)
 
 open Bytesrw
 
@@ -15,7 +16,6 @@ val bytes_reader_of_fd :
 (** [bytes_reader_of_fd fd] reads bytes from [fd] with slices of maximal
     length [slice_length] (defaults to {!Bytes.Slice.unix_io_buffer_size}).
     [pos] defaults to the [fd] position as determined by {!Unix.lseek} *)
-
 
 val bytes_writer_of_fd :
   ?pos:Bytes.Stream.pos -> ?slice_length:int -> Unix.file_descr ->

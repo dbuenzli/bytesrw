@@ -8,7 +8,6 @@ module Bytes = struct
 
   let strf = Printf.sprintf
   let invalid_argf fmt = Printf.ksprintf invalid_arg fmt
-
   let err_channel_pos kind pos =
     strf "%s: channel position %Ld doesn't fit on int" kind pos
 
@@ -30,6 +29,10 @@ module Bytes = struct
 
     type length = int
     let check_length l = if l <= 0 then err_length l else l
+
+    let io_buffer_size = 65536
+    let unix_io_buffer_size = 65536
+    let default_length = io_buffer_size
 
     let pp_length_option ppf = function
     | None -> Format.pp_print_string ppf "<none>"
@@ -54,19 +57,17 @@ module Bytes = struct
       then err_invalid ~first ~length ~len;
       if length = 0 then eod else { bytes; first; length }
 
+    let bytes s = s.bytes
+    let first s = s.first
+    let length s = s.length
+
     let copy ~tight s =
       if s.length = 0 then eod else
       if not tight then { s with bytes = Bytes.copy s.bytes } else
       let bytes = Bytes.sub s.bytes s.first s.length in
       { bytes; first = 0; length = s.length}
 
-    (* Properties *)
-
-    let bytes s = s.bytes
-    let first s = s.first
-    let length s = s.length
-
-    (* Breaking *)
+    (* Breaking slices *)
 
     let take n s =
       if n <= 0 || is_eod s then None else
@@ -106,9 +107,7 @@ module Bytes = struct
       if allow_eod then eod else
       err_empty_range ~first ~last ~len:(max + 1)
 
-    let subrange ?first ?last s =
-      subrange' ~allow_eod:false ?first ?last s
-
+    let subrange ?first ?last s = subrange' ~allow_eod:false ?first ?last s
     let subrange_or_eod ?first ?last s =
       subrange' ~allow_eod:true ?first ?last s
 
@@ -167,11 +166,6 @@ module Bytes = struct
 
     let tracer ?(pp = pp) ?(ppf = Format.err_formatter)  ~id s =
       Format.fprintf ppf "@[[%3s]: @[%a@]@]@." id pp s
-
-    (* Other *)
-
-    let io_buffer_size = 65536
-    let unix_io_buffer_size = 65536
   end
 
   module Stream = struct
@@ -188,11 +182,14 @@ module Bytes = struct
 
     let error_message (error, m) =
       let context = match m.context with
-      | Some `R -> " reader" | Some `W -> " writer" | None -> ""
+      | Some `R -> "reader" | Some `W -> "writer" | None -> ""
+      in
+      let header = match m.format, context with
+      | "", v | v, "" -> v | fmt, ctx -> String.concat " " [fmt; ctx]
       in
       let message = m.message error in
       let pos = match m.pos with Some p -> strf "%d:" p |  None -> "" in
-      strf "%s%s:%s %s" m.format context pos message
+      strf "%s:%s %s" header pos message
 
     let error_to_result e = Result.Error (error_message e)
 
@@ -210,9 +207,19 @@ module Bytes = struct
 
     let error fmt ?context e = error' ~pos:None ?context fmt e
 
+    (* Limits *)
+
+    type error += Limit of int
+    let limit_error =
+      let case l = Limit l in
+      let message = function
+      | Limit l -> strf "Limit of %d bytes exceeded." l | _ -> assert false
+      in
+      make_format_error ~format:"" ~case ~message
+
     let init () =
       let printer = function
-      | Error e -> Some ("Bytes.Stream.Error: " ^ error_message e)
+      | Error e -> Some (strf "Bytes.Stream.Error <%s>" (error_message e))
       | _ -> None
       in
       Printexc.register_printer printer
@@ -239,8 +246,6 @@ module Bytes = struct
     let read_eod = Fun.const Slice.eod
     let empty () = { pos = 0; read = read_eod; slice_length = None }
 
-    (* Stream properties *)
-
     let pos r = r.pos
     let read_length = pos
     let slice_length r = r.slice_length
@@ -250,6 +255,12 @@ module Bytes = struct
       let slice_length = Option.value ~default:d.slice_length slice_length in
       { r with pos; slice_length; }
 
+    let error fmt r ?pos e =
+      let pos = match pos with
+      | None -> r.pos | Some p when p < 0 -> r.pos + p | Some p -> p
+      in
+      Stream.error' ~context:`R ~pos:(Some pos) fmt e
+
     (* Reading *)
 
     let read r =
@@ -258,28 +269,9 @@ module Bytes = struct
       (if len = 0 then r.read <- read_eod);
       r.pos <- r.pos + len; slice
 
-    let rec discard r = if Slice.is_eod (read r) then () else discard r
-
-    (* Appending *)
-
-    let append r0 r1 =
-      let slice_length = match r0.slice_length, r1.slice_length with
-      | None, None -> None
-      | Some l0, Some l1 -> Some (Int.max l0 l1)
-      | Some l,  None | None, Some l -> (Some l)
-      in
-      let r = make ?slice_length read_eod in
-      let read_r0 () = match r0.read () with
-      | s when Slice.is_eod s -> r.read <- r1.read; r1.read ()
-      | s -> s
-      in
-      r.read <- read_r0; r
-
-    (* Push back *)
-
     let push_back r s =
-      let read = r.read in
       if Slice.is_eod s then () else
+      let read = r.read in
       let next_read () = r.read <- read; s in
       r.read <- next_read;
       r.pos <- r.pos - Slice.length s
@@ -290,7 +282,7 @@ module Bytes = struct
       | s when n <= Slice.length s ->
           push_back r s; Bytes.sub_string (Slice.bytes s) (Slice.first s) n
       | s ->
-          (* We have to go over multiple slices. *)
+          (* We have to go over multiple slices. Careful about validity ! *)
           let rec loop b i rem r = function
           | s when Slice.is_eod s ->
               let sniff_len = n - rem (* assert (sniff_len > 0) *) in
@@ -313,6 +305,26 @@ module Bytes = struct
           in
           loop (Bytes.create n) 0 n r s
 
+    let skip n r =
+      if n <= 0 then () else
+      let rec loop r count =
+        if count <= 0 then () else
+        let s = read r in
+        match Slice.length s with
+        | 0 -> ()
+        | l when l <= count -> loop r (count - l)
+        | l ->
+            match Slice.drop count s with
+            | None -> assert false | Some back -> push_back r back;
+      in
+      loop r n
+
+    let rec discard r = if Slice.is_eod (read r) then () else discard r
+
+    (* Filters *)
+
+    type filter = ?slice_length:Slice.length -> t -> t
+
     let sub n ?slice_length r =
       if n <= 0 then empty () else
       let count = ref n in
@@ -328,38 +340,47 @@ module Bytes = struct
       let sub = make ?slice_length read in
       sub.pos <- r.pos; sub
 
-    let skip n r =
-      if n <= 0 then () else
-      let rec loop r count =
-        if count <= 0 then () else
-        let s = read r in
-        match Slice.length s with
-        | 0 -> ()
-        | l when l <= count -> loop r (count - l)
-        | l ->
-            match Slice.drop count s with
-            | None -> assert false | Some back -> push_back r back;
+    let limit ?action n ?slice_length r =
+      let action = match action with
+      | Some act -> act | None -> error Stream.limit_error ?pos:None
       in
-      loop r n
+      let left = ref n in
+      let lr = make' ~parent:r ~slice_length read_eod in
+      let read () =
+        if !left <= 0
+        then (lr.read <- read_eod; action lr n; Slice.eod) else
+        match read r with
+        | slice when Slice.is_eod slice -> slice
+        | slice ->
+            let slen = Slice.length slice in
+            left := !left - slen;
+            if !left >= 0 then slice else
+            match Slice.break (slen + !left) slice with
+            | None -> assert false
+            | Some (ret, back) -> push_back r back; ret
+      in
+      lr.read <- read; lr
+
+    (* Appending *)
+
+    let append r0 r1 =
+      let slice_length = match r0.slice_length, r1.slice_length with
+      | None, None -> None
+      | Some l0, Some l1 -> Some (Int.max l0 l1)
+      | Some l,  None | None, Some l -> (Some l)
+      in
+      let r = make ?slice_length read_eod in
+      let read_r0 () = match r0.read () with
+      | s when Slice.is_eod s -> r.read <- r1.read; r1.read ()
+      | s -> s
+      in
+      r.read <- read_r0; r
 
     (* Tracing *)
 
     let trace_reads f r =
       let read () = let slice = r.read () in f slice; slice in
       { r with read }
-
-    (* Error *)
-
-    let read_error fmt r ?pos e =
-      let pos = match pos with
-      | None -> r.pos | Some p when p < 0 -> r.pos + p | Some p -> p
-      in
-      Stream.error' ~context:`R ~pos:(Some pos) fmt e
-
-    (*
-    let invalid_cut_read r =
-      invalid_argf "Cannot read right part of cut yet (pos:%d)" r.pos
-    *)
 
     (* Converting *)
 
@@ -454,10 +475,6 @@ module Bytes = struct
       in
       loop r oc
 
-    (* Filters *)
-
-    type filter = ?slice_length:Slice.length -> t -> t
-
     let filter_string (fs : filter list) s =
       let filter r f = f ?slice_length:None r in
       to_string (List.fold_left filter (of_string s) fs)
@@ -485,11 +502,6 @@ module Bytes = struct
       in
       { pos = 0; slice_length; write }
 
-    let ignore_write s = ()
-    let ignore ?pos () = make ?pos ignore_write
-
-    (* Stream properties *)
-
     let pos w = w.pos
     let slice_length w = w.slice_length
     let written_length w = w.pos
@@ -499,6 +511,13 @@ module Bytes = struct
       let slice_length = Option.value ~default:d.slice_length slice_length in
       { w with pos; slice_length }
 
+    let ignore ?pos () = make ?pos (fun s -> ())
+    let error fmt w ?pos e =
+      let pos = match pos with
+      | None -> w.pos | Some p when p < 0 -> w.pos + p | Some p -> p
+      in
+      Stream.error' ~context:`W ~pos:(Some pos) fmt e
+
     (* Writing *)
 
     let write_only_eod s =
@@ -506,10 +525,9 @@ module Bytes = struct
 
     let write w slice =
       let write = w.write in
-      let len = Slice.length slice in
-      (if len = 0 then w.write <- write_only_eod);
-      w.pos <- w.pos + len;
-      write slice
+      let n = Slice.length slice in
+      (if n = 0 then w.write <- write_only_eod);
+      w.pos <- w.pos + n; write slice
 
     let write_eod w = write w Slice.eod
     let write_bytes w b =
@@ -552,14 +570,6 @@ module Bytes = struct
       let write slice = f slice; w.write slice in
       { w with write }
 
-    (* Erroring *)
-
-    let write_error fmt w ?pos e =
-      let pos = match pos with
-      | None -> w.pos | Some p when p < 0 -> w.pos + p | Some p -> p
-      in
-      Stream.error' ~context:`W ~pos:(Some pos) fmt e
-
     (* Converting *)
 
     let of_out_channel
@@ -593,6 +603,28 @@ module Bytes = struct
     (* Filters *)
 
     type filter = ?slice_length:Slice.length -> t -> t
+
+    let limit ?action n ?slice_length w =
+      let action = match action with
+      | None -> error Stream.limit_error ?pos:None
+      | Some limit -> limit
+      in
+      let lw = make' ~parent:w ~slice_length write_only_eod in
+      let left = ref n in
+      let write = function
+      | slice when Slice.is_eod slice -> ()
+      | slice ->
+          let slen = Slice.length slice in
+          left := !left - slen;
+          if !left >= 0 then write w slice else
+          begin
+            write w (Option.get (Slice.take (slen + !left) slice));
+            lw.write <- write_only_eod;
+            action w n
+          end
+      in
+      lw.write <- write; lw
+
     let filter_string fs s =
       let b = Buffer.create (String.length s) in
       let filter w f = f ?slice_length:None w in

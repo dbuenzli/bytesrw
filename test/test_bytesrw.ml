@@ -20,6 +20,10 @@ let assert_invalid_arg f =
   try f (); log "Expression did not raise"; assert false with
   | Invalid_argument _ -> ()
 
+let assert_stream_error f =
+  try f (); log "Expression did not raise Bytes.Stream.Error"; assert false with
+  | Bytes.Stream.Error _ -> ()
+
 let eq_slice sl s =
   let sl = Bytes.Slice.to_string sl in
   if sl <> s then (log "%s <> %s" sl s; assert false) else ()
@@ -87,7 +91,7 @@ let test_read_fun_eod () =
   ()
 
 let test_write_fun_eod () =
-  log "Testing Bytes.Write.t end of stream";
+  log "Testing Bytes.Writer.t end of stream";
   let once = ref false in
   let write _slice = if !once then assert false else once := true in
   let w = Bytes.Writer.make write in
@@ -124,8 +128,8 @@ let test_reader_push_backs () =
   eq_str (Bytes.Reader.to_string r1) "bbccc";
   ()
 
-let test_reader_sub_skip () =
-  log "Testing Bytes.Reader.{sub,skip}";
+let test_reader_skip_sub_limit () =
+  log "Testing Bytes.Reader.{skip,sub,limit}";
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
   eq_str (Bytes.Reader.to_string (Bytes.Reader.sub 2 r0)) "ab";
@@ -133,6 +137,11 @@ let test_reader_sub_skip () =
   let r0 = r () in
   eq_str (Bytes.Reader.to_string (Bytes.Reader.sub 128 r0)) "abbccc";
   eq_str (Bytes.Reader.to_string r0) "";
+  let r0 = r () in
+  let lr0 = Bytes.Reader.limit 2 r0 in
+  assert_stream_error @@ (fun () -> Bytes.Reader.to_string lr0);
+  eq_eod (Bytes.Reader.read lr0);
+  eq_str (Bytes.Reader.to_string r0) "bccc";
   let r0 = r () in
   let () = Bytes.Reader.skip 2 r0 in
   eq_str (Bytes.Reader.to_string r0) "bccc";
@@ -162,7 +171,7 @@ let test_reader_sniff () =
   let r2 = r () in
   eq_str (Bytes.Reader.sniff 4 r2) "abbc";
   eq_str (Bytes.Reader.to_string r2) "abbccc";
-  (assert_invalid_arg @@ fun () -> Bytes.Reader.sniff (-1) (r ()));
+  eq_str (Bytes.Reader.sniff (-1) r2) "";
   let r4 = reader_of_list ["a"; "bb"] in
   eq_str (Bytes.Reader.sniff 4 r4) "abb";
   eq_str (Bytes.Reader.to_string r4) "abb";
@@ -182,6 +191,22 @@ let test_reader_of_slice () =
   eq_slices (r ~slice_length:(Some 5) ()) ["bla"];
   ()
 
+let test_writer_limit () =
+  log "Testing Bytes.Writer.limit";
+  let b = Buffer.create 255 in
+  let w = Bytes.Writer.of_buffer b in
+  let lw = Bytes.Writer.limit 2 w in
+  assert_stream_error @@ (fun () -> Bytes.Writer.write_string lw "1234");
+  eq_str (Buffer.contents b) "12";
+  assert_invalid_arg @@ (fun () -> Bytes.Writer.write_string lw "bla");
+  eq_str (Buffer.contents b) "12";
+  Bytes.Writer.write_eod lw;
+  eq_str (Buffer.contents b) "12";
+  Bytes.Writer.write_string w "1234";
+  eq_str (Buffer.contents b) "121234";
+  ()
+
+
 let main () =
   log "Testing Bytesrw";
   test_slices ();
@@ -190,10 +215,11 @@ let main () =
   test_read_fun_eod ();
   test_write_fun_eod ();
   test_reader_push_backs ();
-  test_reader_sub_skip ();
+  test_reader_skip_sub_limit ();
   test_reader_append ();
   test_reader_sniff ();
   test_reader_of_slice ();
+  test_writer_limit ();
   log "\027[32;1mSuccess!\027[m";
   0
 

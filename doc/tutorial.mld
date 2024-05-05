@@ -1,5 +1,8 @@
 {0 Bytes reader and writer tutorial}
 
+Mostly TODO.
+
+
 {1:positions Stream positions}
 
 For many usages stream positions are irrelevant. However one should
@@ -10,3 +13,12 @@ Byte reader and writers maintain a stream position which is the
 zero-based index of the next byte to read or write. This value
 can also be intepreted as the number of bytes that have been
 read or written.
+
+{1:read_filters Understanding read filters}
+
+The conventions are described in {!Bytesrw.Bytes.Reader.filter}
+
+{1:write_filter Understanding write filters}
+
+Explain the behaviour about {!Bytesrw.Bytes.Slice.eod}.
+The conventions are described in {!Bytesrw.Bytes.Writer.filter}

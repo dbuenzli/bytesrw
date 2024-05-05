@@ -60,8 +60,18 @@ module Ddict : sig
 end
 
 val decompress_reads :
-  ?dict:Ddict.t -> ?params:Dctx_params.t -> Bytes.Reader.filter
-(** [decompress_reads r] decompresses the [zstd] compressed reads of [r].
+  ?all_frames:bool -> ?dict:Ddict.t -> ?params:Dctx_params.t ->
+  Bytes.Reader.filter
+(** [decompress_reads r] filters the reads of [r] by decompressing
+    [zstd] frames. If [all_frames] is:
+    {ul
+    {- [true] (default), this decompressses all frames and concatenates the
+       result, until [r] returns {!Bytes.Slice.eod}.}
+    {- [false] this decompresses a single frame. Once the resulting reader
+       returns {!Bytes.Slice.eod}, [r] is positioned exactly after the end
+       of frame and can be used again to perform other non-filtered reads
+       (e.g. a new [zstd] frame or other unrelated data).}}
+    The other parameters are:
     {ul
     {- [dict] is the decompression dictionary, if any.}
     {- [params] defaults to {!Dctx_params.default}}
@@ -71,8 +81,8 @@ val decompress_reads :
 
 val decompress_writes :
   ?dict:Ddict.t -> ?params:Dctx_params.t -> Bytes.Writer.filter
-(** [decompress_writes w] decompresses [zstd] compressed writes and
-    writes the result on [w].
+(** [decompress_writes w] filters the writes on [w] by decompressing
+    sequences of [zstd] frames until {!Bytes.Slice.eod} is written.
     {ul
     {- [dict] is the decompression dictionary, if any.}
     {- [params] defaults to {!Dctx_params.default}}
@@ -132,7 +142,8 @@ end
 
 val compress_reads :
   ?dict:Cdict.t -> ?params:Cctx_params.t -> Bytes.Reader.filter
-(** [compress_reads r] compresses the reads of [r] with [zstd].
+(** [compress_reads r] filters the reads of [r] by compressing them
+    to a single [zstd] frame.
     {ul
     {- [dict] is the compression dictionary, if any.}
     {- [params] defaults to {!Cctx_params.default}.}
@@ -142,8 +153,8 @@ val compress_reads :
 
 val compress_writes :
   ?dict:Cdict.t -> ?params:Cctx_params.t -> Bytes.Writer.filter
-(** [compress_writes w] compresses to [zstd] writes and writes the
-    result on [w].
+(** [compress_writes w] filters the writes on [w] by compressing them
+    to a single [zstd] frame until {!Bytes.Slice.eod} is written.
     {ul
     {- [dict] is the compression dictionary, if any.}
     {- [params] defaults to {!Cctx_params.default}.}

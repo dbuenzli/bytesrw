@@ -44,18 +44,18 @@ let more = "moreatthedoor"
 
 let test_deflate_decompress_reads () =
   log "Testing Bytesrw_zlib.Deflate.decompress_reads";
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One stream *)
   let c = Bytes.Reader.of_string ~slice_length:n (fst a30_deflate) in
   let d = Bytesrw_zlib.Deflate.decompress_reads c in
   assert (Bytes.Reader.to_string d = snd a30_deflate)
   end;
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One stream with unexpected leftover data *)
     let c = fst a30_deflate ^ more in
     let c = Bytes.Reader.of_string ~slice_length:n c in
     let d = Bytesrw_zlib.Deflate.decompress_reads c in
     assert_stream_error @@ fun () -> Bytes.Reader.to_string d
   end;
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One stream with expected leftover data *)
     let c = (fst a30_deflate) ^ more in
     let c = Bytes.Reader.of_string ~slice_length:n c in
     let d = Bytesrw_zlib.Deflate.decompress_reads ~leftover:true c in
@@ -63,7 +63,7 @@ let test_deflate_decompress_reads () =
     assert (Bytes.Reader.pos c = String.length (fst a30_deflate));
     assert (Bytes.Reader.to_string c = more);
   end;
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One stream with expected leftover data but "" *)
     let c = (fst a30_deflate) in
     let c = Bytes.Reader.of_string ~slice_length:n c in
     let d = Bytesrw_zlib.Deflate.decompress_reads ~leftover:true c in
@@ -75,7 +75,7 @@ let test_deflate_decompress_reads () =
 
 let test_deflate_decompress_writes () =
   log "Testing Bytesrw_zlib.Deflate.decompress_writes";
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One stream. *)
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
     let d = Bytesrw_zlib.Deflate.decompress_writes w in
@@ -83,7 +83,17 @@ let test_deflate_decompress_writes () =
     let () = Bytes.Writer.write_reader ~eod:true d c in
     let () = Bytes.Writer.write_eod w in
     assert (Buffer.contents b = snd a30_deflate);
-  end
+  end;
+  begin repeat 5 @@ fun n -> (* One stream with unexpected leftover *)
+    let b = Buffer.create 255 in
+    let w = Bytes.Writer.of_buffer ~slice_length:n b in
+    let d = Bytesrw_zlib.Deflate.decompress_writes w in
+    let c = fst a30_deflate in
+    let c = Bytes.Reader.of_string ~slice_length:n (c ^ c) in
+    assert_stream_error @@ fun () ->
+    Bytes.Writer.write_reader ~eod:true d c
+  end;
+  ()
 
 let test_deflate_compress_reads () =
   log "Testing Bytesrw_zlib.Deflate.compress_reads";
@@ -114,12 +124,12 @@ let test_deflate_compress_writes () =
 
 let test_zlib_decompress_reads () =
   log "Testing Bytesrw_zlib.Zlib.decompress_reads";
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One stream *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_zlib) in
     let d = Bytesrw_zlib.Zlib.decompress_reads c in
     assert (Bytes.Reader.to_string d = snd a30_zlib);
   end;
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One stream with expected leftover data *)
     let data = fst a30_zlib ^ more in
     let c = Bytes.Reader.of_string ~slice_length:n data in
     let d = Bytesrw_zlib.Zlib.decompress_reads ~leftover:true c in
@@ -131,7 +141,7 @@ let test_zlib_decompress_reads () =
 
 let test_zlib_decompress_writes () =
   log "Testing Bytesrw_zlib.Zlib.decompress_writes";
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One stream *)
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
     let d = Bytesrw_zlib.Zlib.decompress_writes w in
@@ -170,35 +180,36 @@ let test_zlib_compress_writes () =
 
 let test_gzip_decompress_reads () =
   log "Testing Bytesrw_zlib.Gzip.decompress_reads";
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One member *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a_gz) in
     let d0 = Bytesrw_zlib.Gzip.decompress_reads c in
     assert (Bytes.Reader.to_string d0 = snd a_gz);
   end;
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* Two members, one shot *)
     let data = (fst a_gz) ^ (fst b_gz) in
     let c = Bytes.Reader.of_string ~slice_length:n data in
     let d0 = Bytesrw_zlib.Gzip.decompress_reads c in
     assert (Bytes.Reader.to_string d0 = snd a_gz ^ snd b_gz);
   end;
-  begin repeat 5 @@ fun n ->
-    let c = Bytes.Reader.of_string ~slice_length:n (fst a_gz) in
+  begin repeat 5 @@ fun n -> (* One member, leftover data *)
+    let data = (fst a_gz) ^ more in
+    let c = Bytes.Reader.of_string ~slice_length:n data in
     let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false c in
     assert (Bytes.Reader.to_string d0 = snd a_gz);
     assert (Bytes.Reader.pos c = String.length (fst a_gz));
-    assert (Bytes.Reader.to_string c = "")
+    assert (Bytes.Reader.to_string c = more)
   end;
-  begin repeat 5 @@ fun n ->
+  begin repeat 5 @@ fun n -> (* One member, empty leftover data *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst b_gz) in
     let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false c in
     assert (Bytes.Reader.to_string d0 = snd b_gz);
     assert (Bytes.Reader.pos c = String.length (fst b_gz));
     assert (Bytes.Reader.to_string c = "")
   end;
-  begin repeat 5 @@ fun n ->
-    let data = (fst a_gz) ^ (fst b_gz) in
-    let dlen = String.length data in
-    let c = Bytes.Reader.of_string ~slice_length:n (data ^ more) in
+  begin repeat 5 @@ fun n -> (* Two members, two shots *)
+    let cdata = (fst a_gz) ^ (fst b_gz) in
+    let dlen = String.length cdata in
+    let c = Bytes.Reader.of_string ~slice_length:n (cdata ^ more) in
     let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false c in
     assert (Bytes.Reader.to_string d0 = snd a_gz);
     assert (Bytes.Reader.pos c = String.length (fst a_gz));

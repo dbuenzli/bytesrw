@@ -17,21 +17,21 @@
 
 #define z_streamp_val(v) (*((z_streamp *) Data_custom_val(v)))
 
-/* Library parameters */
+/* OCaml Bytesrw_zlib.flush value map */
 
-CAMLprim value ocaml_bytesrw_zlib_version (value unit)
-{ return (caml_copy_string (zlibVersion ())); }
+static int ocaml_zlib_flush[] =
+{ Z_NO_FLUSH, Z_PARTIAL_FLUSH, Z_SYNC_FLUSH, Z_FULL_FLUSH, Z_FINISH,
+  Z_BLOCK, Z_TREES };
 
 /* OCaml Bytesrw_zlib.Zbuf.t value fields */
 
 enum ocaml_zbuf_fields
 { ocaml_zbuf_bytes = 0, ocaml_zbuf_size, ocaml_zbuf_pos };
 
-/* OCaml Bytesrw_zlib.flush value map */
+/* Library parameters */
 
-static int ocaml_zlib_flush[] =
-{ Z_NO_FLUSH, Z_PARTIAL_FLUSH, Z_SYNC_FLUSH, Z_FULL_FLUSH, Z_FINISH,
-  Z_BLOCK, Z_TREES };
+CAMLprim value ocaml_bytesrw_zlib_version (value unit)
+{ return (caml_copy_string (zlibVersion ())); }
 
 /* Inflate */
 

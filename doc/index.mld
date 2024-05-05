@@ -15,16 +15,13 @@ The following manuals are available:
 
 {ul
 {- The {{!quick}quick start} should get you started}
-{- The {{!tutorial}tutorial} shows you how to devise your own
-   stream processors}
-{- The {{!conventions}conventions} are conventions to follow
-   if you write byte stream reader and writed based codecs}}
+{- The {{!tutorial}tutorial} shows you how to use and devise your own
+   stream processors}}
 
 {1:bytesrw Library [bytesrw]}
 
-This library has the base definition of bytes
-reader and writers as an extension of the {!Stdlib.Bytes}
-module.
+This library has the base definition of bytes reader and writers as an
+extension of the {!Stdlib.Bytes} module.
 
 {!modules:
 Bytesrw}
@@ -55,29 +52,64 @@ Bytesrw_zstd
 
 {1:quick Quick start}
 
+The following example compresses standard input to
+standard output with [zstd] using either a compressing bytes
+reader (pull) or writer (push).
+{[
+open Bytesrw
+
+let stdio_compress_reads () =
+  try
+    let stdin = Bytes.Reader.of_in_channel In_channel.stdin in
+    let stdout = Bytes.Writer.of_out_channel Out_channel.stdout in
+    let params = Bytesrw_zstd.Cctx_params.make ~checksum:true () in
+    let zstdr = Bytesrw_zstd.compress_reads ~params stdin in
+    Bytes.Writer.write_reader ~eod:true stdout zstdr;
+    Ok ()
+  with
+  | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
+  | Sys_error e -> Error e
+
+let stdio_compress_writes () =
+  try
+    let stdin = Bytes.Reader.of_in_channel In_channel.stdin in
+    let stdout = Bytes.Writer.of_out_channel Out_channel.stdout in
+    let params = Bytesrw_zstd.Cctx_params.make ~checksum:true () in
+    let zstdw = Bytesrw_zstd.compress_writes ~params stdout in
+    Bytes.Writer.write_reader ~eod:true zstdw stdin;
+    Ok ()
+  with
+  | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
+  | Sys_error e -> Error e
+]}
+
+More in the {{!page-tutorial}tutorial}.
+
 {1:todo TODO}
 
 {ul
-{- [Bytesrw_unix].}
-{- Small howto and a simple tutorial to devise your own. Show read
-   sniffing.}
-{- [Bytesrw_zstd], add per frame control,
-   figure out the mulithreaded compression support (we'd need to copy
-   the bytes). Decide whether to add simple direct funs on [string].}
 {- [Slice], add bigbytes converters.}
-{- We could add an hmap to readers and writers. But let's KISS for now.}
 {- Push backs. Should we disallow pushing back to a negative position (in
    which case {!Bytesrw.Bytes.Reader.empty} can become a value again) ?
-   We might want to push a header before a stream. But then we should
-   provide {!Bytesrw.Bytes.Reader.val-append} at some point.}
+   We might want to push a header before a stream but then we have
+   {!Bytesrw.Bytes.Reader.val-append} for that.}
 {- Review tracing.}
-{- What should we do with channel/unix reader/writer exceptions
-   convert their exceptions to Bytes.Stream.Error or not ?}
-{- Think again about giving access to the reader/writer ?
-   Is it useful ? Some combinators in [Bytesrw] set the read
-   field afterwards because they want to access the definition.
+{- What should we do with channel/unix reader/writer exceptions ?
+   Convert their exceptions to Bytes.Stream.Error or not ?}
+{- Think again about giving access to the reader/writer in [read] and [write]
+   functions  ?
+   Is it useful ? Some combinators in [Bytesrw] internally mutate the [read]
+   field afterwards because they want to access the definition in [read],
+   this is not possible with the API.
    In filters for read errors those are generally reported in the
    reader one filters which is available. It's a bit less clear
-   for writers.}}
+   for writers.}
+{- We could add an hmap to readers and writers. But let's KISS for now.}
+{- Write filters. Write filters are instructed not to write {!Slice.eod}
+   on the writer they write to. This could be a pitfall when people
+   simply want to forget the filtered writer. Should we
+   tweak the filter signature with a mandatiory [~eod] argument that
+   indicates if it does or not.}
+}
 
 See also the {{!page-notes}design notes}.

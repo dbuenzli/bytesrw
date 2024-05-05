@@ -316,7 +316,7 @@ module Bytes : sig
 
     val slice_length : t -> Slice.length
     (** [slice_length r] is a hint on the maximal length of slices
-        that [f] generates. *)
+        that [r] returns. *)
 
     val error : 'e Stream.format_error -> t -> ?pos:Stream.pos -> 'e -> 'a
     (** [error fmt r e] raises a {!Stream.Error} [e] of format
@@ -339,8 +339,8 @@ module Bytes : sig
         is {!Slice.eod} this has no effect. Otherwise the stream position is
         rewinded by [Slice.length s] and the next {!read} on [r] returns [s].
 
-        {b Note.} If [r] is traced by a call to {!trace_reads} it
-        won't see the push backs.
+        {b Note.} If [r] is traced by a call to {!trace_reads} the tracing
+        function won't see the push backs. Good for your checksums.
 
         {b Warning.} This should not be used as a general lookahead
         mecanism by stream readers. Codecs should devise their own

@@ -1,8 +1,0 @@
-{0 Bytes reader and writer conventions}
-
-{1:rw Reader and writer makers}
-
-{1:filter Filter signatures}
-
-The conventions are described in
-{!Bytesrw.Bytes.Reader.filter} and  {!Bytesrw.Bytes.Writer.filter}

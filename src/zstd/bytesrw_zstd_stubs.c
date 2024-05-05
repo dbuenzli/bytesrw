@@ -15,6 +15,29 @@
 #error "Unsupported libzstd version, at least 1.4.0 is needed"
 #endif
 
+#define ZSTD_CCtx_val(v) (*((ZSTD_CCtx **) Data_custom_val(v)))
+#define ZSTD_DCtx_val(v) (*((ZSTD_DCtx **) Data_custom_val(v)))
+
+/* OCaml Bytesrw_zstd.end_directive value map */
+
+static ZSTD_EndDirective ocaml_zstd_end_directive[] =
+{ ZSTD_e_continue, ZSTD_e_flush, ZSTD_e_end};
+
+/* OCaml Bytesrw_zstd.c_parameter value map */
+
+static ZSTD_dParameter ocaml_zstd_d_parameter[] =
+{  ZSTD_d_windowLogMax};
+
+/* OCaml Bytesrw_zstd.c_parameter value map */
+
+static ZSTD_cParameter ocaml_zstd_c_parameter[] =
+{ ZSTD_c_compressionLevel, ZSTD_c_windowLog, ZSTD_c_checksumFlag};
+
+/* OCaml Zbuf.t value fields */
+
+enum ocaml_zbuf_fields
+{ ocaml_zbuf_bytes = 0, ocaml_zbuf_size, ocaml_zbuf_pos };
+
 /* Library parameters */
 
 CAMLprim value ocaml_bytesrw_ZSTD_versionString (value unit)
@@ -42,14 +65,7 @@ CAMLprim value ocaml_bytesrw_ZSTD_DStreamInSize (value unit)
 CAMLprim value ocaml_bytesrw_ZSTD_DStreamOutSize (value unit)
 { return (Val_int (ZSTD_DStreamOutSize ())); }
 
-/* OCaml Zbuf.t value fields */
-
-enum ocaml_zbuf_fields
-{ ocaml_zbuf_bytes = 0, ocaml_zbuf_size, ocaml_zbuf_pos };
-
 /* Decompression */
-
-#define ZSTD_DCtx_val(v) (*((ZSTD_DCtx **) Data_custom_val(v)))
 
 void ocaml_bytesrw_finalize_ZSTD_DCtx (value dctx)
 { size_t rc = ZSTD_freeDCtx (ZSTD_DCtx_val (dctx)); /* N.B. accepts NULL */ }
@@ -71,10 +87,13 @@ CAMLprim value ocaml_bytesrw_ZSTD_createDCtx (value unit)
 }
 
 CAMLprim value ocaml_bytesrw_ZSTD_DCtx_setParameter
-(value dctx, value param, value v)
+(value dctx, value p, value v)
 {
   ZSTD_DCtx *ctx = ZSTD_DCtx_val (dctx);
-  size_t rc = ZSTD_DCtx_setParameter (ctx, Int_val (param), Int_val (v));
+	ZSTD_dParameter param =
+		(Is_block (p) ?
+		 Int_val (Field (p, 0)) : ocaml_zstd_d_parameter[Int_val (p)]);
+  size_t rc = ZSTD_DCtx_setParameter (ctx, param, Int_val (v));
   if (ZSTD_isError (rc)) caml_failwith (ZSTD_getErrorName (rc));
   return Val_unit;
 }
@@ -112,8 +131,6 @@ CAMLprim value ocaml_bytesrw_ZSTD_decompressStream
 
 /* Compression */
 
-#define ZSTD_CCtx_val(v) (*((ZSTD_CCtx **) Data_custom_val(v)))
-
 void ocaml_bytesrw_finalize_ZSTD_CCtx (value cctx)
 { ZSTD_freeCCtx (ZSTD_CCtx_val (cctx)); /* N.B. accepts NULL */ }
 
@@ -134,10 +151,14 @@ CAMLprim value ocaml_bytesrw_ZSTD_createCCtx (value unit)
 }
 
 CAMLprim value ocaml_bytesrw_ZSTD_CCtx_setParameter
-(value cctx, value param, value v)
+(value cctx, value p, value v)
 {
   ZSTD_CCtx *ctx = ZSTD_CCtx_val (cctx);
-  size_t rc = ZSTD_CCtx_setParameter (ctx, Int_val (param), Int_val (v));
+	ZSTD_cParameter param =
+		(Is_block (p) ?
+		 Int_val (Field (p, 0)) : ocaml_zstd_c_parameter[Int_val (p)]);
+
+  size_t rc = ZSTD_CCtx_setParameter (ctx, param, Int_val (v));
   if (ZSTD_isError (rc)) caml_failwith (ZSTD_getErrorName (rc));
   return Val_unit;
 }
@@ -152,7 +173,7 @@ CAMLprim value ocaml_bytesrw_ZSTD_CCtx_loadDictionary(value cctx, value s)
 }
 
 CAMLprim value ocaml_bytesrw_ZSTD_compressStream2
-(value dctx, value src, value dst, value end_dir)
+(value dctx, value src, value dst, value edir)
 {
   ZSTD_CCtx *ctx = ZSTD_CCtx_val (dctx);
 
@@ -166,7 +187,9 @@ CAMLprim value ocaml_bytesrw_ZSTD_compressStream2
   bdst.size = Int_val (Field (dst, ocaml_zbuf_size));
   bdst.pos = Int_val (Field (dst, ocaml_zbuf_pos));
 
-  size_t rem = ZSTD_compressStream2 (ctx, &bdst, &bsrc, Int_val (end_dir));
+  size_t rem = ZSTD_compressStream2 (ctx, &bdst, &bsrc,
+                                     ocaml_zstd_end_directive[Int_val (edir)]);
+
   if (ZSTD_isError (rem)) caml_failwith (ZSTD_getErrorName (rem));
   Store_field (src, ocaml_zbuf_pos, Val_int (bsrc.pos));
   Store_field (dst, ocaml_zbuf_pos, Val_int (bdst.pos));

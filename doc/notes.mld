@@ -13,6 +13,10 @@ For example the {!Bytesrw.Bytes.Slice} creation functions raise
 those that can produce them have dedicated names that include [_eod]
 to make users and code readers aware that this might terminate the stream.
 
+Also readers and writers internally overwrite their [read] and [write]
+function as soon as {!Bytesrw.Bytes.Slice.eod} is seen so that no
+closure are kept longer than it should be.
+
 {1:errors Error strategy}
 
 The error strategy may look involved but it caters for:
@@ -81,15 +85,15 @@ inside the {!Bytesrw.Bytes.Stream.Error} exception.
 - We use [first], [last] and [length] for slice indexing and [pos],
   for streams. That way the terminology does not overlap which makes
   it for a clearer exposition. Incidentally our usage of [pos] is
-  constent with the [Stdlib] (though the index vs position terminology
+  consistent with the [Stdlib] (though the index vs position terminology
   is unfortunate in my opinion).
 
 {1:upstream Upstreaming}
 
 {b If we determine that this API works well} we should consider
-proposing to upstream the extension of {!Bytesrw.Bytes}. The code is
-mostly trivial it's "just" three data structures. But added code
-is more code to maintain.
+proposing to upstream the extension of {!Bytesrw.Bytes}. The core code
+is mostly trivial it's "just" three data structures. But added code is
+more code to maintain.
 
 However here are a few things to consider:
 

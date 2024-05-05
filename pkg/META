@@ -31,6 +31,18 @@ package "unix" (
   exists_if = "bytesrw_unix.cma bytesrw_unix.cmxa"
 )
 
+package "xxhash" (
+  directory = "xxhash"
+  description = "XXH hashes"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw"
+  archive(byte) = "bytesrw_xxhash.cma"
+  archive(native) = "bytesrw_xxhash.cmxa"
+  plugin(byte) = "bytesrw_xxhash.cma"
+  plugin(native) = "bytesrw_xxhash.cmxs"
+  exists_if = "bytesrw_xxhash.cma bytesrw_xxhash.cmxa"
+)
+
 package "zlib" (
   directory = "zlib"
   description = "Read and write deflate, zlib and gzip compressed bytes"

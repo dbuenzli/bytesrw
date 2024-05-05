@@ -10,11 +10,12 @@ separate away ressource management and the specifics of reading and
 writing bytes.
 
 Bytesrw distributed under the ISC license. It has no dependencies.
-Optional support for compressed bytes depends on the C [`zlib`]
-and [`libzstd`] libraries.
+Optional support for compressed bytes and hashes depends on the C [`zlib`],
+[`libzstd`] and [`xxhash`] libraries.
 
 [`zlib`]: https://zlib.net
 [`libzstd`]: http://zstd.net
+[`xxhash`]: https://xxhash.com/
 
 Homepage: <https://erratique.ch/software/bytesrw/>
 
@@ -23,7 +24,9 @@ Homepage: <https://erratique.ch/software/bytesrw/>
 Bytesrw can be installed with `opam`
 
     opam install bytesrw 
-    opam install bytesrw conf-zlib conf-zstd  # compression support
+    opam install bytesrw \
+                 conf-zlib conf-zstd \ # compression support
+                 conf-xxhash           # hashing support
 
 If you don't use `opam` consult the [`opam`](opam) file for build
 instructions.

@@ -263,7 +263,6 @@ let test_gzip_compress_writes () =
     assert (Buffer.contents b = data)
   end
 
-
 let main () =
   log "Testing Bytesrw_zlib with zlib %s" (Bytesrw_zlib.version ());
   test_deflate_decompress_reads ();

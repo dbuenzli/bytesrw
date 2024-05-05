@@ -46,6 +46,7 @@ Compression libraries depend on their canonical C library.
 
 {!modules:
 Bytesrw_unix
+Bytesrw_xxhash
 Bytesrw_zlib
 Bytesrw_zstd
 }
@@ -93,7 +94,7 @@ More in the {{!page-tutorial}tutorial}.
    which case {!Bytesrw.Bytes.Reader.empty} can become a value again) ?
    We might want to push a header before a stream but then we have
    {!Bytesrw.Bytes.Reader.val-append} for that.}
-{- Review tracing.}
+{- Review tracing. Perhaps call that taps.}
 {- What should we do with channel/unix reader/writer exceptions ?
    Convert their exceptions to Bytes.Stream.Error or not ?}
 {- Think again about giving access to the reader/writer in [read] and [write]

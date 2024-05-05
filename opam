@@ -11,11 +11,12 @@ separate away ressource management and the specifics of reading and
 writing bytes.
 
 Bytesrw distributed under the ISC license. It has no dependencies.
-Optional support for compressed bytes depends on the C [`zlib`]
-and [`libzstd`] libraries.
+Optional support for compressed bytes and hashes depends on the C [`zlib`],
+[`libzstd`] and [`xxhash`] libraries.
 
 [`zlib`]: https://zlib.net
 [`libzstd`]: http://zstd.net
+[`xxhash`]: https://xxhash.com/
 
 Homepage: <https://erratique.ch/software/bytesrw/>"""
 maintainer: "Daniel Bünzli <daniel.buenzl i@erratique.ch>"
@@ -43,6 +44,8 @@ build: [
   "build"
   "--dev-pkg"
   "%{dev}%"
+  "--with-conf-xxhash"
+  "%{conf-xxhash:installed}%"
   "--with-conf-zlib"
   "%{conf-zlib:installed}%"
   "--with-conf-zstd"

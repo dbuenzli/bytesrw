@@ -5,6 +5,7 @@ open B0_kit.V000
 let bytesrw = B0_ocaml.libname "bytesrw"
 let bytesrw_kit = B0_ocaml.libname "bytesrw.kit"
 let bytesrw_unix = B0_ocaml.libname "bytesrw.unix"
+let bytesrw_xxhash = B0_ocaml.libname "bytesrw.xxhash"
 let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
 let bytesrw_zstd = B0_ocaml.libname "bytesrw.zstd"
 
@@ -27,6 +28,13 @@ let bytesrw_unix_lib =
   let requires = [bytesrw; unix] in
   B0_ocaml.lib bytesrw_unix ~srcs ~requires
 
+let bytesrw_xxhash_lib =
+  let srcs = [ `Dir ~/"src/xxhash" ] in
+  let c_requires = Cmd.arg "-lxxhash" in
+  let requires = [bytesrw] in
+  let doc = "XXH hashes" in
+  B0_ocaml.lib bytesrw_xxhash ~srcs ~requires ~c_requires ~doc
+
 let bytesrw_zlib_lib =
   let srcs = [ `Dir ~/"src/zlib" ] in
   let c_requires = Cmd.arg "-lz" in
@@ -41,6 +49,7 @@ let bytesrw_zstd_lib =
   let doc = "Read and write zstd compressed bytes" in
   B0_ocaml.lib bytesrw_zstd ~srcs ~requires ~c_requires ~doc
 
+
 (* Tests *)
 
 let test ?(requires = []) src =
@@ -54,6 +63,7 @@ let utf8codec = test ~/"test/utf8codec.ml"
 let test_examples = test ~requires:[bytesrw_zstd] ~/"test/examples.ml"
 let test_bytesrw = test ~requires:[] ~/"test/test_bytesrw.ml"
 let test_utf = test ~requires:[bytesrw_kit] ~/"test/test_utf.ml"
+let test_xxhash = test ~requires:[bytesrw_xxhash] ~/"test/test_xxhash.ml"
 let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
 let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
 
@@ -81,6 +91,7 @@ let default =
       "base64"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
+                 "--with-conf-xxhash" "%{conf-xxhash:installed}%"
                  "--with-conf-zlib" "%{conf-zlib:installed}%"
                  "--with-conf-zstd" "%{conf-zstd:installed}%"]]|}
    |> ~~ B0_opam.depopts ["conf-zlib", ""; "conf-zstd", ""]

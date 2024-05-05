@@ -23,7 +23,6 @@ let filter_stdio_with_writer_filter unix ~slice_length filter =
   let i = stdin_reader unix ~slice_length in
   let o = stdout_writer unix ~slice_length in
   Bytes.Writer.write_reader ~eod:true (filter o) i;
-  Bytes.Writer.write_eod o; (* Writer filters do not write eod *)
   i, o
 
 let decompress processor params unix ~slice_length = match processor with
@@ -31,7 +30,7 @@ let decompress processor params unix ~slice_length = match processor with
     let d = Bytesrw_zstd.decompress_reads ~params in
     filter_stdio_with_reader_filter unix ~slice_length d
 | `Writer ->
-    let d = Bytesrw_zstd.decompress_writes ~params in
+    let d = Bytesrw_zstd.decompress_writes ~params ~eod:true in
     filter_stdio_with_writer_filter unix ~slice_length d
 
 let compress processor params unix ~slice_length = match processor with
@@ -39,7 +38,7 @@ let compress processor params unix ~slice_length = match processor with
     let c = Bytesrw_zstd.compress_reads ~params in
     filter_stdio_with_reader_filter unix ~slice_length c
 | `Writer ->
-    let c = Bytesrw_zstd.compress_writes ~params in
+    let c = Bytesrw_zstd.compress_writes ~params ~eod:true in
     filter_stdio_with_writer_filter unix ~slice_length c
 
 let log_count i o =

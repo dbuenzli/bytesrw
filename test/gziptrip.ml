@@ -31,7 +31,7 @@ let decompress processor unix ~slice_length = match processor with
     let d = Bytesrw_zlib.Gzip.decompress_reads in
     filter_stdio_with_reader_filter unix ~slice_length d
 | `Writer ->
-    let d = Bytesrw_zlib.Gzip.decompress_writes in
+    let d = Bytesrw_zlib.Gzip.decompress_writes ~eod:true in
     filter_stdio_with_writer_filter unix ~slice_length d
 
 let compress processor unix ~slice_length = match processor with
@@ -39,7 +39,7 @@ let compress processor unix ~slice_length = match processor with
     let c = Bytesrw_zlib.Gzip.compress_reads in
     filter_stdio_with_reader_filter unix ~slice_length c
 | `Writer ->
-    let c = Bytesrw_zlib.Gzip.compress_writes in
+    let c = Bytesrw_zlib.Gzip.compress_writes ~eod:true in
     filter_stdio_with_writer_filter unix ~slice_length c
 
 let log_count i o =

@@ -195,7 +195,7 @@ let test_writer_limit () =
   log "Testing Bytes.Writer.limit";
   let b = Buffer.create 255 in
   let w = Bytes.Writer.of_buffer b in
-  let lw = Bytes.Writer.limit 2 w in
+  let lw = Bytes.Writer.limit 2 ~eod:true w in
   assert_stream_error @@ (fun () -> Bytes.Writer.write_string lw "1234");
   eq_str (Buffer.contents b) "12";
   assert_invalid_arg @@ (fun () -> Bytes.Writer.write_string lw "bla");

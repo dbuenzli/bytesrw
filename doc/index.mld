@@ -75,7 +75,7 @@ let stdio_compress_writes () =
     let stdin = Bytes.Reader.of_in_channel In_channel.stdin in
     let stdout = Bytes.Writer.of_out_channel Out_channel.stdout in
     let params = Bytesrw_zstd.Cctx_params.make ~checksum:true () in
-    let zstdw = Bytesrw_zstd.compress_writes ~params stdout in
+    let zstdw = Bytesrw_zstd.compress_writes ~params ~eod:true stdout in
     Bytes.Writer.write_reader ~eod:true zstdw stdin;
     Ok ()
   with
@@ -103,13 +103,6 @@ More in the {{!page-tutorial}tutorial}.
    this is not possible with the API.
    In filters for read errors those are generally reported in the
    reader one filters which is available. It's a bit less clear
-   for writers.}
-{- We could add an hmap to readers and writers. But let's KISS for now.}
-{- Write filters. Write filters are instructed not to write {!Slice.eod}
-   on the writer they write to. This could be a pitfall when people
-   simply want to forget the filtered writer. Should we
-   tweak the filter signature with a mandatiory [~eod] argument that
-   indicates if it does or not.}
-}
+   for writers.}}
 
 See also the {{!page-notes}design notes}.

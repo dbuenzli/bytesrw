@@ -192,7 +192,7 @@ let decompress_reads
   Bytes.Reader.make ?pos ~slice_length read
 
 let decompress_writes
-    ?dict ?params ?pos ?(slice_length = dstream_in_size ()) w
+    ?dict ?params ?pos ?(slice_length = dstream_in_size ()) ~eod w
   =
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
@@ -215,7 +215,8 @@ let decompress_writes
   let write = function
   | slice when Bytes.Slice.is_eod slice ->
       free_dctx ctx; (* Note: [write] is never called again *)
-      if !eof then () else error err_unexp_eod
+      if !eof then (if eod then Bytes.Writer.write_eod w) else
+      error err_unexp_eod
   | slice ->
       Zbuf.src_set_slice src slice; decompress ~error ctx ~src ~dst
   in
@@ -337,7 +338,9 @@ let compress error ctx ~src ~dst ~end_dir =
   match compress_stream2 ctx ~src ~dst ~end_dir with
   | is_eodir -> is_eodir | exception Failure e -> free_cctx ctx; error e
 
-let compress_writes ?dict ?params ?pos ?(slice_length = cstream_in_size ()) w =
+let compress_writes
+    ?dict ?params ?pos ?(slice_length = cstream_in_size ()) ~eod w
+  =
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in
   let dst = Zbuf.make (Bytes.Writer.slice_length w) in
@@ -352,7 +355,7 @@ let compress_writes ?dict ?params ?pos ?(slice_length = cstream_in_size ()) w =
     | is_eos ->
         write_dst w dst;
         if is_eos
-        then free_cctx ctx
+        then (free_cctx ctx; if eod then Bytes.Writer.write_eod w)
         else compress_eod ~error w ctx ~src ~dst
   in
   let rec compress ~error w ctx ~src ~dst =

@@ -580,15 +580,22 @@ module Bytes : sig
 
     (** {1:filters Filters} *)
 
-    type filter = ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t
+    type filter =
+      ?pos:Stream.pos -> ?slice_length:Slice.length -> eod:bool -> t -> t
     (** The type for byte stream writer filters.
 
         Given a writer [w], a filter [f] returns a filtering writer [f
-        w], that transforms the writes made on it in some way and then
-        writes them to [w]. The following conventions should be
+        ~eod w], that transforms the writes made on it in some way and
+        then writes them to [w]. The following conventions should be
         followed for the filtering writer:
 
         {ul
+        {- Once the filter writer receives {!Slice.eod}, it must
+           stop and, if applicable, report an error if there was leftover
+           data that it couldn't write. It must only write {!Slice.eod}
+           on [w] if [eod] is [true]. Otherwise it should leave [w] as
+           is so that it can be used again to perform other non-filtered
+           writes}
         {- If [pos] is unspecified it should default to [w]'s position
            only if the writes are in the same position space as [w].
            Otherwise it should be [0] (e.g. on compression filters).}
@@ -596,11 +603,6 @@ module Bytes : sig
            value or a value that makes more sense for the filter's needs.}
         {- The filtering writer should write slices on [w] that respects
            its [slice_length] desires.}
-        {- Once the filter writer receives {!Slice.eod}, it must
-           stop and, if applicable, report an error if there was leftover
-           data that it couldn't write. It must not write the {!Slice.eod}
-           on [w], so that it can be used again to perform other non-filtered
-           writes}
         {- If your filter is in a module [M], then its name should be
            [M.{decode,encode}_writes] or an other meaningful verb like
            [M.{decompress,compress}_writes], [M.{encrypt,decrypt}_writes],
@@ -611,8 +613,9 @@ module Bytes : sig
         Any leftover in the slice that exceeds the [n] bytes is
         lost. After [n] bytes have been written on [w] the action
         [action] is invoked once and the filtering writer accepts only
-        {!Slice.eod} afterwards.  The default [action] raises
-        {!Stream.Limit} error. *)
+        {!Slice.eod} afterwards. As per filter semantics {!Slice.eod}
+        is only written on [w] if [eod] is true. The default [action]
+        raises {!Stream.Limit} error. *)
 
     val filter_string : filter list -> string -> string
     (** [filter_string fs s] is a convenience function
@@ -620,7 +623,7 @@ module Bytes : sig
         to the string [s] it is equivalent to:
         {[
           let b = Buffer.create (String.length s) in
-          let w = List.fold_left (fun w f -> f w) (of_buffer w) fs in
+          let w = List.fold_left (fun w f -> f ~eod:true w) (of_buffer w) fs in
           write_string w s; write_eod w; Buffer.contents b
         ]} *)
 

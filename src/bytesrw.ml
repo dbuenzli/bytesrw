@@ -563,9 +563,10 @@ module Bytes = struct
 
     (* Filters *)
 
-    type filter = ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t
+    type filter =
+      ?pos:Stream.pos -> ?slice_length:Slice.length -> eod:bool ->  t -> t
 
-    let limit ?action n ?pos ?slice_length w =
+    let limit ?action n ?pos ?slice_length ~eod w =
       let action = match action with
       | Some act -> act | None -> error Stream.limit_error ?pos:None
       in
@@ -574,7 +575,7 @@ module Bytes = struct
       let lw = make ~pos ~slice_length write_only_eod in
       let left = ref n in
       let write = function
-      | slice when Slice.is_eod slice -> ()
+      | slice when Slice.is_eod slice -> if eod then write_eod w
       | slice ->
           let slen = Slice.length slice in
           left := !left - slen;
@@ -589,7 +590,7 @@ module Bytes = struct
 
     let filter_string fs s =
       let b = Buffer.create (String.length s) in
-      let filter w f = f ?pos:None ?slice_length:None w in
+      let filter w f = f ?pos:None ?slice_length:None ~eod:true w in
       let w = List.fold_left filter (of_buffer b) fs in
       write_string w s; write_eod w; Buffer.contents b
 

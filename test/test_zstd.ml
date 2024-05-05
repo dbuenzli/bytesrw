@@ -75,16 +75,15 @@ let test_decompress_writes () =
   begin repeat 5 @@ fun n -> (* one frame *)
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
-    let d = Bytesrw_zstd.decompress_writes ~slice_length:n w in
+    let d = Bytesrw_zstd.decompress_writes ~slice_length:n ~eod:true w in
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_zstd) in
     let () = Bytes.Writer.write_reader ~eod:true d c in
-    let () = Bytes.Writer.write_eod w in
     assert (Buffer.contents b = snd a30_zstd)
   end;
   begin repeat 5 @@ fun n -> (* one with unexpected leftover *)
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
-    let d = Bytesrw_zstd.decompress_writes ~slice_length:n w in
+    let d = Bytesrw_zstd.decompress_writes ~slice_length:n ~eod:true w in
     let c = Bytes.Reader.of_string ~slice_length:n ((fst a30_zstd) ^ more) in
     assert_stream_error @@ fun () -> Bytes.Writer.write_reader ~eod:true d c;
   end;
@@ -105,11 +104,10 @@ let test_compress_writes () =
   let data = snd a30_zstd in
   let b = Buffer.create 255 in
   let w = Bytes.Writer.of_buffer ~slice_length:n b in
-  let dw = Bytesrw_zstd.decompress_writes ~slice_length:n w in
-  let c = Bytesrw_zstd.compress_writes ~slice_length:n dw in
+  let dw = Bytesrw_zstd.decompress_writes ~slice_length:n ~eod:true w in
+  let c = Bytesrw_zstd.compress_writes ~slice_length:n ~eod:true dw in
   let rdata = Bytes.Reader.of_string ~slice_length:n data in
   let () = Bytes.Writer.write_reader ~eod:true c rdata in
-  let () = Bytes.Writer.write_eod w in
   assert (Buffer.contents b = data)
 
 let test_dictionary_support () =

@@ -140,8 +140,8 @@ type decompress_state =
 let err_unexp_eod = "Unexpected end of compressed data"
 
 let decompress_reads
-    ?(all_frames = true) ?dict ?params ?pos
-    ?(slice_length = dstream_out_size ()) r
+    ?(all_frames = true) ?dict ?params ()
+    ?pos ?(slice_length = dstream_out_size ()) r
   =
   let eof_action = if all_frames then Next else Stop in
   let ctx = make_dctx ?dict ?params () in
@@ -192,7 +192,7 @@ let decompress_reads
   Bytes.Reader.make ?pos ~slice_length read
 
 let decompress_writes
-    ?dict ?params ?pos ?(slice_length = dstream_in_size ()) ~eod w
+    ?dict ?params () ?pos ?(slice_length = dstream_in_size ()) ~eod w
   =
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
@@ -289,7 +289,9 @@ let make_cctx ?dict ?(params = Cctx_params.default) () =
 
 type compress_state = Await | Flush | Flush_eod | Eod
 
-let compress_reads ?dict ?params ?pos ?(slice_length = cstream_out_size ()) r =
+let compress_reads
+    ?dict ?params () ?pos ?(slice_length = cstream_out_size ()) r
+  =
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () and dst = Zbuf.make slice_length in
   let error = reader_error r in
@@ -339,7 +341,7 @@ let compress error ctx ~src ~dst ~end_dir =
   | is_eodir -> is_eodir | exception Failure e -> free_cctx ctx; error e
 
 let compress_writes
-    ?dict ?params ?pos ?(slice_length = cstream_in_size ()) ~eod w
+    ?dict ?params () ?pos ?(slice_length = cstream_in_size ()) ~eod w
   =
   let ctx = make_cctx ?dict ?params () in
   let src = Zbuf.make_empty () in

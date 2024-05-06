@@ -27,18 +27,18 @@ let filter_stdio_with_writer_filter unix ~slice_length filter =
 
 let decompress processor params unix ~slice_length = match processor with
 | `Reader ->
-    let d = Bytesrw_zstd.decompress_reads ~params in
+    let d = Bytesrw_zstd.decompress_reads ~params () in
     filter_stdio_with_reader_filter unix ~slice_length d
 | `Writer ->
-    let d = Bytesrw_zstd.decompress_writes ~params ~eod:true in
+    let d = Bytesrw_zstd.decompress_writes ~params () ~eod:true in
     filter_stdio_with_writer_filter unix ~slice_length d
 
 let compress processor params unix ~slice_length = match processor with
 | `Reader ->
-    let c = Bytesrw_zstd.compress_reads ~params in
+    let c = Bytesrw_zstd.compress_reads ~params () in
     filter_stdio_with_reader_filter unix ~slice_length c
 | `Writer ->
-    let c = Bytesrw_zstd.compress_writes ~params ~eod:true in
+    let c = Bytesrw_zstd.compress_writes ~params () ~eod:true in
     filter_stdio_with_writer_filter unix ~slice_length c
 
 let log_count i o =

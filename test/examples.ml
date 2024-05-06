@@ -10,7 +10,7 @@ let stdio_compress_reads () =
     let stdin = Bytes.Reader.of_in_channel In_channel.stdin in
     let stdout = Bytes.Writer.of_out_channel Out_channel.stdout in
     let params = Bytesrw_zstd.Cctx_params.make ~checksum:true () in
-    let zstdr = Bytesrw_zstd.compress_reads ~params stdin in
+    let zstdr = Bytesrw_zstd.compress_reads ~params () stdin in
     Bytes.Writer.write_reader ~eod:true stdout zstdr;
     Ok ()
   with
@@ -22,7 +22,7 @@ let stdio_compress_writes () =
     let stdin = Bytes.Reader.of_in_channel In_channel.stdin in
     let stdout = Bytes.Writer.of_out_channel Out_channel.stdout in
     let params = Bytesrw_zstd.Cctx_params.make ~checksum:true () in
-    let zstdw = Bytesrw_zstd.compress_writes ~params ~eod:true stdout in
+    let zstdw = Bytesrw_zstd.compress_writes ~params () ~eod:true stdout in
     Bytes.Writer.write_reader ~eod:true zstdw stdin;
     Ok ()
   with

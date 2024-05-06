@@ -60,9 +60,9 @@ module Ddict : sig
 end
 
 val decompress_reads :
-  ?all_frames:bool -> ?dict:Ddict.t -> ?params:Dctx_params.t ->
+  ?all_frames:bool -> ?dict:Ddict.t -> ?params:Dctx_params.t -> unit ->
   Bytes.Reader.filter
-(** [decompress_reads r] filters the reads of [r] by decompressing
+(** [decompress_reads () r] filters the reads of [r] by decompressing
     [zstd] frames. If [all_frames] is:
     {ul
     {- [true] (default), this decompressses all frames and concatenates the
@@ -80,8 +80,8 @@ val decompress_reads :
        use {!dstream_in_size} for its slices.}}  *)
 
 val decompress_writes :
-  ?dict:Ddict.t -> ?params:Dctx_params.t -> Bytes.Writer.filter
-(** [decompress_writes w] filters the writes on [w] by decompressing
+  ?dict:Ddict.t -> ?params:Dctx_params.t -> unit -> Bytes.Writer.filter
+(** [decompress_writes () w] filters the writes on [w] by decompressing
     sequences of [zstd] frames until {!Bytes.Slice.eod} is written.
     {ul
     {- [dict] is the decompression dictionary, if any.}
@@ -141,8 +141,8 @@ module Cdict : sig
 end
 
 val compress_reads :
-  ?dict:Cdict.t -> ?params:Cctx_params.t -> Bytes.Reader.filter
-(** [compress_reads r] filters the reads of [r] by compressing them
+  ?dict:Cdict.t -> ?params:Cctx_params.t -> unit -> Bytes.Reader.filter
+(** [compress_reads () r] filters the reads of [r] by compressing them
     to a single [zstd] frame.
     {ul
     {- [dict] is the compression dictionary, if any.}
@@ -152,8 +152,8 @@ val compress_reads :
        use {!cstream_in_size} for its slices.}} *)
 
 val compress_writes :
-  ?dict:Cdict.t -> ?params:Cctx_params.t -> Bytes.Writer.filter
-(** [compress_writes w] filters the writes on [w] by compressing them
+  ?dict:Cdict.t -> ?params:Cctx_params.t -> unit -> Bytes.Writer.filter
+(** [compress_writes () w] filters the writes on [w] by compressing them
     to a single [zstd] frame until {!Bytes.Slice.eod} is written.
     {ul
     {- [dict] is the compression dictionary, if any.}

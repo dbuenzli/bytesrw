@@ -46,19 +46,19 @@ let test_deflate_decompress_reads () =
   log "Testing Bytesrw_zlib.Deflate.decompress_reads";
   begin repeat 5 @@ fun n -> (* One stream *)
   let c = Bytes.Reader.of_string ~slice_length:n (fst a30_deflate) in
-  let d = Bytesrw_zlib.Deflate.decompress_reads c in
+  let d = Bytesrw_zlib.Deflate.decompress_reads () c in
   assert (Bytes.Reader.to_string d = snd a30_deflate)
   end;
   begin repeat 5 @@ fun n -> (* One stream with unexpected leftover data *)
     let c = fst a30_deflate ^ more in
     let c = Bytes.Reader.of_string ~slice_length:n c in
-    let d = Bytesrw_zlib.Deflate.decompress_reads c in
+    let d = Bytesrw_zlib.Deflate.decompress_reads () c in
     assert_stream_error @@ fun () -> Bytes.Reader.to_string d
   end;
   begin repeat 5 @@ fun n -> (* One stream with expected leftover data *)
     let c = (fst a30_deflate) ^ more in
     let c = Bytes.Reader.of_string ~slice_length:n c in
-    let d = Bytesrw_zlib.Deflate.decompress_reads ~leftover:true c in
+    let d = Bytesrw_zlib.Deflate.decompress_reads ~leftover:true () c in
     assert (Bytes.Reader.to_string d = snd a30_deflate);
     assert (Bytes.Reader.pos c = String.length (fst a30_deflate));
     assert (Bytes.Reader.to_string c = more);
@@ -66,7 +66,7 @@ let test_deflate_decompress_reads () =
   begin repeat 5 @@ fun n -> (* One stream with expected leftover data but "" *)
     let c = (fst a30_deflate) in
     let c = Bytes.Reader.of_string ~slice_length:n c in
-    let d = Bytesrw_zlib.Deflate.decompress_reads ~leftover:true c in
+    let d = Bytesrw_zlib.Deflate.decompress_reads ~leftover:true () c in
     assert (Bytes.Reader.to_string d = snd a30_deflate);
     assert (Bytes.Reader.pos c = String.length (fst a30_deflate));
     assert (Bytes.Reader.to_string c = "");
@@ -78,7 +78,7 @@ let test_deflate_decompress_writes () =
   begin repeat 5 @@ fun n -> (* One stream. *)
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
-    let d = Bytesrw_zlib.Deflate.decompress_writes ~eod:true w in
+    let d = Bytesrw_zlib.Deflate.decompress_writes ~eod:true () w in
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_deflate) in
     let () = Bytes.Writer.write_reader ~eod:true d c in
     assert (Buffer.contents b = snd a30_deflate);
@@ -86,7 +86,7 @@ let test_deflate_decompress_writes () =
   begin repeat 5 @@ fun n -> (* One stream with unexpected leftover *)
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
-    let d = Bytesrw_zlib.Deflate.decompress_writes ~eod:true w in
+    let d = Bytesrw_zlib.Deflate.decompress_writes ~eod:true () w in
     let c = fst a30_deflate in
     let c = Bytes.Reader.of_string ~slice_length:n (c ^ c) in
     assert_stream_error @@ fun () ->
@@ -99,8 +99,8 @@ let test_deflate_compress_reads () =
   begin repeat 5 @@ fun n ->
     let data = snd a30_deflate in
     let d = Bytes.Reader.of_string ~slice_length:n data in
-    let c = Bytesrw_zlib.Deflate.compress_reads ~slice_length:n d in
-    let trip = Bytesrw_zlib.Deflate.decompress_reads ~slice_length:n c in
+    let c = Bytesrw_zlib.Deflate.compress_reads () ~slice_length:n d in
+    let trip = Bytesrw_zlib.Deflate.decompress_reads () ~slice_length:n c in
     assert (Bytes.Reader.to_string trip = data)
   end
 
@@ -110,8 +110,8 @@ let test_deflate_compress_writes () =
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
     let trip =
-      Bytesrw_zlib.Deflate.compress_writes ~slice_length:n ~eod:true @@
-      Bytesrw_zlib.Deflate.decompress_writes ~slice_length:n ~eod:true @@
+      Bytesrw_zlib.Deflate.compress_writes () ~slice_length:n ~eod:true @@
+      Bytesrw_zlib.Deflate.decompress_writes () ~slice_length:n ~eod:true @@
       w
     in
     let data = snd a30_deflate in
@@ -124,13 +124,13 @@ let test_zlib_decompress_reads () =
   log "Testing Bytesrw_zlib.Zlib.decompress_reads";
   begin repeat 5 @@ fun n -> (* One stream *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_zlib) in
-    let d = Bytesrw_zlib.Zlib.decompress_reads c in
+    let d = Bytesrw_zlib.Zlib.decompress_reads () c in
     assert (Bytes.Reader.to_string d = snd a30_zlib);
   end;
   begin repeat 5 @@ fun n -> (* One stream with expected leftover data *)
     let data = fst a30_zlib ^ more in
     let c = Bytes.Reader.of_string ~slice_length:n data in
-    let d = Bytesrw_zlib.Zlib.decompress_reads ~leftover:true c in
+    let d = Bytesrw_zlib.Zlib.decompress_reads ~leftover:true () c in
     assert (Bytes.Reader.to_string d = snd a30_zlib);
     assert (Bytes.Reader.pos c = String.length (fst a30_zlib));
     assert (Bytes.Reader.to_string c = more);
@@ -142,7 +142,7 @@ let test_zlib_decompress_writes () =
   begin repeat 5 @@ fun n -> (* One stream *)
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
-    let d = Bytesrw_zlib.Zlib.decompress_writes ~eod:true w in
+    let d = Bytesrw_zlib.Zlib.decompress_writes () ~eod:true w in
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_zlib) in
     let () = Bytes.Writer.write_reader ~eod:true d c in
     assert (Buffer.contents b = snd a30_zlib);
@@ -153,8 +153,8 @@ let test_zlib_compress_reads () =
   begin repeat 5 @@ fun n ->
     let data = snd a30_zlib in
     let d = Bytes.Reader.of_string ~slice_length:n data in
-    let c = Bytesrw_zlib.Zlib.compress_reads ~slice_length:n d in
-    let trip = Bytesrw_zlib.Zlib.decompress_reads ~slice_length:n c in
+    let c = Bytesrw_zlib.Zlib.compress_reads () ~slice_length:n d in
+    let trip = Bytesrw_zlib.Zlib.decompress_reads () ~slice_length:n c in
     assert (Bytes.Reader.to_string trip = data)
   end
 
@@ -164,8 +164,8 @@ let test_zlib_compress_writes () =
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
     let trip =
-      Bytesrw_zlib.Zlib.compress_writes ~slice_length:n ~eod:true @@
-      Bytesrw_zlib.Zlib.decompress_writes ~slice_length:n ~eod:true @@
+      Bytesrw_zlib.Zlib.compress_writes () ~slice_length:n ~eod:true @@
+      Bytesrw_zlib.Zlib.decompress_writes () ~slice_length:n ~eod:true @@
       w
     in
     let data = snd a30_zlib in
@@ -178,26 +178,26 @@ let test_gzip_decompress_reads () =
   log "Testing Bytesrw_zlib.Gzip.decompress_reads";
   begin repeat 5 @@ fun n -> (* One member *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a_gz) in
-    let d0 = Bytesrw_zlib.Gzip.decompress_reads c in
+    let d0 = Bytesrw_zlib.Gzip.decompress_reads () c in
     assert (Bytes.Reader.to_string d0 = snd a_gz);
   end;
   begin repeat 5 @@ fun n -> (* Two members, one shot *)
     let data = (fst a_gz) ^ (fst b_gz) in
     let c = Bytes.Reader.of_string ~slice_length:n data in
-    let d0 = Bytesrw_zlib.Gzip.decompress_reads c in
+    let d0 = Bytesrw_zlib.Gzip.decompress_reads () c in
     assert (Bytes.Reader.to_string d0 = snd a_gz ^ snd b_gz);
   end;
   begin repeat 5 @@ fun n -> (* One member, leftover data *)
     let data = (fst a_gz) ^ more in
     let c = Bytes.Reader.of_string ~slice_length:n data in
-    let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false c in
+    let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false () c in
     assert (Bytes.Reader.to_string d0 = snd a_gz);
     assert (Bytes.Reader.pos c = String.length (fst a_gz));
     assert (Bytes.Reader.to_string c = more)
   end;
   begin repeat 5 @@ fun n -> (* One member, empty leftover data *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst b_gz) in
-    let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false c in
+    let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false () c in
     assert (Bytes.Reader.to_string d0 = snd b_gz);
     assert (Bytes.Reader.pos c = String.length (fst b_gz));
     assert (Bytes.Reader.to_string c = "")
@@ -206,10 +206,10 @@ let test_gzip_decompress_reads () =
     let cdata = (fst a_gz) ^ (fst b_gz) in
     let dlen = String.length cdata in
     let c = Bytes.Reader.of_string ~slice_length:n (cdata ^ more) in
-    let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false c in
+    let d0 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false () c in
     assert (Bytes.Reader.to_string d0 = snd a_gz);
     assert (Bytes.Reader.pos c = String.length (fst a_gz));
-    let d1 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false c in
+    let d1 = Bytesrw_zlib.Gzip.decompress_reads ~all_members:false () c in
     assert (Bytes.Reader.to_string d1 = snd b_gz);
     assert (Bytes.Reader.pos c = dlen);
     assert (Bytes.Reader.to_string c = more);
@@ -221,7 +221,7 @@ let test_gzip_decompress_writes () =
   begin repeat 5 @@ fun n ->
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
-    let d = Bytesrw_zlib.Gzip.decompress_writes ~eod:true w in
+    let d = Bytesrw_zlib.Gzip.decompress_writes () ~eod:true w in
     let c = Bytes.Reader.of_string ~slice_length:n (fst a_gz) in
     let () = Bytes.Writer.write_reader ~eod:true d c in
     assert (Buffer.contents b = snd a_gz);
@@ -231,7 +231,7 @@ let test_gzip_decompress_writes () =
     let res = (snd a_gz) ^ (snd b_gz) in
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
-    let d = Bytesrw_zlib.Gzip.decompress_writes ~eod:true w in
+    let d = Bytesrw_zlib.Gzip.decompress_writes () ~eod:true w in
     let c = Bytes.Reader.of_string ~slice_length:n data in
     let () = Bytes.Writer.write_reader ~eod:true d c in
     assert (Buffer.contents b = res);
@@ -242,8 +242,8 @@ let test_gzip_compress_reads () =
   begin repeat 5 @@ fun n ->
     let data = snd a_gz in
     let d = Bytes.Reader.of_string ~slice_length:n data in
-    let c = Bytesrw_zlib.Gzip.compress_reads ~slice_length:n d in
-    let trip = Bytesrw_zlib.Gzip.decompress_reads ~slice_length:n c in
+    let c = Bytesrw_zlib.Gzip.compress_reads () ~slice_length:n d in
+    let trip = Bytesrw_zlib.Gzip.decompress_reads () ~slice_length:n c in
     assert (Bytes.Reader.to_string trip = data)
   end
 
@@ -253,8 +253,8 @@ let test_gzip_compress_writes () =
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
     let trip =
-      Bytesrw_zlib.Gzip.compress_writes ~slice_length:n ~eod:true @@
-      Bytesrw_zlib.Gzip.decompress_writes ~slice_length:n ~eod:true @@
+      Bytesrw_zlib.Gzip.compress_writes () ~slice_length:n ~eod:true @@
+      Bytesrw_zlib.Gzip.decompress_writes () ~slice_length:n ~eod:true @@
       w
     in
     let data = snd a_gz in

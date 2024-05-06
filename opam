@@ -11,6 +11,7 @@ separate away ressource management and the specifics of reading and
 writing bytes.
 
 Bytesrw distributed under the ISC license. It has no dependencies.
+
 Optional support for compressed bytes and hashes depends on the C [`zlib`],
 [`libzstd`] and [`xxhash`] libraries.
 
@@ -34,7 +35,7 @@ depends: [
   "ocamlbuild" {build}
   "topkg" {build & >= "1.0.3"}
 ]
-depopts: ["conf-zlib" "conf-zstd"]
+depopts: ["conf-xxhash" "conf-zlib" "conf-zstd"]
 conflicts: [
   "conf-zstd" {< "1.3.8"}
 ]

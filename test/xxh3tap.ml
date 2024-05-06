@@ -13,51 +13,54 @@ let stdout_writer unix ~slice_length = match unix with
 | true -> Bytesrw_unix.bytes_writer_of_fd ?slice_length Unix.stdout
 | false -> Bytes.Writer.of_out_channel ?slice_length Out_channel.stdout
 
-let xxh3_64_reader r =
+let xxh3_64_reader r = Bytesrw_xxhash.Xxh3_64.(to_hex (reader r))
+let xxh3_64_reads r =
   let i, hash = Bytesrw_xxhash.Xxh3_64.reads r in
   i, (fun () -> Bytesrw_xxhash.Xxh3_64.(to_hex (value hash)))
 
-let xxh3_64_writer w =
+let xxh3_64_writes w =
   let w, hash = Bytesrw_xxhash.Xxh3_64.writes w in
   w, (fun () -> Bytesrw_xxhash.Xxh3_64.(to_hex (value hash)))
 
-let xxh3_128_reader r =
+let xxh3_128_reader r = Bytesrw_xxhash.Xxh3_128.(to_hex (reader r))
+let xxh3_128_reads r =
   let i, hash = Bytesrw_xxhash.Xxh3_128.reads r in
   i, (fun () -> Bytesrw_xxhash.Xxh3_128.(to_hex (value hash)))
 
-let xxh3_128_writer w =
+let xxh3_128_writes w =
   let w, hash = Bytesrw_xxhash.Xxh3_128.writes w in
   w, (fun () -> Bytesrw_xxhash.Xxh3_128.(to_hex (value hash)))
 
 let hash_reader = function
 | `Xxh3_64 -> xxh3_64_reader | `Xxh3_128 -> xxh3_128_reader
 
-let hash_writer = function
-| `Xxh3_64 -> xxh3_64_writer | `Xxh3_128 -> xxh3_128_writer
+let hash_reads = function
+| `Xxh3_64 -> xxh3_64_reads | `Xxh3_128 -> xxh3_128_reads
+
+let hash_writes = function
+| `Xxh3_64 -> xxh3_64_writes | `Xxh3_128 -> xxh3_128_writes
 
 let sink hash processor unix ~slice_length = match processor with
 | `Reader ->
     let i = stdin_reader unix ~slice_length in
-    let i, get_hash = hash_reader hash i in
-    let () = Bytes.Reader.discard i in
-    i, get_hash ()
+    i, hash_reader hash i
 | `Writer ->
     let i = stdin_reader unix ~slice_length in
-    let w, get_hash = hash_writer hash (Bytes.Writer.ignore ()) in
+    let w, get_hash = hash_writes hash (Bytes.Writer.ignore ()) in
     let () = Bytes.Writer.write_reader w ~eod:true i in
     i, get_hash ()
 
 let filter hash processor unix ~slice_length = match processor with
 | `Reader ->
     let i = stdin_reader unix ~slice_length in
-    let i, get_hash = hash_reader hash i in
+    let i, get_hash = hash_reads hash i in
     let o = stdout_writer unix ~slice_length in
     Bytes.Writer.write_reader ~eod:true o i;
     i, get_hash ()
 | `Writer ->
     let i = stdin_reader unix ~slice_length in
     let o = stdout_writer unix ~slice_length in
-    let o, get_hash = hash_writer hash o in
+    let o, get_hash = hash_writes hash o in
     Bytes.Writer.write_reader ~eod:true o i;
     i, get_hash ()
 

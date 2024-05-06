@@ -65,6 +65,10 @@ module Xxh3_64 : sig
   val slice : ?seed:seed -> Bytes.Slice.t -> t
   (** [slice s] is the hash of [s] with seed [seed] (if any). *)
 
+  val reader : ?seed:seed -> Bytes.Reader.t -> t
+  (** [reader r] hashes the stream of [r] with seed [seed] (if any).
+      See also {!reads}. *)
+
   (** {1:streaming Hashing streams} *)
 
   val reads : ?state:State.t -> Bytes.Reader.t -> Bytes.Reader.t * State.t
@@ -171,6 +175,10 @@ module Xxh3_128 : sig
 
   val slice : ?seed:seed -> Bytes.Slice.t -> t
   (** [slice s] is the hash of [s] with seed [seed] (if any). *)
+
+  val reader : ?seed:seed -> Bytes.Reader.t -> t
+  (** [reader r] hashes the stream of [r] with seed [seed] (if any).
+      See also {!reads}. *)
 
   (** {1:streaming Hashing streams} *)
 

@@ -162,6 +162,13 @@ module Xxh3_64 = struct
     let b = Bytes.Slice.bytes s in
     seeded_hash b (Bytes.Slice.first s) (Bytes.Slice.length s) seed
 
+  let reader ?seed r =
+    let rec loop state r = match Bytes.Reader.read r with
+    | s when Bytes.Slice.is_eod s -> value state
+    | s -> State.update state s; loop state r
+    in
+    loop (State.make ?seed ()) r
+
   (* Hashing streams *)
 
   let reads ?(state = State.make ()) r =
@@ -243,6 +250,13 @@ module Xxh3_128 = struct
   let slice ?(seed = Xxh3_state.no_seed) s =
     let b = Bytes.Slice.bytes s in
     seeded_hash b (Bytes.Slice.first s) (Bytes.Slice.length s) seed
+
+  let reader ?seed r =
+    let rec loop state r = match Bytes.Reader.read r with
+    | s when Bytes.Slice.is_eod s -> value state
+    | s -> State.update state s; loop state r
+    in
+    loop (State.make ?seed ()) r
 
   (* Hashing streams *)
 

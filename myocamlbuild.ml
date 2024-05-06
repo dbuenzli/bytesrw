@@ -63,13 +63,13 @@ let () =
         lib_with_clib
           ~lib:"bytesrw_xxhash" ~clib:"libxxhash" ~has_lib:"-DHAS_XXHASH"
           ~src_dir:"src/xxhash" ~stublib:"bytesrw_xxhash_stubs";
-      if pkg_config_exists "libzstd" then
-        lib_with_clib
-          ~lib:"bytesrw_zstd" ~clib:"libzstd" ~has_lib:"-DHAS_ZSTD"
-          ~src_dir:"src/zstd" ~stublib:"bytesrw_zstd_stubs";
       if pkg_config_exists "zlib" then
         lib_with_clib
           ~lib:"bytesrw_zlib" ~clib:"zlib" ~has_lib:"-DHAS_ZLIB"
           ~src_dir:"src/zlib" ~stublib:"bytesrw_zlib_stubs";
+      if pkg_config_exists "libzstd" then
+        lib_with_clib
+          ~lib:"bytesrw_zstd" ~clib:"libzstd" ~has_lib:"-DHAS_ZSTD"
+          ~src_dir:"src/zstd" ~stublib:"bytesrw_zstd_stubs";
   | _ -> ()
   end

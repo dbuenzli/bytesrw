@@ -2,20 +2,24 @@ true : bin_annot, safe_string
 <_b0> : -traverse
 <src> : include
 
+<src/unix> : include
+<src/**> : package(unix)
+
 <src/xxhash> : include
-<src/xxhash/bytesrw_xxhash_stubs.c> : use_xxhash
+<src/xxhash/bytesrw_xxhash_stubs.c> : use_libxxhash
 <src/xxhash/bytesrw_xxhash.{cma,cmxa}> : record_bytesrw_xxhash_stubs
-<src/xxhash/bytesrw_xxhash.{cmxs}> : link_bytesrw_xxhash_stubs
-<src/xxhash/libbytesrw_xxhash_stubs.*> : use_xxhash
+<src/xxhash/bytesrw_xxhash.{cmxs}> : link_bytesrw_xxhash_stubs_archive
+<src/xxhash/bytesrw_xxhash_stubs.*> : use_libxxhash
+<src/xxhash/libbytesrw_xxhash_stubs.*> : use_libxxhash
 
 <src/zlib> : include
 <src/zlib/bytesrw_zlib_stubs.c> : use_zlib
 <src/zlib/bytesrw_zlib.{cma,cmxa}> : record_bytesrw_zlib_stubs
-<src/zlib/bytesrw_zlib.{cmxs}> : link_bytesrw_zlib_stubs
+<src/zlib/bytesrw_zlib.{cmxs}> : link_bytesrw_zlib_stubs_archive
 <src/zlib/libbytesrw_zlib_stubs.*> : use_zlib
 
 <src/zstd> : include
-<src/zstd/bytesrw_zstd_stubs.c> : use_zstd
+<src/zstd/bytesrw_zstd_stubs.c> : use_libzstd
 <src/zstd/bytesrw_zstd.{cma,cmxa}> : record_bytesrw_zstd_stubs
-<src/zstd/bytesrw_zstd.{cmxs}> : link_bytesrw_zstd_stubs
-<src/zstd/libbytesrw_zstd_stubs.*> : use_zstd
+<src/zstd/bytesrw_zstd.{cmxs}> : link_bytesrw_zstd_stubs_archive
+<src/zstd/libbytesrw_zstd_stubs.*> : use_libzstd

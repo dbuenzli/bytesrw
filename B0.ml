@@ -60,6 +60,7 @@ let test ?(requires = []) src =
   B0_ocaml.exe name ~srcs ~requires ~meta
 
 let utf8codec = test ~/"test/utf8codec.ml"
+
 let test_examples = test ~requires:[bytesrw_zstd] ~/"test/examples.ml"
 let test_bytesrw = test ~requires:[] ~/"test/test_bytesrw.ml"
 let test_utf = test ~requires:[bytesrw_kit] ~/"test/test_utf.ml"
@@ -68,11 +69,15 @@ let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
 let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
 
 let trip_requires = [cmdliner; unix; bytesrw_unix]
-let zstdtrip =
-  test ~requires:(bytesrw_zstd :: trip_requires) ~/"test/zstdtrip.ml"
+
+let xxh3tap =
+  test ~requires:(bytesrw_xxhash :: trip_requires) ~/"test/xxh3tap.ml"
 
 let gziptrip =
   test ~requires:(bytesrw_zlib :: trip_requires) ~/"test/gziptrip.ml"
+
+let zstdtrip =
+  test ~requires:(bytesrw_zstd :: trip_requires) ~/"test/zstdtrip.ml"
 
 (* Packs *)
 

@@ -10,6 +10,7 @@ separate away ressource management and the specifics of reading and
 writing bytes.
 
 Bytesrw distributed under the ISC license. It has no dependencies.
+
 Optional support for compressed bytes and hashes depends on the C [`zlib`],
 [`libzstd`] and [`xxhash`] libraries.
 

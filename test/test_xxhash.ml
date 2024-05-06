@@ -8,14 +8,6 @@ open Bytesrw
 let log fmt = Format.eprintf (fmt ^^ "\n%!")
 let tracer = Bytes.Slice.tracer ~ppf:Format.std_formatter
 
-let assert_invalid_arg f =
-  try f (); log "Expression did not raise Invalid_argument"; assert false with
-  | Invalid_argument _ -> ()
-
-let assert_stream_error f =
-  try f (); log "Expression did not raise Bytes.Stream.Error"; assert false with
-  | Bytes.Stream.Error _ -> ()
-
 let rec repeat n f =
   if n = 0 then () else begin
     (try f n with e -> log "Failing for slice_length %d" n; raise e);

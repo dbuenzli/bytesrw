@@ -3,17 +3,23 @@
 #require "topkg"
 open Topkg
 
+let blake3 = Conf.with_pkg "conf-blake3"
 let xxhash = Conf.with_pkg "conf-xxhash"
 let zstd = Conf.with_pkg "conf-zstd"
 let zlib = Conf.with_pkg "conf-zlib"
 let () =
   Pkg.describe "bytesrw" @@ fun c ->
+  let blake3 = Conf.value c xxhash in
   let xxhash = Conf.value c xxhash in
   let zlib = Conf.value c zlib in
   let zstd = Conf.value c zstd in
   Ok [ Pkg.mllib ~api:["Bytesrw"] "src/bytesrw.mllib";
        Pkg.mllib "src/kit/bytesrw_kit.mllib" ~dst_dir:"kit";
        Pkg.mllib "src/unix/bytesrw_unix.mllib" ~dst_dir:"unix";
+       Pkg.mllib ~cond:blake3 "src/blake3/bytesrw_blake3.mllib"
+         ~dst_dir:"blake3";
+       Pkg.clib ~cond:blake3 "src/blake3/libbytesrw_blake3_stubs.clib"
+         ~lib_dst_dir:"blake3";
        Pkg.mllib ~cond:xxhash "src/xxhash/bytesrw_xxhash.mllib"
          ~dst_dir:"xxhash";
        Pkg.clib ~cond:xxhash "src/xxhash/libbytesrw_xxhash_stubs.clib"

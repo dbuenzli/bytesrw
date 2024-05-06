@@ -59,6 +59,10 @@ let lib_with_clib ~lib ~clib ~has_lib ~src_dir ~stublib =
 let () =
   dispatch begin function
   | After_rules ->
+      if pkg_config_exists "libblake3" then
+        lib_with_clib
+          ~lib:"bytesrw_blake3" ~clib:"libblake3" ~has_lib:"-DHAS_BLAKE3"
+          ~src_dir:"src/blake3" ~stublib:"bytesrw_blake3_stubs";
       if pkg_config_exists "libxxhash" then
         lib_with_clib
           ~lib:"bytesrw_xxhash" ~clib:"libxxhash" ~has_lib:"-DHAS_XXHASH"

@@ -4,6 +4,8 @@ open B0_kit.V000
 
 let bytesrw = B0_ocaml.libname "bytesrw"
 let bytesrw_kit = B0_ocaml.libname "bytesrw.kit"
+
+let bytesrw_blake3 = B0_ocaml.libname "bytesrw.blake3"
 let bytesrw_unix = B0_ocaml.libname "bytesrw.unix"
 let bytesrw_xxhash = B0_ocaml.libname "bytesrw.xxhash"
 let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
@@ -22,6 +24,13 @@ let bytesrw_kit_lib =
   let srcs = [ `Dir ~/"src/kit" ] in
   let requires = [bytesrw] in
   B0_ocaml.lib bytesrw_kit ~srcs ~requires
+
+let bytesrw_blake3_lib =
+  let srcs = [ `Dir ~/"src/blake3" ] in
+  let c_requires = Cmd.arg "-lblake3" in
+  let requires = [bytesrw] in
+  let doc = "BLAKE3 hashes" in
+  B0_ocaml.lib bytesrw_blake3 ~srcs ~requires ~c_requires ~doc
 
 let bytesrw_unix_lib =
   let srcs = [ `Dir ~/"src/unix" ] in
@@ -64,11 +73,15 @@ let utf8codec = test ~/"test/utf8codec.ml"
 let test_examples = test ~requires:[bytesrw_zstd] ~/"test/examples.ml"
 let test_bytesrw = test ~requires:[] ~/"test/test_bytesrw.ml"
 let test_utf = test ~requires:[bytesrw_kit] ~/"test/test_utf.ml"
+let test_blake3 = test ~requires:[bytesrw_blake3] ~/"test/test_blake3.ml"
 let test_xxhash = test ~requires:[bytesrw_xxhash] ~/"test/test_xxhash.ml"
 let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
 let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
 
 let trip_requires = [cmdliner; unix; bytesrw_unix]
+
+let blake3tap =
+  test ~requires:(bytesrw_blake3 :: trip_requires) ~/"test/blake3tap.ml"
 
 let xxh3tap =
   test ~requires:(bytesrw_xxhash :: trip_requires) ~/"test/xxh3tap.ml"
@@ -96,6 +109,7 @@ let default =
       "base64"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
+                 "--with-conf-blake3" "true" # FIXME opam-repository
                  "--with-conf-xxhash" "%{conf-xxhash:installed}%"
                  "--with-conf-zlib" "%{conf-zlib:installed}%"
                  "--with-conf-zstd" "%{conf-zstd:installed}%"]]|}

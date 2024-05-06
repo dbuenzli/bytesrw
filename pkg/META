@@ -7,6 +7,18 @@ plugin(byte) = "bytesrw.cma"
 plugin(native) = "bytesrw.cmxs"
 exists_if = "bytesrw.cma bytesrw.cmxa"
 
+package "blake3" (
+  directory = "blake3"
+  description = "BLAKE3 hashes"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw"
+  archive(byte) = "bytesrw_blake3.cma"
+  archive(native) = "bytesrw_blake3.cmxa"
+  plugin(byte) = "bytesrw_blake3.cma"
+  plugin(native) = "bytesrw_blake3.cmxs"
+  exists_if = "bytesrw_blake3.cma bytesrw_blake3.cmxa"
+)
+
 package "kit" (
   directory = "kit"
   description = "The bytesrw.kit library"

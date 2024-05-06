@@ -5,11 +5,16 @@ true : bin_annot, safe_string
 <src/unix> : include
 <src/**> : package(unix)
 
+<src/blake3> : include
+<src/blake3/bytesrw_blake3_stubs.c> : use_libblake3
+<src/blake3/bytesrw_blake3.{cma,cmxa}> : record_bytesrw_blake3_stubs
+<src/blake3/bytesrw_blake3.{cmxs}> : link_bytesrw_blake3_stubs_archive
+<src/blake3/libbytesrw_blake3_stubs.*> : use_libblake3
+
 <src/xxhash> : include
 <src/xxhash/bytesrw_xxhash_stubs.c> : use_libxxhash
 <src/xxhash/bytesrw_xxhash.{cma,cmxa}> : record_bytesrw_xxhash_stubs
 <src/xxhash/bytesrw_xxhash.{cmxs}> : link_bytesrw_xxhash_stubs_archive
-<src/xxhash/bytesrw_xxhash_stubs.*> : use_libxxhash
 <src/xxhash/libbytesrw_xxhash_stubs.*> : use_libxxhash
 
 <src/zlib> : include

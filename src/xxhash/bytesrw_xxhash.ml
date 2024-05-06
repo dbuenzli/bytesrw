@@ -155,8 +155,7 @@ module Xxh3_64 = struct
   let bytes ?(seed = Xxh3_state.no_seed) b =
     seeded_hash b 0 (Bytes.length b) seed
 
-  let string ?(seed = Xxh3_state.no_seed) s =
-    seeded_hash (Bytes.unsafe_of_string s) 0 (String.length s) seed
+  let string ?seed s = bytes ?seed (Bytes.unsafe_of_string s)
 
   let slice ?(seed = Xxh3_state.no_seed) s =
     let b = Bytes.Slice.bytes s in
@@ -244,8 +243,7 @@ module Xxh3_128 = struct
   let bytes ?(seed = Xxh3_state.no_seed) b =
     seeded_hash b 0 (Bytes.length b) seed
 
-  let string ?(seed = Xxh3_state.no_seed) s =
-    seeded_hash (Bytes.unsafe_of_string s) 0 (String.length s) seed
+  let string ?seed s = bytes ?seed (Bytes.unsafe_of_string s)
 
   let slice ?(seed = Xxh3_state.no_seed) s =
     let b = Bytes.Slice.bytes s in
@@ -279,7 +277,7 @@ module Xxh3_128 = struct
     let slen = String.length s in
     if slen = length
     then Ok s
-    else Error (strf "Expected %d bytes, found %d" length slen)
+    else Error (Printf.sprintf "Expected %d bytes, found %d" length slen)
 
   let to_binary_string = Fun.id
   let of_hex s = of_hex ~length of_binary_string s

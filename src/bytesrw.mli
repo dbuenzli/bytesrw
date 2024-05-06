@@ -339,7 +339,7 @@ module Bytes : sig
         is {!Slice.eod} this has no effect. Otherwise the stream position is
         rewinded by [Slice.length s] and the next {!read} on [r] returns [s].
 
-        {b Note.} If [r] is traced by a call to {!trace_reads} the tracing
+        {b Note.} If [r] is trapped by a call to {!tap} the tap
         function won't see the push backs. Good for your checksums.
 
         {b Warning.} This should not be used as a general lookahead
@@ -419,11 +419,11 @@ module Bytes : sig
         defaults to [0] and [slice_length] defaults to the maximal
         length of [r0] and [r1].  *)
 
-    (** {1:tracing Tracing} *)
+    (** {1:taps Taps} *)
 
-    val trace_reads : (Slice.t -> unit) -> t -> t
-    (** [trace_reads f w] invokes [f] with the slice before returning
-        them with {!read}. Note that {!push_back}s are not traced, so
+    val tap : (Slice.t -> unit) -> t -> t
+    (** [tap f r] invokes [f] with the slice read by [r] before returning
+        them with {!read}. Note that {!push_back}s are not trapped, so
         this can be used reliably for checksumming. *)
 
     (** {1:convert Converting} *)
@@ -627,11 +627,11 @@ module Bytes : sig
           write_string w s; write_eod w; Buffer.contents b
         ]} *)
 
-    (** {1:tracing Tracing} *)
+    (** {1:taps Taps} *)
 
-    val trace_writes : (Slice.t -> unit) -> t -> t
-    (** [trace_writes f w] invokes [f] with the slice before giving them to
-        [w]. *)
+    val tap : (Slice.t -> unit) -> t -> t
+    (** [tap f w] is a writer that invokes [f] with the slice before writing
+        it on [w]. *)
 
     (** {1:convert Converting} *)
 

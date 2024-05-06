@@ -86,6 +86,15 @@ let stdio_compress_writes () =
   | Sys_error e -> Error e
 ]}
 
+{{!Bytesrw.Bytes.Reader.filter}Read filters}
+can easily be applied to your strings:
+
+{[
+let id s =
+  let filters = Bytesrw_zstd.[compress_reads (); decompress_reads ()] in
+  Bytes.Reader.filter_string filters s
+]}
+
 More in the {{!page-tutorial}tutorial}.
 
 {1:todo TODO}
@@ -96,7 +105,6 @@ More in the {{!page-tutorial}tutorial}.
    which case {!Bytesrw.Bytes.Reader.empty} can become a value again) ?
    We might want to push a header before a stream but then we have
    {!Bytesrw.Bytes.Reader.val-append} for that.}
-{- Review tracing. Perhaps call that taps.}
 {- What should we do with channel/unix reader/writer exceptions ?
    Convert their exceptions to Bytes.Stream.Error or not ?}
 {- Think again about giving access to the reader/writer in [read] and [write]
@@ -106,6 +114,8 @@ More in the {{!page-tutorial}tutorial}.
    this is not possible with the API.
    In filters for read errors those are generally reported in the
    reader one filters which is available. It's a bit less clear
-   for writers.}}
+   for writers.}
+{- Do we really need taps ? They are just {!Fun.id} filters with a side effect.}
+}
 
 See also the {{!page-notes}design notes}.

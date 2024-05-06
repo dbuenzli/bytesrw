@@ -358,10 +358,10 @@ module Bytes = struct
       in
       r.read <- read_r0; r
 
-    (* Tracing *)
+    (* Tap *)
 
-    let trace_reads f r =
-      let read () = let slice = r.read () in f slice; slice in
+    let tap f r =
+      let read () = let slice = read r in f slice; slice in
       { r with read }
 
     (* Converting *)
@@ -528,10 +528,10 @@ module Bytes = struct
       in
       loop w ic (Bytes.create w.slice_length)
 
-    (* Tracing *)
+    (* Taps *)
 
-    let trace_writes f w =
-      let write slice = f slice; w.write slice in
+    let tap f w =
+      let write slice = f slice; write w slice in
       { w with write }
 
     (* Converting *)

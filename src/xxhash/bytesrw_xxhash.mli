@@ -74,17 +74,23 @@ module Xxh3_64 : sig
   val reads : ?state:State.t -> Bytes.Reader.t -> Bytes.Reader.t * State.t
   (** [reads r] is [hr, hstate] with:
       {ul
-      {- [hr] a reader returning the reads of [r] unaltered
-         and updating [state].}
+      {- [hr] a reader that taps the reads of [r] to update [hstate].}
       {- [hstate], a hash state of the reads made on [hr] so
          far. This is [state] if explicitely given, otherwise
-         defaults to a fresh {!State.make}.}} *)
+         defaults to a fresh {!State.make}.}}
+      To get intermediate or final hash results use {!value} on
+      [hstate]. *)
 
   val writes : ?state:State.t -> Bytes.Writer.t -> Bytes.Writer.t * State.t
-  (** [writes ?state r] is a writer hashing the writes of [w]. Use
-      {!finish} at any time for the hash of [w]'s writes so far. If
-      [state] is provided it is the returned state used for the
-      updates. *)
+  (** [writes ?state w] is [hw, hstate] with:
+      {ul
+      {- [hw] a writer that taps the writes to update [hstate] before
+         giving them to [w].}
+      {- [hstate], a hash state of the writes made on [wr] so
+         far. This is [state] if explicitely given, otherwise
+         defaults to a fresh {!State.make}.}}
+      To get intermediate or final hash results use {!value} on
+      [hstate]. *)
 
   (** {1:preds Predicates and comparisons} *)
 
@@ -185,17 +191,23 @@ module Xxh3_128 : sig
   val reads : ?state:State.t -> Bytes.Reader.t -> Bytes.Reader.t * State.t
   (** [reads r] is [hr, hstate] with:
       {ul
-      {- [hr] a reader returning the reads of [r] unaltered
-         and updating [state].}
+      {- [hr] a reader that taps the reads of [r] to update [hstate].}
       {- [hstate], a hash state of the reads made on [hr] so
          far. This is [state] if explicitely given, otherwise
-         defaults to a fresh {!State.make}.}} *)
+         defaults to a fresh {!State.make}.}}
+      To get intermediate or final hash results use {!value} on
+      [hstate]. *)
 
   val writes : ?state:State.t -> Bytes.Writer.t -> Bytes.Writer.t * State.t
-  (** [writes ?state r] is a writer hashing the writes of [w]. Use
-      {!finish} at any time for the hash of [w]'s writes so far. If
-      [state] is provided it is the returned state used for the
-      updates. *)
+  (** [writes ?state w] is [hw, hstate] with:
+      {ul
+      {- [hw] a writer that taps the writes to update [hstate] before
+         giving them to [w].}
+      {- [hstate], a hash state of the writes made on [wr] so
+         far. This is [state] if explicitely given, otherwise
+         defaults to a fresh {!State.make}.}}
+      To get intermediate or final hash results use {!value} on
+      [hstate]. *)
 
   (** {1:preds Predicates and comparisons} *)
 

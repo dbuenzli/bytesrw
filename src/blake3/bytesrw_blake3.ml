@@ -127,11 +127,11 @@ module Blake3 = struct
 
   let reads ?(state = State.make ()) r =
     let tap = State.update state in
-    Bytes.Reader.trace_reads tap r, state
+    Bytes.Reader.tap tap r, state
 
   let writes ?(state = State.make ()) w =
     let tap = State.update state in
-    Bytes.Writer.trace_writes tap w, state
+    Bytes.Writer.tap tap w, state
 
   (* Predicates and comparisons *)
 

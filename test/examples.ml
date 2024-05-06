@@ -28,3 +28,7 @@ let stdio_compress_writes () =
   with
   | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
   | Sys_error e -> Error e
+
+let id s =
+  let filters = Bytesrw_zstd.[compress_reads (); decompress_reads ()] in
+  Bytes.Reader.filter_string filters s

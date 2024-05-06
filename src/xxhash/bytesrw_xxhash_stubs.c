@@ -100,7 +100,8 @@ CAMLprim value ocaml_bytesrw_XXH3_64bits_reset_withSecretandSeed
 (value hst, value secret, value seed)
 {
 #if XXH_VERSION_NUMBER < 801
-  caml_raise_sys_error ("Need libxxhash >= 0.8.1 to support secret and hash");
+  caml_raise_sys_error
+    (caml_copy_string ("Need libxxhash >= 0.8.1 to support secret and hash"));
 #else
   XXH_errorcode rc =
     XXH3_64bits_reset_withSecretandSeed(XXH3_state_t_val (hst),
@@ -149,7 +150,8 @@ CAMLprim value ocaml_bytesrw_XXH3_128bits_reset_withSecretandSeed
 (value hst, value secret, value seed)
 {
 #if XXH_VERSION_NUMBER < 801
-  caml_raise_sys_error ("Need libxxhash >= 0.8.1 to support secret and hash");
+  caml_raise_sys_error
+    (caml_copy_string ("Need libxxhash >= 0.8.1 to support secret and hash"));
 #else
   XXH_errorcode rc =
     XXH3_128bits_reset_withSecretandSeed(XXH3_state_t_val (hst),

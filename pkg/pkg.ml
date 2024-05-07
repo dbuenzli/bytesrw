@@ -9,7 +9,7 @@ let zstd = Conf.with_pkg "conf-zstd"
 let zlib = Conf.with_pkg "conf-zlib"
 let () =
   Pkg.describe "bytesrw" @@ fun c ->
-  let blake3 = Conf.value c xxhash in
+  let blake3 = Conf.value c blake3 in
   let xxhash = Conf.value c xxhash in
   let zlib = Conf.value c zlib in
   let zstd = Conf.value c zstd in

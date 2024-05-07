@@ -28,8 +28,7 @@ Bytesrw can be installed with `opam`
     opam install bytesrw 
     opam install bytesrw \
                  conf-zlib conf-zstd \ # compression support
-                 conf-xxhash           # hashing support
-                 # conf-blake3 need to create one in opam
+                 conf-xxhash conf-blake3 # hashing support
 
 If you don't use `opam` consult the [`opam`](opam) file for build
 instructions.

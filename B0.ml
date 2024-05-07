@@ -106,10 +106,10 @@ let default =
    |> ~~ B0_meta.issues "https://github.com/dbuenzli/bytesrw/issues"
    |> ~~ B0_meta.description_tags
      ["bytes"; "streaming"; "zstd"; "zlib"; "gzip"; "deflate";
-      "base64"; "org:erratique"; ]
+      "utf"; "xxhash"; "blake3"; "base64"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
-                 "--with-conf-blake3" "true" # FIXME opam-repository
+                 "--with-conf-blake3" "%{conf-libblake3:installed}%"
                  "--with-conf-xxhash" "%{conf-xxhash:installed}%"
                  "--with-conf-zlib" "%{conf-zlib:installed}%"
                  "--with-conf-zstd" "%{conf-zstd:installed}%"]]|}

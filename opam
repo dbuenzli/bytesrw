@@ -13,12 +13,13 @@ writing bytes.
 Bytesrw distributed under the ISC license. It has no dependencies.
 
 Optional support for compressed bytes and hashes depends on the C [`zlib`],
-[`libzstd`], [`xxhash`] and [`blake3`] libraries.
+[`libzstd`], [`xxhash`] [`libmd`] and [`blake3`] libraries.
 
-[`zlib`]: https://zlib.net
-[`libzstd`]: http://zstd.net
-[`xxhash`]: https://xxhash.com/
 [`blake3`]: https://blake3.io
+[`libzstd`]: http://zstd.net
+[`libmd`]: https://www.hadrons.org/software/libmd/
+[`xxhash`]: https://xxhash.com/
+[`zlib`]: https://zlib.net
 
 Homepage: <https://erratique.ch/software/bytesrw/>"""
 maintainer: "Daniel Bünzli <daniel.buenzl i@erratique.ch>"

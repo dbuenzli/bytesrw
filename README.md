@@ -12,12 +12,13 @@ writing bytes.
 Bytesrw distributed under the ISC license. It has no dependencies.
 
 Optional support for compressed bytes and hashes depends on the C [`zlib`],
-[`libzstd`], [`xxhash`] and [`blake3`] libraries.
+[`libzstd`], [`xxhash`] [`libmd`] and [`blake3`] libraries.
 
-[`zlib`]: https://zlib.net
-[`libzstd`]: http://zstd.net
-[`xxhash`]: https://xxhash.com/
 [`blake3`]: https://blake3.io
+[`libzstd`]: http://zstd.net
+[`libmd`]: https://www.hadrons.org/software/libmd/
+[`xxhash`]: https://xxhash.com/
+[`zlib`]: https://zlib.net
 
 Homepage: <https://erratique.ch/software/bytesrw/>
 
@@ -27,8 +28,10 @@ Bytesrw can be installed with `opam`
 
     opam install bytesrw 
     opam install bytesrw \
-                 conf-zlib conf-zstd \ # compression support
-                 conf-xxhash conf-blake3 # hashing support
+               \ # compression support
+                 conf-zlib conf-zstd \
+               \ # hashing support
+                 conf-xxhash conf-libblake3 conf-libmd
 
 If you don't use `opam` consult the [`opam`](opam) file for build
 instructions.

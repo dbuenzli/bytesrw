@@ -48,9 +48,16 @@ let pp_hex ppf s =
 
 let string_to_hex s = Format.asprintf "%a" pp_hex s
 
+let of_binary_string ~length s =
+  let slen = String.length s in
+  if slen = length
+  then Ok s else Error (strf  "Expected %d bytes, found %d" length slen)
+
 (* Library parameters *)
 
 external version : unit -> string = "ocaml_bytesrw_blake3_version"
+
+(* BLAKE3 hash *)
 
 module Blake3_hasher = struct
   type t  (* Custom value holding a pointer to a finalized blake3_hasher *)
@@ -74,14 +81,6 @@ module Blake3_hasher = struct
 end
 
 module Blake3 = struct
-
-  (* Hashes *)
-
-  let id = "blake3"
-  let length = 32
-  type t = Blake3_hasher.hash
-  type key = t
-
   module State = struct
     type t = Blake3_hasher.t
 
@@ -99,10 +98,12 @@ module Blake3 = struct
       Blake3_hasher.update state b first last
   end
 
+  let id = "blake3"
+  let length = 32
+  type t = Blake3_hasher.hash
+  type key = t
+
   let value = Blake3_hasher.finalize
-
-  (* Hashing *)
-
   let bytes ?key b = match key with
   | None -> Blake3_hasher.hash b 0 (Bytes.length b)
   | Some key -> Blake3_hasher.hash_keyed ~key b 0 (Bytes.length b)
@@ -123,29 +124,15 @@ module Blake3 = struct
     in
     loop (State.make ?key ()) r
 
-  (* Hashing streams *)
-
   let reads ?(state = State.make ()) r =
-    let tap = State.update state in
-    Bytes.Reader.tap tap r, state
+    Bytes.Reader.tap (State.update state) r, state
 
   let writes ?(state = State.make ()) w =
-    let tap = State.update state in
-    Bytes.Writer.tap tap w, state
-
-  (* Predicates and comparisons *)
+    Bytes.Writer.tap (State.update state) w, state
 
   let equal = String.equal
   let compare = String.compare
-
-  (* Converting *)
-
-  let of_binary_string s =
-    let slen = String.length s in
-    if slen = length
-    then Ok s
-    else Error (strf  "Expected %d bytes, found %d" length slen)
-
+  let of_binary_string s = of_binary_string ~length s
   let to_binary_string = Fun.id
   let of_hex s = of_hex ~length of_binary_string s
   let pp = pp_hex

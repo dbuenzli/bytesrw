@@ -11,6 +11,12 @@ true : bin_annot, safe_string
 <src/blake3/bytesrw_blake3.{cmxs}> : link_bytesrw_blake3_stubs_archive
 <src/blake3/libbytesrw_blake3_stubs.*> : use_libblake3
 
+<src/md> : include
+<src/md/bytesrw_md_stubs.c> : use_libmd
+<src/md/bytesrw_md.{cma,cmxa}> : record_bytesrw_md_stubs
+<src/md/bytesrw_md.{cmxs}> : link_bytesrw_md_stubs_archive
+<src/md/libbytesrw_md_stubs.*> : use_libmd
+
 <src/xxhash> : include
 <src/xxhash/bytesrw_xxhash_stubs.c> : use_libxxhash
 <src/xxhash/bytesrw_xxhash.{cma,cmxa}> : record_bytesrw_xxhash_stubs

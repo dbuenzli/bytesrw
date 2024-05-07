@@ -40,13 +40,14 @@ The following modules rely only the [Stdlib]:
 Bytesrw_utf}
 
 {1:bytesrw_other_libs Libraries
-   [bytesrw.{blake3,unix,xxhash,zlib,zstd}]}
+   [bytesrw.{blake3,md,unix,xxhash,zlib,zstd}]}
 
 Each of these modules lives in its corresponding library.
 Compression libraries depend on their canonical C library.
 
 {!modules:
 Bytesrw_blake3
+Bytesrw_md
 Bytesrw_unix
 Bytesrw_xxhash
 Bytesrw_zlib

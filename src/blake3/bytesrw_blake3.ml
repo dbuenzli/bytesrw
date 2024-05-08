@@ -51,31 +51,54 @@ let string_to_hex s = Format.asprintf "%a" pp_hex s
 let of_binary_string ~length s =
   let slen = String.length s in
   if slen = length
-  then Ok s else Error (strf  "Expected %d bytes, found %d" length slen)
+  then Ok s else Error (strf "Expected %d bytes, found %d" length slen)
 
 (* Library parameters *)
 
 external version : unit -> string = "ocaml_bytesrw_blake3_version"
 
+(* The type for blake3 hashes *)
+
+module type Blake3 = sig
+  val id : string
+  val length : int
+  type t
+  type key = t
+  module State : sig
+    type t
+    val make : ?key:key -> unit -> t
+    val update : t -> Bytes.Slice.t -> unit
+  end
+  val value : State.t -> t
+  val string : ?key:t -> string -> t
+  val bytes : ?key:t -> bytes -> t
+  val slice : ?key:t -> Bytes.Slice.t -> t
+  val reader : ?key:t -> Bytes.Reader.t -> t
+  val reads : ?state:State.t -> Bytes.Reader.t -> Bytes.Reader.t * State.t
+  val writes : ?state:State.t -> Bytes.Writer.t -> Bytes.Writer.t * State.t
+  val equal : t -> t -> bool
+  val compare : t -> t -> int
+  val to_binary_string : t -> string
+  val of_binary_string : string -> (t, string) result
+  val to_hex : t -> string
+  val of_hex : string -> (t, string) result
+  val pp : Format.formatter -> t -> unit
+end
+
 (* BLAKE3 hash *)
 
 module Blake3_hasher = struct
   type t  (* Custom value holding a pointer to a finalized blake3_hasher *)
-
   type hash = string (* 32 bytes *)
   type key = hash
-
   external create : unit -> t = "ocaml_bytesrw_blake3_create"
   external init : t -> unit = "ocaml_bytesrw_blake3_init"
   external init_keyed : t -> key:key -> unit = "ocaml_bytesrw_blake3_init_keyed"
+  external finalize : t -> hash = "ocaml_bytesrw_blake3_finalize"
   external update : t -> bytes -> int -> int -> unit =
     "ocaml_bytesrw_blake3_update"
 
-  external finalize : t -> hash = "ocaml_bytesrw_blake3_finalize"
-
-  external hash : bytes -> int -> int -> hash =
-    "ocaml_bytesrw_blake3_hash"
-
+  external hash : bytes -> int -> int -> hash = "ocaml_bytesrw_blake3_hash"
   external hash_keyed : key:key -> bytes -> int -> int -> hash =
     "ocaml_bytesrw_blake3_hash_keyed"
 end

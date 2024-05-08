@@ -54,6 +54,11 @@ let pp_hex ppf s =
 
 let string_to_hex s = Format.asprintf "%a" pp_hex s
 
+let of_binary_string ~length s =
+  let slen = String.length s in
+  if slen = length then Ok s else
+  Error (strf  "Expected %d bytes, found %d" length slen)
+
 (* Library parameters *)
 
 external version : unit -> int = "ocaml_bytesrw_XXH_versionNumber"
@@ -65,6 +70,38 @@ let version () =
   let maj = v / (100 * 100) and rem = v mod (100 * 100) in
   let min = rem / 100 in
   Printf.sprintf "%d.%d.%d" maj min (rem mod 100)
+
+(* XXH3 module type *)
+
+module type Xxh3 = sig
+  val id : string
+  val length : int
+  type seed = int64
+  type secret = string
+  type t
+
+  module State : sig
+    type t
+    val make : ?secret:secret -> ?seed:seed -> unit -> t
+    val update : t -> Bytes.Slice.t -> unit
+    val copy : t -> t
+  end
+
+  val value : State.t -> t
+  val string : ?seed:seed -> string -> t
+  val bytes : ?seed:seed -> bytes -> t
+  val slice : ?seed:seed -> Bytes.Slice.t -> t
+  val reader : ?seed:seed -> Bytes.Reader.t -> t
+  val reads : ?state:State.t -> Bytes.Reader.t -> Bytes.Reader.t * State.t
+  val writes : ?state:State.t -> Bytes.Writer.t -> Bytes.Writer.t * State.t
+  val equal : t -> t -> bool
+  val compare : t -> t -> int
+  val to_binary_string : t -> string
+  val of_binary_string : string -> (t, string) result
+  val to_hex : t -> string
+  val of_hex : string -> (t, string) result
+  val pp : Format.formatter -> t -> unit
+end
 
 module Xxh3_state = struct
   type t  (* Custom value holding a pointer to a finalized XXH3_state_t *)
@@ -90,8 +127,10 @@ module Xxh3_state = struct
   external h64bits_update : t -> bytes -> int -> int -> unit =
     "ocaml_bytesrw_XXH3_64bits_update"
 
-  external h64bits_digest : t -> h64_hash =
-    "ocaml_bytesrw_XXH3_64bits_digest"
+  external h64bits_digest : t -> h64_hash = "ocaml_bytesrw_XXH3_64bits_digest"
+
+  external seeded_64hash : bytes -> int -> int -> seed -> h64_hash =
+    "ocaml_bytesrw_XXH3_64bits_withSeed"
 
   external h128bits_reset : t -> unit = "ocaml_bytesrw_XXH3_128bits_reset"
   external h128bits_reset_with_seed : t -> seed -> unit =
@@ -109,21 +148,12 @@ module Xxh3_state = struct
 
   external h128bits_digest : t -> h128_hash =
     "ocaml_bytesrw_XXH3_128bits_digest"
+
+  external seeded_128hash : bytes -> int -> int -> seed -> h128_hash =
+    "ocaml_bytesrw_XXH3_128bits_withSeed"
 end
 
 module Xxh3_64 = struct
-
-  (* Hashes *)
-
-  let id = "xxh3-64"
-  let length = 8
-  type seed = Xxh3_state.seed
-  type secret = Xxh3_state.secret
-  type t = Xxh3_state.h64_hash
-
-  external seeded_hash : bytes -> int -> int -> seed -> t =
-    "ocaml_bytesrw_XXH3_64bits_withSeed"
-
   module State = struct
     type t = Xxh3_state.t
 
@@ -148,18 +178,21 @@ module Xxh3_64 = struct
       Xxh3_state.copy ~dst ~src; dst
   end
 
+  let id = "xxh3-64"
+  let length = 8
+  type seed = Xxh3_state.seed
+  type secret = Xxh3_state.secret
+  type t = Xxh3_state.h64_hash
+
   let value = Xxh3_state.h64bits_digest
-
-  (* Hashing *)
-
   let bytes ?(seed = Xxh3_state.no_seed) b =
-    seeded_hash b 0 (Bytes.length b) seed
+    Xxh3_state.seeded_64hash b 0 (Bytes.length b) seed
 
   let string ?seed s = bytes ?seed (Bytes.unsafe_of_string s)
 
   let slice ?(seed = Xxh3_state.no_seed) s =
     let b = Bytes.Slice.bytes s in
-    seeded_hash b (Bytes.Slice.first s) (Bytes.Slice.length s) seed
+    Xxh3_state.seeded_64hash b (Bytes.Slice.first s) (Bytes.Slice.length s) seed
 
   let reader ?seed r =
     let rec loop state r = match Bytes.Reader.read r with
@@ -168,23 +201,14 @@ module Xxh3_64 = struct
     in
     loop (State.make ?seed ()) r
 
-  (* Hashing streams *)
-
   let reads ?(state = State.make ()) r =
-    let tap = State.update state in
-    Bytes.Reader.tap tap r, state
+    Bytes.Reader.tap (State.update state) r, state
 
   let writes ?(state = State.make ()) w =
-    let tap = State.update state in
-    Bytes.Writer.tap tap w, state
-
-  (* Predicates and comparisons *)
+    Bytes.Writer.tap (State.update state) w, state
 
   let equal = Int64.equal
   let compare = Int64.compare
-
-  (* Converting *)
-
   let of_binary_string s =
     let slen = String.length s in
     if slen = length
@@ -200,18 +224,6 @@ module Xxh3_64 = struct
 end
 
 module Xxh3_128 = struct
-
-  (* Hashes *)
-
-  let id = "xxh3-128"
-  let length = 16
-  type seed = Xxh3_state.seed
-  type secret = Xxh3_state.secret
-  type t = Xxh3_state.h128_hash
-
-  external seeded_hash : bytes -> int -> int -> seed -> t =
-    "ocaml_bytesrw_XXH3_128bits_withSeed"
-
   module State = struct
     type t = Xxh3_state.t
 
@@ -236,18 +248,23 @@ module Xxh3_128 = struct
       Xxh3_state.copy ~dst ~src; dst
   end
 
+  let id = "xxh3-128"
+  let length = 16
+  type seed = Xxh3_state.seed
+  type secret = Xxh3_state.secret
+  type t = Xxh3_state.h128_hash
+
   let value = Xxh3_state.h128bits_digest
 
-  (* Hashing *)
-
   let bytes ?(seed = Xxh3_state.no_seed) b =
-    seeded_hash b 0 (Bytes.length b) seed
+    Xxh3_state.seeded_128hash b 0 (Bytes.length b) seed
 
   let string ?seed s = bytes ?seed (Bytes.unsafe_of_string s)
 
   let slice ?(seed = Xxh3_state.no_seed) s =
     let b = Bytes.Slice.bytes s in
-    seeded_hash b (Bytes.Slice.first s) (Bytes.Slice.length s) seed
+    Xxh3_state.seeded_128hash
+      b (Bytes.Slice.first s) (Bytes.Slice.length s) seed
 
   let reader ?seed r =
     let rec loop state r = match Bytes.Reader.read r with
@@ -256,29 +273,15 @@ module Xxh3_128 = struct
     in
     loop (State.make ?seed ()) r
 
-  (* Hashing streams *)
-
   let reads ?(state = State.make ()) r =
-    let tap = State.update state in
-    Bytes.Reader.tap tap r, state
+    Bytes.Reader.tap (State.update state) r, state
 
   let writes ?(state = State.make ()) w =
-    let tap = State.update state in
-    Bytes.Writer.tap tap w, state
-
-  (* Predicates and comparisons *)
+    Bytes.Writer.tap (State.update state) w, state
 
   let equal = String.equal
   let compare = String.compare
-
-  (* Converting *)
-
-  let of_binary_string s =
-    let slen = String.length s in
-    if slen = length
-    then Ok s
-    else Error (Printf.sprintf "Expected %d bytes, found %d" length slen)
-
+  let of_binary_string s = of_binary_string ~length s
   let to_binary_string = Fun.id
   let of_hex s = of_hex ~length of_binary_string s
   let pp = pp_hex

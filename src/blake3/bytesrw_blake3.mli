@@ -10,13 +10,13 @@
 
 open Bytesrw
 
-(** BLAKE3 hash *)
-module Blake3 : sig
+(** The type for [BLAKE3] hashes. *)
+module type Blake3 = sig
 
   (** {1:hashes Hashes} *)
 
   val id : string
-  (** [id] is ["blake3"] to identify the hash function. *)
+  (** [id] identifies the hash function. *)
 
   val length : int
   (** [length] is the byte length of hashes produced by the function. *)
@@ -110,6 +110,8 @@ module Blake3 : sig
   val pp : Format.formatter -> t -> unit
   (** [pp] formats hashes for inspection. *)
 end
+
+module Blake3 : Blake3
 
 (** {1:library Library parameters} *)
 

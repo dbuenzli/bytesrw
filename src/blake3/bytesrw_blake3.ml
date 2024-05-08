@@ -47,7 +47,6 @@ let pp_hex ppf s =
   done
 
 let string_to_hex s = Format.asprintf "%a" pp_hex s
-
 let of_binary_string ~length s =
   let slen = String.length s in
   if slen = length
@@ -88,7 +87,7 @@ end
 (* BLAKE3 hash *)
 
 module Blake3_hasher = struct
-  type t  (* Custom value holding a pointer to a finalized blake3_hasher *)
+  type t  (* Custom value holding a blake3_hasher struct *)
   type hash = string (* 32 bytes *)
   type key = hash
   external create : unit -> t = "ocaml_bytesrw_blake3_create"

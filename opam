@@ -12,8 +12,9 @@ writing bytes.
 
 Bytesrw distributed under the ISC license. It has no dependencies.
 
-Optional support for compressed bytes and hashes depends on the C [`zlib`],
-[`libzstd`], [`xxhash`] [`libmd`] and [`blake3`] libraries.
+Optional support for compressed and hashed bytes depend, at your wish, on 
+the C [`zlib`], [`libzstd`], [`blake3`], [`libmd`], [`xxhash`] and
+libraries.
 
 [`blake3`]: https://blake3.io
 [`libzstd`]: http://zstd.net
@@ -32,6 +33,10 @@ tags: [
   "zlib"
   "gzip"
   "deflate"
+  "sha1"
+  "sha2"
+  "compression"
+  "hashing"
   "utf"
   "xxhash"
   "blake3"
@@ -57,8 +62,10 @@ build: [
   "build"
   "--dev-pkg"
   "%{dev}%"
-  "--with-conf-blake3"
+  "--with-conf-libblake3"
   "%{conf-libblake3:installed}%"
+  "--with-conf-libmd"
+  "%{conf-libmd:installed}%"
   "--with-conf-xxhash"
   "%{conf-xxhash:installed}%"
   "--with-conf-zlib"

@@ -5,7 +5,6 @@
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
-#include <caml/memory.h>
 #include <caml/fail.h>
 
 /* For the _withSecretandSeed funs, we need this. Also when the minimal

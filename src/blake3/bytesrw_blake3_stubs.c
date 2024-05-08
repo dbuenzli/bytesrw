@@ -5,7 +5,6 @@
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
-#include <caml/memory.h>
 #include <caml/custom.h>
 
 #include <blake3.h>

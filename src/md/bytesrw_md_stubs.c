@@ -5,8 +5,6 @@
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
-#include <caml/memory.h>
-#include <caml/fail.h>
 #include <caml/custom.h>
 
 #include <sha1.h>

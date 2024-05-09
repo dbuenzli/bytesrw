@@ -150,7 +150,7 @@ CAMLprim value ocaml_bytesrw_deflate_reset (value zs)
 }
 
 CAMLprim value ocaml_bytesrw_deflate
-(value zs, value src, value dst, value flush)
+(value zs, value src, value dst, value flush_op)
 {
   z_streamp s = z_streamp_val (zs);
 
@@ -164,7 +164,7 @@ CAMLprim value ocaml_bytesrw_deflate
   s->next_out = Bytes_val (Field (dst, ocaml_zbuf_bytes)) + out_pos;
   s->avail_out = out_size - out_pos;
 
-  int rc = deflate (s, ocaml_zlib_flush [Int_val (flush)]);
+  int rc = deflate (s, ocaml_zlib_flush [Int_val (flush_op)]);
   if (rc != Z_OK && rc != Z_STREAM_END && rc != Z_BUF_ERROR)
   { caml_failwith ((s->msg) ? s->msg : "Unknown deflate error"); }
 

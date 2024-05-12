@@ -197,14 +197,13 @@ let test_encoder () =
   ()
 
 let main () =
+  B0_testing.Test.main @@ fun () ->
   test "";
   test "a";
   test "abcd";
   test "abécd";
   test "🐫";
   test_uchars ();
-  test_encoder ();
-  print_endline "\027[32;1mSuccess!\027[m";
-  0
+  test_encoder ()
 
 let () = if !Sys.interactive then () else exit (main ())

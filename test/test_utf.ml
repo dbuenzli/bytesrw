@@ -4,20 +4,20 @@
   ---------------------------------------------------------------------------*)
 
 open Bytesrw
+open B0_testing
 
-let log fmt = Format.eprintf (fmt ^^ "\n%!")
 let tracer = Bytes.Slice.tracer ~ppf:Format.std_formatter
 let reader_of_list ss =
   Bytes.Reader.of_slice_seq (List.to_seq (List.map Bytes.Slice.of_string ss))
 
 let test_guess_reader_encoding () =
-  log "Test Bytesrw_utf.guess_reader_encoding";
+  Test.test "Test Bytesrw_utf.guess_reader_encoding" @@ fun () ->
   let test (s, exp) =
     let r = Bytes.Reader.of_string s in
     let g = Bytesrw_utf.guess_reader_encoding r in
     let pp_enc = Bytesrw_utf.pp_encoding in
     if exp <> g then begin
-      log "expected: %a found: %a" pp_enc exp pp_enc g;
+      Test.log "expected: %a found: %a" pp_enc exp pp_enc g;
       assert false
     end else (assert (Bytes.Reader.to_string r = s));
   in
@@ -61,13 +61,10 @@ let test_guess_reader_encoding () =
   test ("\x0A\x00\xFF\xDB\xDF", `Utf_16le); (* malformed *)
   test ("\x0A\x00\xFF\xDB\xFF\xDF", `Utf_16le);
   test ("\x0A\x00\x0A\x00", `Utf_16le);
-()
-
+  ()
 
 let main () =
-  log "Testing Bytesrw_utf";
-  test_guess_reader_encoding ();
-  log "\027[32;1mSuccess!\027[m";
-  0
+  Test.main @@ fun () ->
+  test_guess_reader_encoding ()
 
 let () = if !Sys.interactive then () else exit (main ())

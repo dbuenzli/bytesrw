@@ -4,13 +4,9 @@
   ---------------------------------------------------------------------------*)
 
 open Bytesrw
+open B0_testing
 
-let log fmt = Format.eprintf (fmt ^^ "\n%!")
-let rec repeat n f =
-  if n = 0 then () else begin
-    (try f n with e -> log "Failing for slice_length %d" n; raise e);
-    repeat (n - 1) f
-  end
+let repeat = Test.repeat ~fail:"Failing for slice_length %d"
 
 (* Test vectors *)
 
@@ -30,8 +26,10 @@ let t1 =
     blake3 =
       "d352deef3f9b5aff803f7f2ab3aa4a15a0f21f4babce3534451057084155a280" }
 
+(* Testing *)
+
 let test_blake3 () =
-  log "Testing Bytesrw_blake3.Blake3";
+  Test.test "Bytesrw_blake3.Blake3" @@ fun () ->
   let module H = Bytesrw_blake3.Blake3 in
   let testh t = t.blake3 and hex = H.to_hex in
   assert (H.(hex (string t0.data) = testh t0));
@@ -64,13 +62,9 @@ let test_blake3 () =
             (H.of_binary_string (H.to_binary_string h) |> Result.get_ok));
   ()
 
-(* Tests *)
-
-let main () =
-  log "Testing Bytesrw_blake3 with libblake3 %s" (Bytesrw_blake3.version ());
+let main () = Test.main @@ fun () ->
+  Test.log "Using libblake3 %s" (Bytesrw_blake3.version ());
   test_blake3 ();
-  Gc.full_major ();
-  log "\027[32;1mSuccess!\027[m";
-  0
+  Gc.full_major ()
 
 let () = if !Sys.interactive then () else exit (main ())

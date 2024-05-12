@@ -4,32 +4,25 @@
   ---------------------------------------------------------------------------*)
 
 open Bytesrw
-
-let log fmt = Printf.eprintf (fmt ^^ "\n%!")
-let tracer = Bytes.Slice.tracer ~ppf:Format.std_formatter
+open B0_testing
 
 let bos s = Bytes.of_string s
-
 let reader_of_list ss =
   Bytes.Reader.of_slice_seq (List.to_seq (List.map Bytes.Slice.of_string ss))
 
 let reader_to_list r =
   List.of_seq (Seq.map Bytes.Slice.to_string (Bytes.Reader.to_slice_seq r))
 
-let assert_invalid_arg f =
-  try f (); log "Expression did not raise"; assert false with
-  | Invalid_argument _ -> ()
-
-let assert_stream_error f =
-  try f (); log "Expression did not raise Bytes.Stream.Error"; assert false with
-  | Bytes.Stream.Error _ -> ()
+let test_stream_error f =
+  let is_exn = function Bytes.Stream.Error _ -> true | _ -> false in
+  Test.raises is_exn f
 
 let eq_slice sl s =
   let sl = Bytes.Slice.to_string sl in
-  if sl <> s then (log "%s <> %s" sl s; assert false) else ()
+  if sl <> s then (Test.log "%s <> %s" sl s; assert false) else ()
 
 let eq_str s0 s1 =
-  if s0 <> s1 then (log "%S <> %S" s0 s1; assert false) else ()
+  if s0 <> s1 then (Test.log "%S <> %S" s0 s1; assert false) else ()
 
 let eq_slices r sl =
   let sl' = reader_to_list r in
@@ -37,11 +30,11 @@ let eq_slices r sl =
 
 let eq_eod sl =
   if not (Bytes.Slice.is_eod sl)
-  then (log "%s <> Slice.eod" (Bytes.Slice.to_string sl); assert false)
+  then (Test.log "%s <> Slice.eod" (Bytes.Slice.to_string sl); assert false)
 
 let test_slices () =
-  let err = assert_invalid_arg and eq = eq_slice in
-  log "Testing Bytes.Slices";
+  Test.test "Bytes.Slices" @@ fun () ->
+  let err = Test.invalid_arg and eq = eq_slice in
   eq (Bytes.Slice.make (bos "1234") ~first:1 ~length:2) "23";
   (err @@ fun () -> Bytes.Slice.make (bos "1234") ~first:1 ~length:0);
   eq_eod (Bytes.Slice.make_or_eod (bos "1234") ~first:1 ~length:0);
@@ -51,7 +44,7 @@ let test_slices () =
   ()
 
 let test_read_length () =
-  log "Testing Bytes.Reader.read_length";
+  Test.test "Bytes.Reader.read_length" @@ fun () ->
   let r = Bytes.Reader.of_string ~slice_length:2  "1234" in
   assert (Bytes.Reader.read_length r = 0);
   ignore (Bytes.Reader.read r);
@@ -63,7 +56,7 @@ let test_read_length () =
   ()
 
 let test_written_length () =
-  log "Testing Bytes.Writer.written_length";
+  Test.test "Bytes.Writer.written_length" @@ fun () ->
   let b = Buffer.create 255 in
   let w = Bytes.Writer.of_buffer ~slice_length:2 b in
   assert (Bytes.Writer.written_length w = 0);
@@ -79,7 +72,7 @@ let test_written_length () =
   ()
 
 let test_read_fun_eod () =
-  log "Testing Bytes.Reader.t end of stream";
+  Test.test "Bytes.Reader.t end of stream" @@ fun () ->
   let once = ref false in
   let read () =
     if !once then assert false else (once := true; Bytes.Slice.eod)
@@ -91,19 +84,19 @@ let test_read_fun_eod () =
   ()
 
 let test_write_fun_eod () =
-  log "Testing Bytes.Writer.t end of stream";
+  Test.test "Bytes.Writer.t end of stream" @@ fun () ->
   let once = ref false in
   let write _slice = if !once then assert false else once := true in
   let w = Bytes.Writer.make write in
   Bytes.Writer.write w Bytes.Slice.eod;
   Bytes.Writer.write w Bytes.Slice.eod;
   Bytes.Writer.write w Bytes.Slice.eod;
-  (assert_invalid_arg @@ fun () ->
+  (Test.invalid_arg @@ fun () ->
    Bytes.Writer.write w (Bytes.Slice.of_bytes (bos "nooooo!")));
   ()
 
 let test_reader_push_backs () =
-  log "Testing Bytes.Reader.push_back";
+  Test.test "Bytes.Reader.push_back" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
   eq_slice (Bytes.Reader.read r0) "a";
@@ -129,7 +122,7 @@ let test_reader_push_backs () =
   ()
 
 let test_reader_skip_sub_limit () =
-  log "Testing Bytes.Reader.{skip,sub,limit}";
+  Test.test "Bytes.Reader.{skip,sub,limit}" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
   eq_str (Bytes.Reader.to_string (Bytes.Reader.sub 2 r0)) "ab";
@@ -139,7 +132,7 @@ let test_reader_skip_sub_limit () =
   eq_str (Bytes.Reader.to_string r0) "";
   let r0 = r () in
   let lr0 = Bytes.Reader.limit 2 r0 in
-  assert_stream_error @@ (fun () -> Bytes.Reader.to_string lr0);
+  test_stream_error @@ (fun () -> Bytes.Reader.to_string lr0);
   eq_eod (Bytes.Reader.read lr0);
   eq_str (Bytes.Reader.to_string r0) "bccc";
   let r0 = r () in
@@ -151,7 +144,7 @@ let test_reader_skip_sub_limit () =
   ()
 
 let test_reader_append () =
-  log "Testing Bytes.Reader.append";
+  Test.test "Bytes.Reader.append" @@ fun () ->
   let r0 () = reader_of_list ["a"; "bb"; "ccc"] in
   let r1 () = reader_of_list ["d"; "ee"] in
   eq_str Bytes.Reader.(to_string (append (r0 ()) (r1 ()))) "abbcccdee";
@@ -160,7 +153,7 @@ let test_reader_append () =
   ()
 
 let test_reader_sniff () =
-  log "Testing Bytes.Reader.sniff";
+  Test.test "Bytes.Reader.sniff" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
   eq_str (Bytes.Reader.sniff 2 r0) "ab";
@@ -181,7 +174,7 @@ let test_reader_sniff () =
   ()
 
 let test_reader_of_slice () =
-  log "Testing Bytes.Reader.of_slice" ;
+  Test.test "Bytes.Reader.of_slice" @@ fun () ->
   let r ~slice_length () =
     Bytes.Reader.of_slice ?slice_length (Bytes.Slice.of_string "bla")
   in
@@ -192,13 +185,13 @@ let test_reader_of_slice () =
   ()
 
 let test_writer_limit () =
-  log "Testing Bytes.Writer.limit";
+  Test.test "Bytes.Writer.limit" @@ fun () ->
   let b = Buffer.create 255 in
   let w = Bytes.Writer.of_buffer b in
   let lw = Bytes.Writer.limit 2 ~eod:true w in
-  assert_stream_error @@ (fun () -> Bytes.Writer.write_string lw "1234");
+  test_stream_error @@ (fun () -> Bytes.Writer.write_string lw "1234");
   eq_str (Buffer.contents b) "12";
-  assert_invalid_arg @@ (fun () -> Bytes.Writer.write_string lw "bla");
+  Test.invalid_arg @@ (fun () -> Bytes.Writer.write_string lw "bla");
   eq_str (Buffer.contents b) "12";
   Bytes.Writer.write_eod lw;
   eq_str (Buffer.contents b) "12";
@@ -208,7 +201,7 @@ let test_writer_limit () =
 
 
 let main () =
-  log "Testing Bytesrw";
+  Test.main @@ fun () ->
   test_slices ();
   test_read_length ();
   test_written_length ();
@@ -220,7 +213,7 @@ let main () =
   test_reader_sniff ();
   test_reader_of_slice ();
   test_writer_limit ();
-  log "\027[32;1mSuccess!\027[m";
-  0
+  ()
+
 
 let () = if !Sys.interactive then () else exit (main ())

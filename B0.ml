@@ -12,6 +12,7 @@ let bytesrw_xxhash = B0_ocaml.libname "bytesrw.xxhash"
 let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
 let bytesrw_zstd = B0_ocaml.libname "bytesrw.zstd"
 
+let b0_std = B0_ocaml.libname "b0.std"
 let unix = B0_ocaml.libname "unix"
 let cmdliner = B0_ocaml.libname "cmdliner"
 
@@ -68,10 +69,11 @@ let bytesrw_zstd_lib =
 
 (* Tests *)
 
-let test ?(requires = []) src =
+let test ?run:(do_run = true) ?(requires = []) src =
   let srcs = [ `File src ] in
   let requires = bytesrw :: requires in
-  let meta = B0_meta.empty |> B0_meta.tag B0_meta.test in
+  let requires = if do_run then b0_std :: requires else requires in
+  let meta = B0_meta.(empty |> tag test |> add run do_run) in
   let name = Fpath.basename ~strip_ext:true src in
   B0_ocaml.exe name ~srcs ~requires ~meta
 
@@ -88,17 +90,18 @@ let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
 
 let trip_requires = [cmdliner; unix; bytesrw_unix]
 
+let tool_test = test ~run:false
 let blake3tap =
-  test ~requires:(bytesrw_blake3 :: trip_requires) ~/"test/blake3tap.ml"
+  tool_test ~requires:(bytesrw_blake3 :: trip_requires) ~/"test/blake3tap.ml"
 
 let xxh3tap =
-  test ~requires:(bytesrw_xxhash :: trip_requires) ~/"test/xxh3tap.ml"
+  tool_test ~requires:(bytesrw_xxhash :: trip_requires) ~/"test/xxh3tap.ml"
 
 let gziptrip =
-  test ~requires:(bytesrw_zlib :: trip_requires) ~/"test/gziptrip.ml"
+  tool_test ~requires:(bytesrw_zlib :: trip_requires) ~/"test/gziptrip.ml"
 
 let zstdtrip =
-  test ~requires:(bytesrw_zstd :: trip_requires) ~/"test/zstdtrip.ml"
+  tool_test ~requires:(bytesrw_zstd :: trip_requires) ~/"test/zstdtrip.ml"
 
 (* Packs *)
 

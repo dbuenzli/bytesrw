@@ -4,19 +4,13 @@
   ---------------------------------------------------------------------------*)
 
 open Bytesrw
+open B0_testing
 
-let log fmt = Format.eprintf (fmt ^^ "\n%!")
-let tracer = Bytes.Slice.tracer ~ppf:Format.std_formatter
+let repeat = Test.repeat ~fail:"Failing for slice_length %d"
 
-let assert_stream_error f =
-  try f (); log "Expression did not raise Bytes.Stream.Error"; assert false with
-  | Bytes.Stream.Error _ -> ()
-
-let rec repeat n f =
-  if n = 0 then () else begin
-    (try f n with e -> log "Failing for slice_length %d" n; raise e);
-    repeat (n - 1) f
-  end
+let test_stream_error f =
+  let is_exn = function Bytes.Stream.Error _ -> true | _ -> false in
+  Test.raises is_exn f
 
 (* Test vectors *)
 
@@ -33,7 +27,7 @@ let more = "moreatthedoor"
 (* Tests *)
 
 let test_decompress_reads () =
-  log "Testing Bytesrw_zstd.decompress_reads";
+  Test.test "Bytesrw_zstd.decompress_reads" @@ fun () ->
   begin repeat 5 @@ fun n -> (* one frame *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_zstd) in
     let d = Bytesrw_zstd.decompress_reads () ~slice_length:n c in
@@ -42,7 +36,7 @@ let test_decompress_reads () =
   begin repeat 5 @@ fun n -> (* one frame with unexpected leftover data *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_zstd ^ more) in
     let d = Bytesrw_zstd.decompress_reads () ~slice_length:n c in
-    assert_stream_error @@ fun () -> Bytes.Reader.to_string d
+    test_stream_error @@ fun () -> Bytes.Reader.to_string d
   end;
   begin repeat 5 @@ fun n -> (* one frame with expected leftover data *)
     let c = fst a30_zstd ^ more in
@@ -77,7 +71,7 @@ let test_decompress_reads () =
   ()
 
 let test_decompress_writes () =
-  log "Testing Bytesrw_zstd.decompress_writes";
+  Test.test "Bytesrw_zstd.decompress_writes" @@ fun () ->
   begin repeat 5 @@ fun n -> (* one frame *)
     let b = Buffer.create 255 in
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
@@ -91,12 +85,12 @@ let test_decompress_writes () =
     let w = Bytes.Writer.of_buffer ~slice_length:n b in
     let d = Bytesrw_zstd.decompress_writes () ~slice_length:n ~eod:true w in
     let c = Bytes.Reader.of_string ~slice_length:n ((fst a30_zstd) ^ more) in
-    assert_stream_error @@ fun () -> Bytes.Writer.write_reader ~eod:true d c;
+    test_stream_error @@ fun () -> Bytes.Writer.write_reader ~eod:true d c;
   end;
   ()
 
 let test_compress_reads () =
-  log "Testing Bytesrw_zstd.compress_reads";
+  Test.test "Bytesrw_zstd.compress_reads" @@ fun () ->
   repeat 5 @@ fun n ->
   let data = snd a30_zstd in
   let d = Bytes.Reader.of_string ~slice_length:n data in
@@ -105,7 +99,7 @@ let test_compress_reads () =
   assert (Bytes.Reader.to_string trip = data)
 
 let test_compress_writes () =
-  log "Testing Bytesrw_zstd.compress_writes";
+  Test.test "Bytesrw_zstd.compress_writes" @@ fun () ->
   repeat 5 @@ fun n ->
   let data = snd a30_zstd in
   let b = Buffer.create 255 in
@@ -117,7 +111,7 @@ let test_compress_writes () =
   assert (Buffer.contents b = data)
 
 let test_dictionary_support () =
-  log "Testing dictionary support";
+  Test.test "dictionary support" @@ fun () ->
   repeat 5 @@ fun n ->
   let dict = "aaaaaaaa" in
   let data = "aaaaaaaabbbbbbbb" ^ "aaaaaaaa" ^ "aaaaaaaa" ^ "aaaaaaaa"in
@@ -130,14 +124,13 @@ let test_dictionary_support () =
   ()
 
 let main () =
-  log "Testing Bytesrw_zstd with libsztd %s" (Bytesrw_zstd.version ());
+  Test.main @@ fun () ->
+  Test.log "Using libsztd %s" (Bytesrw_zstd.version ());
   test_decompress_reads ();
   test_decompress_writes ();
   test_compress_reads ();
   test_compress_writes ();
   test_dictionary_support ();
-  Gc.full_major ();
-  log "\027[32;1mSuccess!\027[m";
-  0
+  Gc.full_major ()
 
 let () = if !Sys.interactive then () else exit (main ())

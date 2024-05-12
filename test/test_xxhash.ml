@@ -3,16 +3,10 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
+open B0_testing
 open Bytesrw
 
-let log fmt = Format.eprintf (fmt ^^ "\n%!")
-let tracer = Bytes.Slice.tracer ~ppf:Format.std_formatter
-
-let rec repeat n f =
-  if n = 0 then () else begin
-    (try f n with e -> log "Failing for slice_length %d" n; raise e);
-    repeat (n - 1) f
-  end
+let repeat = Test.repeat ~fail:"Failing for slice_length %d"
 
 (* Test vectors *)
 
@@ -59,7 +53,7 @@ let test_module (module H : Bytesrw_xxhash.Xxh3) testh =
   ()
 
 let test_xxh3_64 () =
-  log "Testing Bytesrw_xxhash.Xxh3_64";
+  Test.test "Bytesrw_xxhash.Xxh3_64" @@ fun () ->
   test_module (module Bytesrw_xxhash.Xxh3_64) (fun t -> t.xxh3_64);
   let h = Bytesrw_xxhash.Xxh3_64.(string t1.data) in
   assert (Printf.sprintf "%Lx" (Bytesrw_xxhash.Xxh3_64.to_uint64 h) =
@@ -67,18 +61,17 @@ let test_xxh3_64 () =
   ()
 
 let test_xxh3_128 () =
-  log "Testing Bytesrw_xxhash.Xxh3_128";
+  Test.test "Testing Bytesrw_xxhash.Xxh3_128" @@ fun () ->
   test_module (module Bytesrw_xxhash.Xxh3_128) (fun t -> t.xxh3_128);
   ()
 
 (* Tests *)
 
 let main () =
-  log "Testing Bytesrw_xxhash with libxxhash %s" (Bytesrw_xxhash.version ());
+  Test.main @@ fun () ->
+  Test.log "Using libxxhash %s" (Bytesrw_xxhash.version ());
   test_xxh3_64 ();
   test_xxh3_128 ();
-  Gc.full_major ();
-  log "\027[32;1mSuccess!\027[m";
-  0
+  Gc.full_major ()
 
 let () = if !Sys.interactive then () else exit (main ())

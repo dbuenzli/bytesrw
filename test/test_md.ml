@@ -3,14 +3,10 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
+open B0_testing
 open Bytesrw
 
-let log fmt = Format.eprintf (fmt ^^ "\n%!")
-let rec repeat n f =
-  if n = 0 then () else begin
-    (try f n with e -> log "Failing for slice_length %d" n; raise e);
-    repeat (n - 1) f
-  end
+let repeat = Test.repeat ~fail:"Failing for slice_length %d"
 
 (* Test vectors *)
 
@@ -77,35 +73,33 @@ let test_mod (module H : Bytesrw_md.Sha) testh =
   ()
 
 let test_sha_1 () =
-  log "Testing Bytesrw_md.Sha_1";
+  Test.test "Bytesrw_md.Sha_1" @@ fun () ->
   test_mod (module Bytesrw_md.Sha_1) (fun t -> t.sha_1);
   ()
 
 let test_sha_256 () =
-  log "Testing Bytesrw_md.Sha_256";
+  Test.test "Bytesrw_md.Sha_256" @@ fun () ->
   test_mod (module Bytesrw_md.Sha_256) (fun t -> t.sha_256);
   ()
 
 let test_sha_384 () =
-  log "Testing Bytesrw_md.Sha_384";
+  Test.test "Bytesrw_md.Sha_384" @@ fun () ->
   test_mod (module Bytesrw_md.Sha_384) (fun t -> t.sha_384);
   ()
 
 let test_sha_512 () =
-  log "Testing Bytesrw_md.Sha_512";
+  Test.test "Bytesrw_md.Sha_512" @@ fun () ->
   test_mod (module Bytesrw_md.Sha_512) (fun t -> t.sha_512);
   ()
 
 (* Tests *)
 
 let main () =
-  log "Testing Bytesrw_md";
+  Test.main @@ fun () ->
   test_sha_1 ();
   test_sha_256 ();
   test_sha_384 ();
   test_sha_512 ();
-  Gc.full_major ();
-  log "\027[32;1mSuccess!\027[m";
-  0
+  Gc.full_major ()
 
 let () = if !Sys.interactive then () else exit (main ())

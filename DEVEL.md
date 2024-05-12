@@ -1,5 +1,10 @@
 
+
 # Testing
+
+    b0 test
+
+# Testing performance
 
     time $(b0 --path -- zstdtrip -d) < file.zst > /dev/null
     time zstd -c -d < file.zst > /dev/null

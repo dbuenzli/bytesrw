@@ -33,7 +33,7 @@ Bytesrw can be installed with `opam`
     opam install bytesrw conf-zlib conf-zstd
     
     # Hashing support
-    opam install bytes rw conf-libblake3 conf-libmd conf-xxhash
+    opam install bytesrw conf-libblake3 conf-libmd conf-xxhash
 
 If you don't use `opam` consult the [`opam`](opam) file for build
 instructions.

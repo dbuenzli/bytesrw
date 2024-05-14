@@ -69,39 +69,49 @@ let bytesrw_zstd_lib =
 
 (* Tests *)
 
-let test ?run:(do_run = true) ?(requires = []) src =
+let test
+    ?doc ?long:(is_long = false) ?run:(do_run = true) ?(requires = []) src =
   let srcs = [ `File src ] in
   let requires = bytesrw :: requires in
   let requires = if do_run then b0_std :: requires else requires in
-  let meta = B0_meta.(empty |> tag test |> add run do_run) in
+  let meta =
+    B0_meta.(empty |> tag test |> add run do_run |> add long is_long)
+  in
   let name = Fpath.basename ~strip_ext:true src in
-  B0_ocaml.exe name ~srcs ~requires ~meta
+  B0_ocaml.exe name ~srcs ~requires ~meta ?doc
 
-let utf8codec = test ~/"test/utf8codec.ml"
+let utf8codec = test ~/"test/utf8codec.ml" ~long:true
 
-let test_examples = test ~requires:[bytesrw_zstd] ~/"test/examples.ml"
-let test_bytesrw = test ~requires:[] ~/"test/test_bytesrw.ml"
-let test_utf = test ~requires:[bytesrw_kit] ~/"test/test_utf.ml"
-let test_blake3 = test ~requires:[bytesrw_blake3] ~/"test/test_blake3.ml"
-let test_blake3 = test ~requires:[bytesrw_md] ~/"test/test_md.ml"
-let test_xxhash = test ~requires:[bytesrw_xxhash] ~/"test/test_xxhash.ml"
-let test_zlib = test ~requires:[bytesrw_zlib] ~/"test/test_zlib.ml"
-let test_zstd = test ~requires:[bytesrw_zstd] ~/"test/test_zstd.ml"
+let test_examples = test ~/"test/examples.ml" ~requires:[bytesrw_zstd]
+let test_bytesrw = test ~/"test/test_bytesrw.ml" ~requires:[]
+let test_utf = test ~/"test/test_utf.ml" ~requires:[bytesrw_kit]
+let test_blake3 = test ~/"test/test_blake3.ml" ~requires:[bytesrw_blake3]
+let test_blake3 = test ~/"test/test_md.ml" ~requires:[bytesrw_md]
+let test_xxhash = test ~/"test/test_xxhash.ml" ~requires:[bytesrw_xxhash]
+let test_zlib = test ~/"test/test_zlib.ml" ~requires:[bytesrw_zlib]
+let test_zstd = test ~/"test/test_zstd.ml" ~requires:[bytesrw_zstd]
 
-let trip_requires = [cmdliner; unix; bytesrw_unix]
+let tool_requires = [cmdliner; unix; bytesrw_unix]
 
-let tool_test = test ~run:false
 let blake3tap =
-  tool_test ~requires:(bytesrw_blake3 :: trip_requires) ~/"test/blake3tap.ml"
+  let doc = "Hash stdin with blake3" in
+  let requires = bytesrw_blake3 :: tool_requires in
+  test ~/"test/blake3tap.ml" ~run:false ~requires ~doc
 
 let xxh3tap =
-  tool_test ~requires:(bytesrw_xxhash :: trip_requires) ~/"test/xxh3tap.ml"
+  let doc = "Hash stdin with xxh3" in
+  let requires = bytesrw_xxhash :: tool_requires in
+  test ~/"test/xxh3tap.ml" ~run:false ~requires ~doc
 
 let gziptrip =
-  tool_test ~requires:(bytesrw_zlib :: trip_requires) ~/"test/gziptrip.ml"
+  let doc = "Gzip (De)compression from stdin to stdout" in
+  let requires = bytesrw_zlib :: tool_requires in
+  test ~/"test/gziptrip.ml" ~run:false ~requires ~doc
 
 let zstdtrip =
-  tool_test ~requires:(bytesrw_zstd :: trip_requires) ~/"test/zstdtrip.ml"
+  let doc = "Zstd (De)compression from stdin to stdout" in
+  let requires = bytesrw_zstd :: tool_requires in
+  test ~/"test/zstdtrip.ml" ~run:false ~requires ~doc
 
 (* Packs *)
 

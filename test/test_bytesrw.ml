@@ -7,6 +7,7 @@ open Bytesrw
 open B0_testing
 
 let bos s = Bytes.of_string s
+
 let reader_of_list ss =
   Bytes.Reader.of_slice_seq (List.to_seq (List.map Bytes.Slice.of_string ss))
 
@@ -21,11 +22,9 @@ let eq_slice sl s =
   let sl = Bytes.Slice.to_string sl in
   if sl <> s then (Test.log "%s <> %s" sl s; assert false) else ()
 
-let eq_str ?__POS__ s0 s1 = Test.string ?__POS__ s0 s1
-
 let eq_slices ?__POS__ r sl =
   let sl' = reader_to_list r in
-  if sl' <> sl then (List.iter2 (eq_str ?__POS__) sl' sl; assert false)
+  if sl' <> sl then (List.iter2 (Test.string ?__POS__) sl' sl; assert false)
 
 let eq_eod sl =
   if not (Bytes.Slice.is_eod sl)
@@ -93,29 +92,29 @@ let test_reader_reslice () =
 let test_read_length () =
   Test.test "Bytes.Reader.read_length" @@ fun () ->
   let r = Bytes.Reader.of_string ~slice_length:2  "1234" in
-  assert (Bytes.Reader.read_length r = 0);
+  Test.int (Bytes.Reader.read_length r) 0;
   ignore (Bytes.Reader.read r);
-  assert (Bytes.Reader.read_length r = 2);
+  Test.int (Bytes.Reader.read_length r) 2;
   ignore (Bytes.Reader.read r);
-  assert (Bytes.Reader.read_length r = 4);
+  Test.int (Bytes.Reader.read_length r) 4;
   ignore (Bytes.Reader.read r); ignore (Bytes.Reader.read r);
-  assert (Bytes.Reader.read_length r = 4);
+  Test.int (Bytes.Reader.read_length r) 4;
   ()
 
 let test_written_length () =
   Test.test "Bytes.Writer.written_length" @@ fun () ->
   let b = Buffer.create 255 in
   let w = Bytes.Writer.of_buffer ~slice_length:2 b in
-  assert (Bytes.Writer.written_length w = 0);
+  Test.int (Bytes.Writer.written_length w) 0;
   Bytes.Writer.write_string w "1234";
-  assert (Bytes.Writer.written_length w = 4);
+  Test.int (Bytes.Writer.written_length w) 4;
   Bytes.Writer.write_string w "56";
-  assert (Bytes.Writer.written_length w = 6);
+  Test.int (Bytes.Writer.written_length w) 6;
   Bytes.Writer.write_string w "";
-  assert (Bytes.Writer.written_length w = 6);
+  Test.int (Bytes.Writer.written_length w) 6;
   Bytes.Writer.write_eod w;
-  assert (Bytes.Writer.written_length w = 6);
-  assert (Buffer.contents b = "123456");
+  Test.int (Bytes.Writer.written_length w) 6;
+  Test.string (Buffer.contents b) "123456";
   ()
 
 let test_read_fun_eod () =
@@ -149,75 +148,75 @@ let test_reader_push_backs () =
   eq_slice (Bytes.Reader.read r0) "a";
   let s = Bytes.Reader.read r0 in
   eq_slice s "bb";
-  assert (Bytes.Reader.pos r0 = 3);
+  Test.int (Bytes.Reader.pos r0) 3;
   Bytes.Reader.push_back r0 s;
-  assert (Bytes.Reader.pos r0 = 1);
+  Test.int (Bytes.Reader.pos r0) 1;
   eq_slice (Bytes.Reader.read r0) "bb";
-  assert (Bytes.Reader.pos r0 = 3);
+  Test.int (Bytes.Reader.pos r0) 3;
   eq_slice (Bytes.Reader.read r0) "ccc";
   eq_eod (Bytes.Reader.read r0);
   let r1 = r () in
   Bytes.Reader.push_back r1 (Bytes.Slice.of_string "zz");
-  assert (Bytes.Reader.pos r1 = -2);
+  Test.int (Bytes.Reader.pos r1) (-2);
   eq_slice (Bytes.Reader.read r1) "zz";
-  assert (Bytes.Reader.pos r1 = 0);
+  Test.int (Bytes.Reader.pos r1) 0;
   eq_slice (Bytes.Reader.read r1) "a";
-  assert (Bytes.Reader.pos r1 = 1);
+  Test.int (Bytes.Reader.pos r1) 1;
   Bytes.Reader.push_back r1 Bytes.Slice.eod;
-  assert (Bytes.Reader.pos r1 = 1);
-  eq_str (Bytes.Reader.to_string r1) "bbccc";
+  Test.int (Bytes.Reader.pos r1) 1;
+  Test.string (Bytes.Reader.to_string r1) "bbccc";
   ()
 
 let test_reader_skip_sub_limit () =
   Test.test "Bytes.Reader.{skip,sub,limit}" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
-  eq_str (Bytes.Reader.to_string (Bytes.Reader.sub 2 r0)) "ab";
-  eq_str (Bytes.Reader.to_string r0) "bccc";
+  Test.string (Bytes.Reader.to_string (Bytes.Reader.sub 2 r0)) "ab";
+  Test.string (Bytes.Reader.to_string r0) "bccc";
   let r0 = r () in
-  eq_str (Bytes.Reader.to_string (Bytes.Reader.sub 128 r0)) "abbccc";
-  eq_str (Bytes.Reader.to_string r0) "";
+  Test.string (Bytes.Reader.to_string (Bytes.Reader.sub 128 r0)) "abbccc";
+  Test.string (Bytes.Reader.to_string r0) "";
   let r0 = r () in
   let lr0 = Bytes.Reader.limit 2 r0 in
   test_stream_error @@ (fun () -> Bytes.Reader.to_string lr0);
   eq_eod (Bytes.Reader.read lr0);
-  eq_str (Bytes.Reader.to_string r0) "bccc";
+  Test.string (Bytes.Reader.to_string r0) "bccc";
   let r0 = r () in
   let () = Bytes.Reader.skip 2 r0 in
-  eq_str (Bytes.Reader.to_string r0) "bccc";
+  Test.string (Bytes.Reader.to_string r0) "bccc";
   let r0 = r () in
   let () = Bytes.Reader.skip 128 r0 in
-  eq_str (Bytes.Reader.to_string r0) "";
+  Test.string (Bytes.Reader.to_string r0) "";
   ()
 
 let test_reader_append () =
   Test.test "Bytes.Reader.append" @@ fun () ->
   let r0 () = reader_of_list ["a"; "bb"; "ccc"] in
   let r1 () = reader_of_list ["d"; "ee"] in
-  eq_str Bytes.Reader.(to_string (append (r0 ()) (r1 ()))) "abbcccdee";
-  eq_str Bytes.Reader.(to_string (append (r0 ()) (empty ()))) "abbccc";
-  eq_str Bytes.Reader.(to_string (append (empty ()) (r1 ()))) "dee";
+  Test.string Bytes.Reader.(to_string (append (r0 ()) (r1 ()))) "abbcccdee";
+  Test.string Bytes.Reader.(to_string (append (r0 ()) (empty ()))) "abbccc";
+  Test.string Bytes.Reader.(to_string (append (empty ()) (r1 ()))) "dee";
   ()
 
 let test_reader_sniff () =
   Test.test "Bytes.Reader.sniff" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
-  eq_str (Bytes.Reader.sniff 2 r0) "ab";
-  eq_str (Bytes.Reader.to_string r0) "abbccc";
+  Test.string (Bytes.Reader.sniff 2 r0) "ab";
+  Test.string (Bytes.Reader.to_string r0) "abbccc";
   let r1 = r () in
-  eq_str (Bytes.Reader.sniff 1 r1) "a";
-  eq_str (Bytes.Reader.to_string r1) "abbccc";
+  Test.string (Bytes.Reader.sniff 1 r1) "a";
+  Test.string (Bytes.Reader.to_string r1) "abbccc";
   let r2 = r () in
-  eq_str (Bytes.Reader.sniff 4 r2) "abbc";
-  eq_str (Bytes.Reader.to_string r2) "abbccc";
-  eq_str (Bytes.Reader.sniff (-1) r2) "";
+  Test.string (Bytes.Reader.sniff 4 r2) "abbc";
+  Test.string (Bytes.Reader.to_string r2) "abbccc";
+  Test.string (Bytes.Reader.sniff (-1) r2) "";
   let r4 = reader_of_list ["a"; "bb"] in
-  eq_str (Bytes.Reader.sniff 4 r4) "abb";
-  eq_str (Bytes.Reader.to_string r4) "abb";
+  Test.string (Bytes.Reader.sniff 4 r4) "abb";
+  Test.string (Bytes.Reader.to_string r4) "abb";
   let r5 = Bytes.Reader.empty () in
-  eq_str (Bytes.Reader.sniff 4 r5) "";
-  eq_str (Bytes.Reader.to_string r5) "";
+  Test.string (Bytes.Reader.sniff 4 r5) "";
+  Test.string (Bytes.Reader.to_string r5) "";
   ()
 
 let test_reader_of_slice () =
@@ -237,13 +236,13 @@ let test_writer_limit () =
   let w = Bytes.Writer.of_buffer b in
   let lw = Bytes.Writer.limit 2 ~eod:true w in
   test_stream_error @@ (fun () -> Bytes.Writer.write_string lw "1234");
-  eq_str (Buffer.contents b) "12";
+  Test.string (Buffer.contents b) "12";
   Test.invalid_arg @@ (fun () -> Bytes.Writer.write_string lw "bla");
-  eq_str (Buffer.contents b) "12";
+  Test.string (Buffer.contents b) "12";
   Bytes.Writer.write_eod lw;
-  eq_str (Buffer.contents b) "12";
+  Test.string (Buffer.contents b) "12";
   Bytes.Writer.write_string w "1234";
-  eq_str (Buffer.contents b) "121234";
+  Test.string (Buffer.contents b) "121234";
   ()
 
 

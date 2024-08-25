@@ -63,6 +63,25 @@ module Bytes = struct
       let bytes = Bytes.sub s.bytes s.first s.length in
       { bytes; first = 0; length = s.length}
 
+    let compare s0 s1 =
+      let len0 = s0.length and len1 = s1.length in
+      let cmp = Int.compare len0 len1 in
+      if cmp <> 0 then cmp else
+      let first0 = s0.first and first1 = s1.first in
+      let i = ref 0 in
+      let max = len0 - 1 in
+      let cmp = ref 0 in
+      let b0 = s0.bytes and b1 = s1.bytes in
+      (* XXX it would be nice to have something faster based on memcmp *)
+      while (!cmp = 0 && !i < max) do
+        let c0 = Bytes.get b0 (first0 + !i) in
+        let c1 = Bytes.get b1 (first1 + !i) in
+        cmp := Char.compare c0 c1; incr i;
+      done;
+      !cmp
+
+    let equal s0 s1 = compare s0 s1 = 0
+
     (* Breaking slices *)
 
     let take n s =

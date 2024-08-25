@@ -43,6 +43,39 @@ let test_slices () =
   eq_eod (Bytes.Slice.of_bytes_or_eod ~first:4 (bos "1234"));
   ()
 
+let test_slice_compare () =
+  Test.test "Bytes.Slice.compare"  @@ fun () ->
+  let test_cmp ?__POS__ s0 s1 v =
+    Test.int ?__POS__ (Bytes.Slice.compare s0 s1) v;
+    Test.int ?__POS__ (Bytes.Slice.compare s1 s0) (Int.neg v)
+  in
+  let snil = Bytes.Slice.make_or_eod (bos "1234") ~first:2 ~length:0 in
+  let s1 = Bytes.Slice.make (bos "1234") ~first:0 ~length:1 in
+  let s12 = Bytes.Slice.make (bos "1234") ~first:0 ~length:2 in
+  let s23 = Bytes.Slice.make (bos "1234") ~first:1 ~length:2 in
+  let s234 = Bytes.Slice.make (bos "1234") ~first:1 ~length:3 in
+  let s1234 = Bytes.Slice.make (bos "1234") ~first:0 ~length:4 in
+  (* snil *)
+  test_cmp snil snil 0 ~__POS__; test_cmp snil s1 (-1) ~__POS__;
+  test_cmp snil s12 (-1) ~__POS__; test_cmp snil s23 (-1) ~__POS__;
+  test_cmp snil s234 (-1) ~__POS__; test_cmp snil s1234 (-1) ~__POS__;
+  (* s1 *)
+  test_cmp s1 s1 0 ~__POS__; test_cmp s1 s12 (-1) ~__POS__;
+  test_cmp s1 s23 (-1) ~__POS__; test_cmp s1 s234 (-1) ~__POS__;
+  test_cmp s1 s1234 (-1) ~__POS__;
+  (* s12 *)
+  test_cmp s12 s12 0 ~__POS__; test_cmp s12 s23 (-1) ~__POS__;
+  test_cmp s12 s234 (-1) ~__POS__; test_cmp s12 s1234 (-1) ~__POS__;
+  (* s23 *)
+  test_cmp s23 s23 0 ~__POS__; test_cmp s12 s234 (-1) ~__POS__;
+  test_cmp s12 s1234 (-1) ~__POS__;
+  (* s234 *)
+  test_cmp s234 s234 0 ~__POS__; test_cmp s234 s1234 (-1) ~__POS__;
+  (* s1234 *)
+  test_cmp s1234 s1234 0 ~__POS__;
+  ()
+
+
 let test_read_length () =
   Test.test "Bytes.Reader.read_length" @@ fun () ->
   let r = Bytes.Reader.of_string ~slice_length:2  "1234" in
@@ -203,6 +236,7 @@ let test_writer_limit () =
 let main () =
   Test.main @@ fun () ->
   test_slices ();
+  test_slice_compare ();
   test_read_length ();
   test_written_length ();
   test_read_fun_eod ();

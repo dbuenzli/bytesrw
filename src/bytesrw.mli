@@ -101,6 +101,16 @@ module Bytes : sig
     val is_eod : t -> bool
     (** [is_eod s] is [true] iff [s == eod]. *)
 
+    (** {1:predicates Predicates and comparisons} *)
+
+    val equal : t -> t -> bool
+    (** [equal s0 s1] is [true] iff the bytes in slice [s0] and [s1]
+        are equal. *)
+
+    val compare : t -> t -> int
+    (** [compare s0 s1] sorts the bytes of [s0] and [s1] in lexicographic
+        order. *)
+
     (** {1:breaking Breaking slices}
 
         {b Warning.} In these operations index specification are in {e

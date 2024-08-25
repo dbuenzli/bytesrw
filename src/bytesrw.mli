@@ -422,6 +422,11 @@ module Bytes : sig
           to_string (List.fold_left (fun r f -> f r) (of_string s) fs)
         ]} *)
 
+    val reslice : filter
+    (** [reslice ?pos ?slice_length r] has the data of [r] but ensures
+        that all slices are of length [slice_length] (defaults to
+        [slice_length r]) except perhaps the last one. *)
+
     (** {1:append Appending} *)
 
     val append : ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t -> t

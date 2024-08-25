@@ -21,12 +21,11 @@ let eq_slice sl s =
   let sl = Bytes.Slice.to_string sl in
   if sl <> s then (Test.log "%s <> %s" sl s; assert false) else ()
 
-let eq_str s0 s1 =
-  if s0 <> s1 then (Test.log "%S <> %S" s0 s1; assert false) else ()
+let eq_str ?__POS__ s0 s1 = Test.string ?__POS__ s0 s1
 
-let eq_slices r sl =
+let eq_slices ?__POS__ r sl =
   let sl' = reader_to_list r in
-  if sl' <> sl then (List.iter2 eq_str sl' sl; assert false)
+  if sl' <> sl then (List.iter2 (eq_str ?__POS__) sl' sl; assert false)
 
 let eq_eod sl =
   if not (Bytes.Slice.is_eod sl)
@@ -44,7 +43,7 @@ let test_slices () =
   ()
 
 let test_slice_compare () =
-  Test.test "Bytes.Slice.compare"  @@ fun () ->
+  Test.test "Bytes.Slice.compare" @@ fun () ->
   let test_cmp ?__POS__ s0 s1 v =
     Test.int ?__POS__ (Bytes.Slice.compare s0 s1) v;
     Test.int ?__POS__ (Bytes.Slice.compare s1 s0) (Int.neg v)
@@ -75,6 +74,21 @@ let test_slice_compare () =
   test_cmp s1234 s1234 0 ~__POS__;
   ()
 
+let test_reader_reslice () =
+  Test.test "Bytes.Reader.reslice" @@ fun () ->
+  let test ?__POS__ ~slice_length sls rsl =
+    let r = Bytes.Reader.reslice ~slice_length (reader_of_list sls) in
+    eq_slices ?__POS__ r rsl
+  in
+  test ~slice_length:2 ["abc"] ["ab"; "c"] ~__POS__;
+  test ~slice_length:2 ["abcd"; "ef"] ["ab"; "cd"; "ef"] ~__POS__;
+  test ~slice_length:1 ["abcd"; "ef"] ["a"; "b"; "c"; "d"; "e"; "f"] ~__POS__;
+  test ~slice_length:3 ["abcd"; "efg"] ["abc"; "def"; "g"] ~__POS__;
+  test ~slice_length:2 ["abcdef"] ["ab"; "cd"; "ef"] ~__POS__;
+  test ~slice_length:3 ["a"; "b";"c"] ["abc"] ~__POS__;
+  test ~slice_length:2 ["a"; "b"; "c"] ["ab"; "c"] ~__POS__;
+  test ~slice_length:2 ["ab"; "bc"; "de"] ["ab"; "bc"; "de"] ~__POS__;
+  ()
 
 let test_read_length () =
   Test.test "Bytes.Reader.read_length" @@ fun () ->
@@ -237,6 +251,7 @@ let main () =
   Test.main @@ fun () ->
   test_slices ();
   test_slice_compare ();
+  test_reader_reslice ();
   test_read_length ();
   test_written_length ();
   test_read_fun_eod ();

@@ -347,6 +347,7 @@ module Bytes = struct
       | Some act -> act | None -> error Stream.limit_error ?pos:None
       in
       let slice_length = Option.value ~default:r.slice_length slice_length in
+      let slice_length = Slice.check_length slice_length in
       let pos = Option.value ~default:r.pos pos in
       let lr = make ~pos ~slice_length read_eod in
       let left = ref n in
@@ -362,6 +363,45 @@ module Bytes = struct
             push_back r back; ret
       in
       lr.read <- read; lr
+
+    let reslice ?pos ?slice_length r =
+      let slice_length = Option.value ~default:r.slice_length slice_length in
+      let slice_length = Slice.check_length slice_length in
+      let pos = Option.value ~default:r.pos pos in
+      let reslicer = make ~pos ~slice_length read_eod in
+      let buf = Bytes.make slice_length '\x00' in
+      let buf_len = ref 0 in
+      let buf_slice = Slice.make ~first:0 ~length:slice_length buf in
+      let last = ref Slice.eod in
+      let last_rem = ref 0 in
+      let rec reslice () =
+        if !last_rem <> 0 then begin
+          let l = Int.min !last_rem (slice_length - !buf_len) in
+          let src = Slice.bytes !last and first = Slice.first !last in
+          let last_len = Slice.length !last in
+          Bytes.blit src (first + last_len - !last_rem)  buf !buf_len l;
+          buf_len := !buf_len + l; last_rem := !last_rem - l;
+        end;
+        if !buf_len = slice_length then (buf_len := 0; buf_slice)
+        else match read r with
+        | slice when Slice.is_eod slice ->
+            assert (!last_rem = 0);
+            if !buf_len = 0 then slice else
+            let slice = Slice.make ~first:0 ~length:!buf_len buf in
+            (buf_len := 0; slice)
+        | slice ->
+            assert (!last_rem = 0);
+            last := slice; last_rem := Slice.length slice;
+            if !buf_len = 0 && !last_rem = slice_length
+            then (last_rem := 0; slice) else
+            let l = Int.min !last_rem (slice_length - !buf_len) in
+            let src = Slice.bytes !last and first = Slice.first !last in
+            Bytes.blit src first buf !buf_len l;
+            buf_len := !buf_len + l; last_rem := !last_rem - l;
+            if !buf_len = slice_length then (buf_len := 0; buf_slice) else
+            reslice ()
+      in
+      reslicer.read <- reslice; reslicer
 
     (* Appending *)
 

@@ -423,6 +423,21 @@ module Bytes = struct
       let read () = let slice = read r in f slice; slice in
       { r with read }
 
+    (* Predicates and comparison *)
+
+    let compare r0 r1 =
+      let slice_length = Int.max r0.slice_length r1.slice_length in
+      let r0 = reslice ~slice_length r0 in
+      let r1 = reslice ~slice_length r1 in
+      let rec loop r0 r1 =
+        let s0 = read r0 and s1 = read r1 in
+        let cmp = Slice.compare s0 s1 in
+        if cmp = 0 && not (Slice.is_eod s0) then loop r0 r1 else cmp
+      in
+      loop r0 r1
+
+    let equal r0 r1 = Int.equal (compare r0 r1) 0
+
     (* Converting *)
 
     let read_bytes ~first ~length ~slice_length bytes =

@@ -104,11 +104,11 @@ module Bytes : sig
     (** {1:predicates Predicates and comparisons} *)
 
     val equal : t -> t -> bool
-    (** [equal s0 s1] is [true] iff the bytes in slice [s0] and [s1]
+    (** [equal s0 s1] is [true] iff the {e bytes} in slice [s0] and [s1]
         are equal. *)
 
     val compare : t -> t -> int
-    (** [compare s0 s1] sorts the bytes of [s0] and [s1] in lexicographic
+    (** [compare s0 s1] sorts the {e bytes} of [s0] and [s1] in lexicographic
         order. *)
 
     (** {1:breaking Breaking slices}
@@ -440,6 +440,16 @@ module Bytes : sig
     (** [tap f r] invokes [f] with the slice read by [r] before returning
         them with {!read}. Note that {!push_back}s are not trapped, so
         this can be used reliably for checksumming. *)
+
+    (** {1:predicates Predicates and comparisons} *)
+
+    val equal : t -> t -> bool
+    (** [equal r0 r1] asserts that the bytes of [r0] are equal to those
+        of [r1] in bounded space. This may not fully consume the readers. *)
+
+    val compare : t -> t -> int
+    (** [equal r0 r1] sorts the bytes of [r0] and [r1] in lexicographic order
+        in bounded space. This may not fully consume the readers. *)
 
     (** {1:convert Converting} *)
 

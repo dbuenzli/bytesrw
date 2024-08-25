@@ -79,6 +79,7 @@ let test_reader_reslice () =
     let r = Bytes.Reader.reslice ~slice_length (reader_of_list sls) in
     eq_slices ?__POS__ r rsl
   in
+  test ~slice_length:2 [] [] ~__POS__;
   test ~slice_length:2 ["abc"] ["ab"; "c"] ~__POS__;
   test ~slice_length:2 ["abcd"; "ef"] ["ab"; "cd"; "ef"] ~__POS__;
   test ~slice_length:1 ["abcd"; "ef"] ["a"; "b"; "c"; "d"; "e"; "f"] ~__POS__;
@@ -87,6 +88,21 @@ let test_reader_reslice () =
   test ~slice_length:3 ["a"; "b";"c"] ["abc"] ~__POS__;
   test ~slice_length:2 ["a"; "b"; "c"] ["ab"; "c"] ~__POS__;
   test ~slice_length:2 ["ab"; "bc"; "de"] ["ab"; "bc"; "de"] ~__POS__;
+  ()
+
+let test_reader_compare () =
+  Test.test "Bytes.Reader.compare" @@ fun () ->
+  let test ?__POS__ l0 l1 eq =
+    let r0 = reader_of_list l0 and r1 = reader_of_list l1 in
+    Test.int ?__POS__ (Bytes.Reader.compare r0 r1) eq;
+    let r0 = reader_of_list l0 and r1 = reader_of_list l1 in
+    Test.int ?__POS__ (Bytes.Reader.compare r1 r0) (Int.neg eq);
+  in
+  test ["abc"] ["a"; "bc"] 0 ~__POS__;
+  test ["a"] ["a"; "bc"] (-1) ~__POS__;
+  test ["abcd"] ["a"; "bc"] 1 ~__POS__;
+  test ["ab"; "cd"] ["a"; "bc"; "d"] 0 ~__POS__;
+  test [] ["a"; "bc"; "d"] (-1) ~__POS__;
   ()
 
 let test_read_length () =
@@ -251,6 +267,7 @@ let main () =
   test_slices ();
   test_slice_compare ();
   test_reader_reslice ();
+  test_reader_compare ();
   test_read_length ();
   test_written_length ();
   test_read_fun_eod ();

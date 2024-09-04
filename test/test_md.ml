@@ -6,7 +6,9 @@
 open B0_testing
 open Bytesrw
 
-let repeat = Test.repeat ~fail:"Failing for slice_length %d"
+let repeat ?__POS__ n f =
+  Test.range ?__POS__ ~kind:"slice_length" ~first:1 ~last:n f
+
 
 (* Test vectors *)
 

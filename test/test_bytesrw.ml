@@ -16,7 +16,7 @@ let reader_to_list r =
 
 let test_stream_error f =
   let is_exn = function Bytes.Stream.Error _ -> true | _ -> false in
-  Test.raises is_exn f
+  Test.raises' is_exn f
 
 let eq_slice sl s =
   let sl = Bytes.Slice.to_string sl in

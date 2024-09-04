@@ -6,11 +6,11 @@
 open Bytesrw
 open B0_testing
 
-let repeat = Test.repeat ~fail:"Failing for slice_length %d"
+let repeat n = Test.range ~kind:"slice_length" ~first:1 ~last:n
 
 let test_stream_error f =
   let is_exn = function Bytes.Stream.Error _ -> true | _ -> false in
-  Test.raises is_exn f
+  Test.raises' is_exn f
 
 (* Test vectors *)
 

@@ -51,3 +51,10 @@ issue tracker.
 ## Examples
 
 A few examples can be found in the [test](test/) directory. 
+
+## Acknowledgments 
+
+A grant from the [OCaml Software Foundation] helped to bring the first
+public release of `bytesrw`.
+
+[OCaml Software Foundation]: http://ocaml-sf.org/

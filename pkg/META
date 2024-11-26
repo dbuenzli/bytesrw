@@ -31,6 +31,18 @@ package "kit" (
   exists_if = "bytesrw_kit.cma bytesrw_kit.cmxa"
 )
 
+package "md" (
+  directory = "md"
+  description = "SHA{1,2} hashes"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw"
+  archive(byte) = "bytesrw_md.cma"
+  archive(native) = "bytesrw_md.cmxa"
+  plugin(byte) = "bytesrw_md.cma"
+  plugin(native) = "bytesrw_md.cmxs"
+  exists_if = "bytesrw_md.cma bytesrw_md.cmxa"
+)
+
 package "unix" (
   directory = "unix"
   description = "The bytesrw.unix library"
@@ -57,7 +69,7 @@ package "xxhash" (
 
 package "zlib" (
   directory = "zlib"
-  description = "Read and write deflate, zlib and gzip compressed bytes"
+  description = "deflate, zlib and gzip compressed bytes"
   version = "%%VERSION_NUM%%"
   requires = "bytesrw"
   archive(byte) = "bytesrw_zlib.cma"
@@ -69,7 +81,7 @@ package "zlib" (
 
 package "zstd" (
   directory = "zstd"
-  description = "Read and write zstd compressed bytes"
+  description = "zstd compressed bytes"
   version = "%%VERSION_NUM%%"
   requires = "bytesrw"
   archive(byte) = "bytesrw_zstd.cma"

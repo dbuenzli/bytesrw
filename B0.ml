@@ -138,7 +138,9 @@ let default =
                  "--with-conf-zstd" "%{conf-zstd:installed}%"]]|}
    |> ~~ B0_opam.depopts ["conf-xxhash", "";
                           "conf-zlib", "";
-                          "conf-zstd", ""]
+                          "conf-zstd", "";
+                          "conf-libmd", "";
+                          "conf-libblake3", ""; ]
    |> ~~ B0_opam.conflicts [ "conf-zstd", {|< "1.3.8"|}] (* should be 1.4 *)
    |> ~~ B0_opam.depends
      [ "ocaml", {|>= "4.14.0"|};

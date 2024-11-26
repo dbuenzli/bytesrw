@@ -52,7 +52,9 @@ depends: [
   "ocamlbuild" {build}
   "topkg" {build & >= "1.0.3"}
 ]
-depopts: ["conf-xxhash" "conf-zlib" "conf-zstd"]
+depopts: [
+  "conf-xxhash" "conf-zlib" "conf-zstd" "conf-libmd" "conf-libblake3"
+]
 conflicts: [
   "conf-zstd" {< "1.3.8"}
 ]

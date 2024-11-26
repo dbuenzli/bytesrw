@@ -19,18 +19,6 @@ package "blake3" (
   exists_if = "bytesrw_blake3.cma bytesrw_blake3.cmxa"
 )
 
-package "kit" (
-  directory = "kit"
-  description = "The bytesrw.kit library"
-  version = "%%VERSION_NUM%%"
-  requires = "bytesrw"
-  archive(byte) = "bytesrw_kit.cma"
-  archive(native) = "bytesrw_kit.cmxa"
-  plugin(byte) = "bytesrw_kit.cma"
-  plugin(native) = "bytesrw_kit.cmxs"
-  exists_if = "bytesrw_kit.cma bytesrw_kit.cmxa"
-)
-
 package "md" (
   directory = "md"
   description = "SHA{1,2} hashes"
@@ -69,7 +57,7 @@ package "xxhash" (
 
 package "zlib" (
   directory = "zlib"
-  description = "deflate, zlib and gzip compressed bytes"
+  description = "deflate, zlib and gzip streams"
   version = "%%VERSION_NUM%%"
   requires = "bytesrw"
   archive(byte) = "bytesrw_zlib.cma"
@@ -81,7 +69,7 @@ package "zlib" (
 
 package "zstd" (
   directory = "zstd"
-  description = "zstd compressed bytes"
+  description = "zstd streams"
   version = "%%VERSION_NUM%%"
   requires = "bytesrw"
   archive(byte) = "bytesrw_zstd.cma"

@@ -1,4 +1,4 @@
-{0 Bytesrw {%html: <span class="version">%%VERSION%%</span>%}}
+  {0 Bytesrw {%html: <span class="version">%%VERSION%%</span>%}}
 
 Bytesrw extends the OCaml {!Bytes} module with composable, memory
 efficient, byte stream {{!Bytesrw.Bytes.Reader}readers} and
@@ -14,9 +14,11 @@ and the specifics of reading and writing bytes.
 The following manuals are available:
 
 {ul
-{- The {{!quick}quick start} should get you started}
-{- The {{!tutorial}tutorial} shows you how to use and devise your own
-   stream processors}}
+{- The {{!quick}quick start} has a few code snippets to get you started.}
+{- The {{!tutorial}tutorial} is a conceptual overview of bytes readers
+   and writers.}
+{- The {{!page-notes}design notes} explains design choices made by the
+   library.}}
 
 {1:bytesrw Library [bytesrw]}
 
@@ -32,9 +34,7 @@ Bytesrw.Bytes.Stream
 Bytesrw.Bytes.Reader
 Bytesrw.Bytes.Writer}
 
-{1:bytesrw_kit Library [bytesrw.kit]}
-
-The following modules rely only the [Stdlib]:
+The following modules rely only on the [Stdlib]:
 
 {!modules:
 Bytesrw_utf}
@@ -43,7 +43,7 @@ Bytesrw_utf}
    [bytesrw.{blake3,md,unix,xxhash,zlib,zstd}]}
 
 Each of these modules lives in its corresponding library.
-Compression libraries depend on their canonical C library.
+Compression and hashing libraries depend on their canonical C library.
 
 {!modules:
 Bytesrw_blake3
@@ -55,6 +55,8 @@ Bytesrw_zstd
 }
 
 {1:quick Quick start}
+
+{2:compressing Compressing}
 
 The following example compresses standard input to
 standard output with [zstd] using either a compressing bytes
@@ -87,7 +89,9 @@ let stdio_compress_writes () =
   | Sys_error e -> Error e
 ]}
 
-{{!Bytesrw.Bytes.Reader.filter}Read filters}
+{2:filtering Applying reader and writer filters to strings}
+
+{{!Bytesrw.Bytes.Reader.filters}Reader filters}
 can easily be applied to your strings:
 
 {[
@@ -96,27 +100,70 @@ let id s =
   Bytes.Reader.filter_string filters s
 ]}
 
-More in the {{!page-tutorial}tutorial}.
+This can also be done with {{!Bytesrw.Bytes.Writer.filters}writer filters}:
+{[
+let id s =
+  let filters = Bytesrw_zstd.[decompress_writes (); compress_writes ()] in
+  Bytes.Writer.filter_string filters s
+]}
 
-{1:todo TODO}
+{2:checksumming Checksumming streams}
 
-{ul
-{- [Slice], add bigbytes converters.}
-{- Push backs. Should we disallow pushing back to a negative position (in
-   which case {!Bytesrw.Bytes.Reader.empty} can become a value again) ?
-   We might want to push a header before a stream but then we have
-   {!Bytesrw.Bytes.Reader.val-append} for that.}
-{- What should we do with channel/unix reader/writer exceptions ?
-   Convert their exceptions to Bytes.Stream.Error or not ?}
-{- Think again about giving access to the reader/writer in [read] and [write]
-   functions  ?
-   Is it useful ? Some combinators in [Bytesrw] internally mutate the [read]
-   field afterwards because they want to access the definition in [read],
-   this is not possible with the API.
-   In filters for read errors those are generally reported in the
-   reader one filters which is available. It's a bit less clear
-   for writers.}
-{- Do we really need taps ? They are just {!Fun.id} filters with a side effect.}
-}
+Various checksums can be applied on streams. For example before
+compressing the data:
+{[
+let blake3_and_compress ~plain =
+  try
+    let plain, blake3 = Bytesrw_blake3.Blake3.reads plain in
+    let comp = Bytesrw_zstd.compress_reads () plain in
+    let comp = Bytes.Reader.to_string comp in
+    Ok (comp, Bytesrw_blake3.Blake3.value blake3)
+  with
+  | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
+]}
+and after decompressing the data:
+{[
+let decompress_and_blake3 ~comp =
+  try
+    let plain = Bytesrw_zstd.decompress_reads () comp in
+    let r, blake3 = Bytesrw_blake3.Blake3.reads plain in
+    let s = Bytes.Reader.to_string r in
+    Ok (s, Bytesrw_blake3.Blake3.value blake3)
+  with
+  | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
+]}
+By re-odering the operations in the two functions above you could
+equally have applied the checksum on the compressed data or even hashes
+for both compressed and decompressed data.
 
-See also the {{!page-notes}design notes}.
+{2:limiting Limiting streams}
+
+If you need to limit resource consumption both readers and writers
+can be limited with {!Bytesrw.Bytes.Reader.limit} and
+{!Bytesrw.Bytes.Writer.limit}. For example this makes sure that the
+decompressed size of [comp] does not exceed [quota] bytes:
+
+{[
+let limited_decompress ~quota ~comp =
+  let buf = Buffer.create quota in
+  try
+    let plain = Bytesrw_zstd.decompress_reads () comp in
+    let () = Bytes.Reader.add_to_buffer buf (Bytes.Reader.limit quota plain) in
+    Ok (`Data (Buffer.contents buf))
+  with
+  |  Bytes.Stream.Error (Bytes.Stream.Limit _quota, _) ->
+      Ok (`Quota_exceeded (Buffer.contents buf))
+  |  Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
+]}
+
+{2:tracing Tracing streams}
+
+If you need to know more about these slices that are flying around you
+can tap readers and writers with the function {Bytesrw.Slice.tracer}
+using the functions {!Bytsrw.Bytes.Reader.tap} and
+{!Bytesrw.Bytes.Writer.tap}.
+
+{2:more More}
+
+The {{!page-tutorial}tutorial} is a conceptual overview of bytes reader
+and writers.

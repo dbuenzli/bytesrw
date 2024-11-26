@@ -2,20 +2,26 @@
 
 {1:wf Well formed streams}
 
-The design tries to enforce well-formed streams as a sequence of {e
-non-empty} slices terminated by {!Bytesrw.Bytes.Slice.eod}. We want to
-ensure that [read] and [write] functions of stream readers and writers
-are not called with unexpected empty slices or that they are called after
-they returned or were called with {!Bytesrw.Bytes.Slice.eod}.
+The design enforces well-formed streams: sequences of {e non-empty}
+slices terminated by a single {!Bytesrw.Bytes.Slice.eod} empty slice.
 
-For example the {!Bytesrw.Bytes.Slice} creation functions raise
-[Invalid_argument] when they unexpectedly produce an empty slice and
-those that can produce them have dedicated names that include [_eod]
-to make users and code readers aware that this might terminate the stream.
+We want to ensure that the [read] functions of streams readers do not
+return unexpected empty slices and that they are not called again once
+they returned {!Bytesrw.Bytes.Slice.eod}. Likewise we want to ensure
+that the [write] function of writers is not called with unexpected
+empty slices or that they are called again once they were called with
+{!Bytesrw.Bytes.Slice.eod}.
 
-Also readers and writers internally overwrite their [read] and [write]
+For example the {!Bytesrw.Bytes.Slice} creation function like
+{!Bytesrw.Bytes.Slice.make} raise [Invalid_argument] when they
+unexpectedly produce an empty slice and those that can produce them
+have dedicated names that include [_eod]
+(e.g. {!Bytesrw.Bytes.Slice.make_or_eod}). This makes programmers
+well-aware of the points in the code that may terminate streams.
+
+Besides, readers and writers internally overwrite their [read] and [write]
 function as soon as {!Bytesrw.Bytes.Slice.eod} is seen so that no
-closure are kept longer than it should be.
+closure is kept longer than it should be.
 
 {1:errors Error strategy}
 
@@ -35,7 +41,7 @@ For users it means that when they use streams:
 - There is a single exception to guard against and this exception can
   trivially be turned into an error message.
 - Pattern matching on errors can still be used on a per stream format
-  basis.  This is needed for example for stream fromats that deal with
+  basis. This is needed for example for stream fromats that deal with
   substreams of other formats: since streams can be layered on top of
   each other and a lower level stream could error while you are
   dealing with your own format, that error should not be caught
@@ -51,8 +57,8 @@ type structure is used:
   [error] cannot be directly raised as it demands the creation of a
   {!Bytesrw.Bytes.Stream.error_context} value for which there is no constructor.
 - This means that all raises go through either
-  {!Bytesrw.Bytes.Stream.type-error},
-  or {!Bytesrw.Bytes.Reader.error} or {!Bytesrw.Bytes.Writer.error}.
+  {!Bytesrw.Bytes.Stream.val-error},
+  or {!Bytesrw.Bytes.Reader.val-error} or {!Bytesrw.Bytes.Writer.val-error}.
   These functions ask for a {!Bytesrw.Bytes.Stream.format_error},
   whose creation asks stream formats to identify themelves and describe
   how their errors can be stringified.
@@ -62,20 +68,21 @@ inside the {!Bytesrw.Bytes.Stream.Error} exception.
 
 {1:primitives Signature of [read/write] primitives}
 
-- Having [write] return the number of written bytes from the slice
-  would be useful for certain scenario, most notably write filters.
-  It would be the moral equivalent of readers' push backs, except
-  in this case it's inconvenient for the client and leads to
-  [really_write]… not desirable.
+- [write] has to write all the given bytes. Having [write] return the number
+  of written bytes from the slice would be useful for certain scenario, most
+  notably write filters. It would be the moral equivalent of readers' push
+  backs, except in this case it would be inconvenient {e for the client} and
+  leads to things like [really_write], not desirable.
 
-- [read]. We do not provide an interface for specifying the number of
-  bytes to read. That would entail storing the last slice in the
-  reader. But then if too much is requested then either we need to
-  start buffering internally because of slice validity or potentially
-  return less but then this leads to [really_read] and buffering
-  again. The example of utf-8 text codec shows that we can really get
-  rid of buffering except for a tiny buffer for overlapping reads.  It
-  seems better to let higher level abstractions handle that.
+- [read] does not allow to specify the number bytes to read. Doing so would
+  entail storing the last slice in the reader. Then if too much bytes are
+  requested we either need to start buffering internally because of slice
+  validity or potentially return less. However the latter leads to
+  [really_read] and buffering again, not desirable. The
+  {{:https://github.com/dbuenzli/bytesrw/blob/main/test/utf8codec.ml}UTF-8
+  text codec} example shows that we can really get rid of buffering
+  except for a tiny buffer for overlapping reads. So it seems better to
+  let higher-level abstractions handle that if they really need to.
 
 {1:names Names}
 
@@ -87,6 +94,37 @@ inside the {!Bytesrw.Bytes.Stream.Error} exception.
   it for a clearer exposition. Incidentally our usage of [pos] is
   consistent with the [Stdlib] (though the index vs position terminology
   is unfortunate in my opinion).
+
+{1:resolutions Resolved without strong rationale}
+
+The following points were resolved for the first release without
+a strong rationale.
+
+{ul
+{- Push backs. Using {!Bytesrw.Bytes.Reader.push_back} is allowed at the
+   beginning of the stream and thus allows to push back to negative positions.
+   This could have been disallowed (in which case {!Bytesrw.Bytes.Reader.empty}
+   can become a value again). One use can be to push a header before
+   a stream, while still having byte positions aligned on the stream
+   (using {!Bytesrw.Bytes.Reader.val-append} for that would shift positions).
+   Unclear.}
+{- For now it was decided not to give access to the reader and writer
+   in [read] and [write] functions. This means they can't access
+   their properties. Some combinators in [Bytesrw] internally
+   mutate the [read] field afterwards because they want to access the reader
+   in the definition of the [read] function, this is not possible with the API.
+   In filters for reporting read error positions those are generally reported
+   by the reader that filters so the underlying reader is available for using
+   with {!Bytesrw.Bytes.Reader.error}. It's a bit less clear for writers.}
+{- {!Bytesrw.Bytes.Reader.tap} and {!Bytesrw.Bytes.Writer.tap} are
+   just {!Fun.id} filters with a side effect, they could be
+   removed. We choose to keep them for now, it's doesn't seem to hurt
+   to have a name for that.}
+{- System errors. When readers and writers use system calls it's
+   a bit unclear whether the errors ([Sys_error] and [Unix_error]) should be
+   transformed into stream errors. For now we decided not to. That is we
+   consider that to be an error of the ressource rather than an error of
+   the stream.}}
 
 {1:upstream Upstreaming}
 

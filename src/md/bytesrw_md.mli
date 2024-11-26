@@ -3,12 +3,11 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** [SHA-1] and [SHA-2] stream hashes.
+(** [SHA-1] and [SHA-2] hashes.
 
     This module provides support for the SHA-1 and SHA-2
     hashes with the {{:https://www.hadrons.org/software/libmd/}
-    [libmd]} C library.
-*)
+    [libmd]} C library. *)
 
 open Bytesrw
 
@@ -26,35 +25,36 @@ module type Sha = sig
   type t
   (** The type for hashes. *)
 
-  (** Hashing state. *)
+  (** Hash state. *)
   module State : sig
     type t
-    (** The type for hashing state. *)
+    (** The type for hash state. *)
 
     val make : unit -> t
-    (** [make ()] is an initial hashing state *)
+    (** [make ()] is an initial hash state. *)
 
     val update : t -> Bytes.Slice.t -> unit
-    (** [update state slice] updates [state] with [slice]. *)
+    (** [update state slice] updates [state] with the bytes in the range of
+        [slice]. *)
   end
 
   val value : State.t -> t
-  (** [value state] is the hash of [state]. This has no effect on
-      [state] which can still be {!State.update}d. *)
+  (** [value state] is the hash of [state]. {b Warning.} This has an effect on
+      [state], it can no longer be {!State.update}d. *)
 
   (** {1:hashing Hashing} *)
 
   val string : string -> t
-  (** [string s] is the hash of [s] keyed with [key] (if any). *)
+  (** [string s] is the hash of [s]. *)
 
   val bytes : bytes -> t
-  (** [bytes b] is the hash of [b] with seed [seed] (if any). *)
+  (** [bytes b] is the hash of [b]. *)
 
   val slice : Bytes.Slice.t -> t
-  (** [slice s] is the hash of [s] with seed [seed] (if any). *)
+  (** [slice s] is the hash of the bytes in the range of [s]. *)
 
   val reader : Bytes.Reader.t -> t
-  (** [reader r] hashes the stream of [r] with seed [seed] (if any).
+  (** [reader r] is the hash of stream [r]. This consumes the reader.
       See also {!reads}. *)
 
   (** {1:streaming Hashing streams} *)
@@ -66,17 +66,17 @@ module type Sha = sig
       {- [hstate], a hash state of the reads made on [hr] so
          far. This is [state] if explicitely given, otherwise
          defaults to a fresh {!State.make}.}}
-      To get the final hash results use {!value} on [hstate] {b once.}. *)
+      To get the final hash result use {!value} on [hstate] {b once}. *)
 
   val writes : ?state:State.t -> Bytes.Writer.t -> Bytes.Writer.t * State.t
   (** [writes ?state w] is [hw, hstate] with:
       {ul
       {- [hw] a writer that taps the writes to update [hstate] before
          giving them to [w].}
-      {- [hstate], a hash state of the writes made on [wr] so
+      {- [hstate], a hash state of the writes made on [hw] so
          far. This is [state] if explicitely given, otherwise
          defaults to a fresh {!State.make}.}}
-      To get the final hash results use {!value} on [hstate] {b once.}. *)
+      To get the final hash result use {!value} on [hstate] {b once}. *)
 
   (** {1:preds Predicates and comparisons} *)
 
@@ -89,32 +89,32 @@ module type Sha = sig
   (** {1:converting Converting} *)
 
   val to_binary_string : t -> string
-  (** [to_binary_string s] is a big-endian binary representation
-      of [s] of length {!length}. *)
+  (** [to_binary_string h] is a big-endian binary representation
+      of [h] of length {!length}. *)
 
   val of_binary_string : string -> (t, string) result
   (** [of_binary_string s] is a hash from the big-endian binary
       representation stored in [s]. *)
 
   val to_hex : t -> string
-  (** [to_hex t] is the binary representation of [h] using lowercase
+  (** [to_hex h] is the binary representation of [h] using lowercase
       US-ASCII hex digits. *)
 
   val of_hex : string -> (t, string) result
-  (** [to_hex t] parses a sequence of hex digits into a hash. *)
+  (** [of_hex s] parses a sequence of hex digits into a hash. *)
 
   val pp : Format.formatter -> t -> unit
   (** [pp] formats hashes for inspection. *)
 end
 
-(** SHA-1 hash. *)
+(** [SHA-1] hash. *)
 module Sha_1 : Sha
 
-(** [SHA-256] hash *)
+(** [SHA-256] hash. *)
 module Sha_256 : Sha
 
-(** [SHA-384] hash *)
+(** [SHA-384] hash. *)
 module Sha_384 : Sha
 
-(** [SHA-512] hash *)
+(** [SHA-512] hash. *)
 module Sha_512 : Sha

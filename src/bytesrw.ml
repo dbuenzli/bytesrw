@@ -143,9 +143,39 @@ module Bytes = struct
     let of_bytes_or_eod ?first ?last bytes =
       of_bytes' ~allow_eod:true ?first ?last bytes
 
-    let of_string s = of_bytes (Bytes.of_string s)
+    let of_bigbytes' ~allow_eod ?(first = 0) ? last bigbytes =
+      let max = Bigarray.Array1.dim bigbytes - 1 in
+      let last = match last with
+      | None -> max | Some last -> if last > max then max else last
+      in
+      let first = if first < 0 then 0 else first in
+      let length = last - first + 1 in
+      let init i = Char.unsafe_chr (Bigarray.Array1.get bigbytes (first + i)) in
+      let bytes = Bytes.init length init in
+      if first <= last then { bytes; first = 0; length } else
+      if allow_eod then eod else err_empty_range ~first ~last ~len:(max + 1)
+
+    let of_bigbytes ?first ?last bytes =
+      of_bigbytes' ~allow_eod:false ?first ?last bytes
+
+    let of_bigbytes_or_eod ?first ?last bytes =
+      of_bigbytes' ~allow_eod:true ?first ?last bytes
+
+    let of_string ?first ?last s =
+      (* We could tighten the string here. *)
+      of_bytes ?first ?last (Bytes.of_string s)
+
+    let of_string_or_eod ?first ?last s =
+      (* We could tighten the string here. *)
+      of_bytes_or_eod ?first ?last (Bytes.of_string s)
+
     let to_bytes s = Bytes.sub s.bytes s.first s.length
     let to_string s = Bytes.sub_string s.bytes s.first s.length
+    let to_bigbytes s =
+      (* This should use blits. *)
+      Bigarray.Array1.init Bigarray.Int8_unsigned Bigarray.c_layout
+        s.length (fun i -> Bytes.get_uint8 s.bytes (s.first + i))
+
     let add_to_buffer b s = Buffer.add_subbytes b s.bytes s.first s.length
     let output_to_out_channel oc s =
       let b = Bytes.unsafe_to_string s.bytes in

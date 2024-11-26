@@ -40,7 +40,6 @@ tags: [
   "utf"
   "xxhash"
   "blake3"
-  "base64"
   "org:erratique"
 ]
 homepage: "https://erratique.ch/software/bytesrw"

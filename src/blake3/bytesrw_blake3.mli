@@ -3,7 +3,7 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** [BLAKE3] stream hashes.
+(** [BLAKE3] hashes.
 
     This module provides support for the {{:https://blake3.io/}BLAKE3}
     hash with the [libblake3] C library. *)
@@ -27,17 +27,18 @@ module type Blake3 = sig
   type key = t
   (** The type for keys. *)
 
-  (** Hashing state. *)
+  (** Hash state. *)
   module State : sig
     type t
-    (** The type for hashing state. *)
+    (** The type for hash state. *)
 
     val make : ?key:key -> unit -> t
-    (** [make ?key ()] is an initial hashing state with given
-        parameters. If unspecified the hash is unkeyed. *)
+    (** [make ?key ()] is an initial hash state with given
+        parameters. If [key] is unspecified the hash is unkeyed. *)
 
     val update : t -> Bytes.Slice.t -> unit
-    (** [update state slice] updates [state] with [slice]. *)
+    (** [update state slice] updates [state] with the bytes in the range of
+        [slice]. *)
   end
 
   val value : State.t -> t
@@ -50,14 +51,15 @@ module type Blake3 = sig
   (** [string s] is the hash of [s] keyed with [key] (if any). *)
 
   val bytes : ?key:t -> bytes -> t
-  (** [bytes b] is the hash of [b] with seed [seed] (if any). *)
+  (** [bytes b] is the hash of [b] keyed with [key] (if any). *)
 
   val slice : ?key:t -> Bytes.Slice.t -> t
-  (** [slice s] is the hash of [s] with seed [seed] (if any). *)
+  (** [slice s] is the hash of the bytes in the range of [s] keyed with
+      [key] (if any). *)
 
   val reader : ?key:t -> Bytes.Reader.t -> t
-  (** [reader r] hashes the stream of [r] with seed [seed] (if any).
-      See also {!reads}. *)
+  (** [reader r] is the hash of stream [r] keyed with [key] (if any).
+      This consumes the reader. See also {!reads}. *)
 
   (** {1:streaming Hashing streams} *)
 
@@ -68,7 +70,7 @@ module type Blake3 = sig
       {- [hstate], a hash state of the reads made on [hr] so
          far. This is [state] if explicitely given, otherwise
          defaults to a fresh {!State.make}.}}
-      To get intermediate or final hash results use {!value} on
+      To get an intermediate or final hash result use {!value} on
       [hstate]. *)
 
   val writes : ?state:State.t -> Bytes.Writer.t -> Bytes.Writer.t * State.t
@@ -76,10 +78,10 @@ module type Blake3 = sig
       {ul
       {- [hw] a writer that taps the writes to update [hstate] before
          giving them to [w].}
-      {- [hstate], a hash state of the writes made on [wr] so
+      {- [hstate], a hash state of the writes made on [hw] so
          far. This is [state] if explicitely given, otherwise
          defaults to a fresh {!State.make}.}}
-      To get intermediate or final hash results use {!value} on
+      To get an intermediate or final hash result use {!value} on
       [hstate]. *)
 
   (** {1:preds Predicates and comparisons} *)
@@ -93,24 +95,25 @@ module type Blake3 = sig
   (** {1:converting Converting} *)
 
   val to_binary_string : t -> string
-  (** [to_binary_string s] is a big-endian binary representation
-      of [s] of length {!length}. *)
+  (** [to_binary_string h] is a big-endian binary representation
+      of [h] of length {!length}. *)
 
   val of_binary_string : string -> (t, string) result
   (** [of_binary_string s] is a hash from the big-endian binary
       representation stored in [s]. *)
 
   val to_hex : t -> string
-  (** [to_hex t] is the binary representation of [h] using lowercase
+  (** [to_hex h] is the binary representation of [h] using lowercase
       US-ASCII hex digits. *)
 
   val of_hex : string -> (t, string) result
-  (** [to_hex t] parses a sequence of hex digits into a hash. *)
+  (** [of_hex s] parses a sequence of hex digits into a hash. *)
 
   val pp : Format.formatter -> t -> unit
   (** [pp] formats hashes for inspection. *)
 end
 
+(** [BLAKE3] hash. *)
 module Blake3 : Blake3
 
 (** {1:library Library parameters} *)

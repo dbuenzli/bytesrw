@@ -4,7 +4,9 @@
   ---------------------------------------------------------------------------*)
 
 (* UTF-8 decoder with position tracking using Bytes.Reader.t and the
-   Stdlib codecs. *)
+   Stdlib codecs.
+
+   FIXME: integrate the optimizations there were done in Jsont_bytesrw. *)
 
 open Bytesrw
 

@@ -49,16 +49,17 @@ module Deflate : sig
       {- [false] (default), the reader errors if there is leftover data after
          the end of the [deflate] stream.}
       {- [true] the reader decompresses one [deflate] stream. Once the
-         reader returns {!Bytes.Slice.eod}, [r] is positioned exactly
+         reader returns {!Bytesrw.Bytes.Slice.eod}, [r] is positioned exactly
          after the end of the [deflate] stream and can be read again to
          perform other non-filtered reads.}} *)
 
   val decompress_writes : unit -> Bytes.Writer.filter
-  (** [decompress_writes () w] filters writes on [w] by decompressing a
-      [deflate] stream until {!Bytes.Slice.eod} is written, if leftover
-      data remains an error is raised. The last {!Bytes.Slice.eod} is not
-      written on [w] and at this point [w] can be used again to perform other
-      non-filtered writes.  *)
+  (** [decompress_writes () w ~eod] filters writes on [w] by decompressing
+      a [deflate] stream until {!Bytesrw.Bytes.Slice.eod} is written, if
+      leftover data remains an error is raised. If [eod] is [false],
+      the last {!Bytesrw.Bytes.Slice.eod} is not written on [w] and at this
+      point [w] can be used again to perform other non-filtered
+      writes.  *)
 
   (** {1:compress Compress} *)
 
@@ -68,11 +69,11 @@ module Deflate : sig
       {!default_compression}). *)
 
   val compress_writes : ?level:level -> unit -> Bytes.Writer.filter
-  (** [compress_writes ~level w] filters writes on [w] by compressing
+  (** [compress_writes ~level w ~eod] filters writes on [w] by compressing
       them to a [deflate] stream at level [level] (defaults to
-      {!default_compression}) until {!Bytes.Slice.eod} is written. The
-      latter is not written on [w] and at that point [w] can be used again to
-      perform non-compressed writes. *)
+      {!default_compression}) until {!Bytesrw.Bytes.Slice.eod} is written.
+      If [eod] is false, the latter is not written on [w] and at that point
+      [w] can be used again to perform non-filtered writes. *)
 end
 
 (** {{:https://www.rfc-editor.org/rfc/rfc1950}[zlib]} streams. *)
@@ -87,16 +88,16 @@ module Zlib : sig
       {- [false] (default), the reader errors if there is leftover data after
          the end of the [zlib] stream.}
       {- [true] the reader decompresses one [zlib] stream. Once the
-         reader returns {!Bytes.Slice.eod}, [r] is positioned exactly
+         reader returns {!Bytesrw.Bytes.Slice.eod}, [r] is positioned exactly
          after the end of the [zlib] stream and can be read again to
          perform other non-filtered reads.}} *)
 
   val decompress_writes : unit -> Bytes.Writer.filter
-  (** [decompress_writes () w] filters writes on [w] by decompressing a
-      [zlib] stream until {!Bytes.Slice.eod} is written, if leftover
-      data remains an error is raised. The last {!Bytes.Slice.eod} is not
-      written on [w] and at this point [w] can be used again to perform other
-      non-filtered writes. *)
+  (** [decompress_writes () w ~eod] filters writes on [w] by decompressing a
+      [zlib] stream until {!Bytesrw.Bytes.Slice.eod} is written, if leftover
+      data remains an error is raised. If [eod] is [false] the last
+      {!Bytes.Slice.eod} is not written on [w] and at this point [w] can be
+      used again to perform othe non-filtered writes. *)
 
   (** {1:compress Compress} *)
 
@@ -106,11 +107,11 @@ module Zlib : sig
       {!default_compression}). *)
 
   val compress_writes : ?level:level -> unit -> Bytes.Writer.filter
-  (** [compress_writes ~level () w] filters writes on [w] by compressing
+  (** [compress_writes ~level () w ~eod] filters writes on [w] by compressing
       them to a [zlib] stream at level [level] (defaults to
-      {!default_compression}) until {!Bytes.Slice.eod} is written. The
-      latter is not written on [w] and at that point [w] can be used again to
-      perform non-compressed writes. *)
+      {!default_compression}) until {!Bytesrw.Bytes.Slice.eod} is written.
+      If [eod] is [false], the latter is not written on [w] and at that point
+      [w] can be used again to perform non-filtered writes. *)
 end
 
 (** {{:https://www.rfc-editor.org/rfc/rfc1952}[gzip]} streams.
@@ -129,16 +130,17 @@ module Gzip : sig
       {- [true] (default), this concatenates decompressed sequences of [gzip]
          members like [gunzip] would do and errors if there is leftover data.}
       {- [false] this decompresses a single [gzip] member. Once the resulting
-         reader returns {!Bytes.Slice.eod}, [r] is positioned exactly
+         reader returns {!Bytesrw.Bytes.Slice.eod}, [r] is positioned exactly
          after the end of the gzip member and can be used again to perform
          other non-filtered reads (e.g. a new [gzip] member or other unrelated
          data).}} *)
 
   val decompress_writes : unit -> Bytes.Writer.filter
-  (** [decompress_writes () w] filters the writes on [w] by decompressing
-      sequences of [gzip] members until [Bytes.Slice.eod] is written.
-      The latter is not written on [w] and at this point [w] can
-      be used again to perform other non-filtered writes. *)
+  (** [decompress_writes () w ~eod] filters the writes on [w] by
+      decompressing sequences of [gzip] members until
+      [Bytesrw.Bytes.Slice.eod] is written. If [eod] is [false], the
+      latter is not written on [w] and at this point [w] can be used
+      again to perform other non-filtered writes. *)
 
   (** {1:compress Compress} *)
 
@@ -148,11 +150,12 @@ module Gzip : sig
       (defaults to {!default_compression}). *)
 
   val compress_writes : ?level:level -> unit -> Bytes.Writer.filter
-  (** [compress_writes ~level () w] filters the writes on [w] by
+  (** [compress_writes ~level () w ~eod] filters the writes on [w] by
       compressing them to a single [gzip] member at level [level]
-      (defaults to {!default_compression}) until {!Bytes.Slice.eod} is
-      written. The latter is not written on [w] and at this point [w]
-      can be used again to perform other non-filtered writes.  *)
+      (defaults to {!default_compression}) until
+      {!Bytesrw.Bytes.Slice.eod} is written. If [eod] is [false] the
+      latter is not written on [w] and at this point [w] can be used
+      again to perform other non-filtered writes.  *)
 
 (** {1:member_headers Member headers}
 

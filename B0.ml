@@ -3,8 +3,6 @@ open B0_kit.V000
 (* Library names *)
 
 let bytesrw = B0_ocaml.libname "bytesrw"
-let bytesrw_kit = B0_ocaml.libname "bytesrw.kit"
-
 let bytesrw_blake3 = B0_ocaml.libname "bytesrw.blake3"
 let bytesrw_md = B0_ocaml.libname "bytesrw.md"
 let bytesrw_unix = B0_ocaml.libname "bytesrw.unix"
@@ -21,11 +19,6 @@ let cmdliner = B0_ocaml.libname "cmdliner"
 let bytesrw_lib =
   let srcs = [ `Dir ~/"src" ] in
   B0_ocaml.lib bytesrw ~srcs
-
-let bytesrw_kit_lib =
-  let srcs = [ `Dir ~/"src/kit" ] in
-  let requires = [bytesrw] in
-  B0_ocaml.lib bytesrw_kit ~srcs ~requires
 
 let bytesrw_blake3_lib =
   let doc = "BLAKE3 hashes" in
@@ -54,14 +47,14 @@ let bytesrw_xxhash_lib =
   B0_ocaml.lib bytesrw_xxhash ~srcs ~requires ~c_requires ~doc
 
 let bytesrw_zlib_lib =
-  let doc = "deflate, zlib and gzip compressed bytes" in
+  let doc = "deflate, zlib and gzip streams" in
   let srcs = [ `Dir ~/"src/zlib" ] in
   let c_requires = Cmd.arg "-lz" in
   let requires = [bytesrw] in
   B0_ocaml.lib bytesrw_zlib ~srcs ~requires ~c_requires ~doc
 
 let bytesrw_zstd_lib =
-  let doc = "zstd compressed bytes" in
+  let doc = "zstd streams" in
   let srcs = [ `Dir ~/"src/zstd" ] in
   let c_requires = Cmd.arg "-lzstd" in
   let requires = [bytesrw] in
@@ -69,22 +62,17 @@ let bytesrw_zstd_lib =
 
 (* Tests *)
 
-let test
-    ?doc ?long:(is_long = false) ?run:(do_run = true) ?(requires = []) src =
-  let srcs = [ `File src ] in
-  let requires = bytesrw :: requires in
-  let requires = if do_run then b0_std :: requires else requires in
-  let meta =
-    B0_meta.(empty |> tag test |> add run do_run |> add long is_long)
-  in
-  let name = Fpath.basename ~strip_ext:true src in
-  B0_ocaml.exe name ~srcs ~requires ~meta ?doc
+let test ?(requires = []) =
+  B0_ocaml.test ~requires:(b0_std :: bytesrw :: requires)
 
 let utf8codec = test ~/"test/utf8codec.ml" ~long:true
 
-let test_examples = test ~/"test/examples.ml" ~requires:[bytesrw_zstd]
+let test_examples =
+  let requires = [bytesrw_zstd; bytesrw_blake3] in
+  test ~/"test/examples.ml" ~requires
+
 let test_bytesrw = test ~/"test/test_bytesrw.ml" ~requires:[]
-let test_utf = test ~/"test/test_utf.ml" ~requires:[bytesrw_kit]
+let test_utf = test ~/"test/test_utf.ml"
 let test_blake3 = test ~/"test/test_blake3.ml" ~requires:[bytesrw_blake3]
 let test_blake3 = test ~/"test/test_md.ml" ~requires:[bytesrw_md]
 let test_xxhash = test ~/"test/test_xxhash.ml" ~requires:[bytesrw_xxhash]
@@ -128,7 +116,7 @@ let default =
    |> ~~ B0_meta.description_tags
      ["bytes"; "streaming"; "zstd"; "zlib"; "gzip"; "deflate";
       "sha1"; "sha2"; "compression"; "hashing";
-      "utf"; "xxhash"; "blake3"; "base64"; "org:erratique"; ]
+      "utf"; "xxhash"; "blake3"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
                  "--with-conf-libblake3" "%{conf-libblake3:installed}%"

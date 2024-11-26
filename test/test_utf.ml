@@ -15,11 +15,10 @@ let test_guess_reader_encoding () =
   let test (s, exp) =
     let r = Bytes.Reader.of_string s in
     let g = Bytesrw_utf.guess_reader_encoding r in
-    let pp_enc = Bytesrw_utf.pp_encoding in
+    let pp_enc = Bytesrw_utf.Encoding.pp in
     if exp <> g then begin
-      Test.log "expected: %a found: %a" pp_enc exp pp_enc g;
-      assert false
-    end else (assert (Bytes.Reader.to_string r = s));
+      Test.fail "expected: %a found: %a" pp_enc exp pp_enc g;
+    end else (Test.string (Bytes.Reader.to_string r) s)
   in
   (* This was taken from the uutf suite which also tested subsequent
      malformed data. *)

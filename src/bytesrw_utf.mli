@@ -5,48 +5,60 @@
 
 (** UTF streams.
 
-    A few tools to deal with UTF encoded streams. *)
+    A few tools to deal with UTF encoded streams. For now just
+    encoding guessing, more may be added in the future.
+
+    Sample code for decoding UTF-8 with position tracking using a
+    bytes reader and encoding UTF-8 with a bytes writer can be found
+    {{:https://github.com/dbuenzli/bytesrw/blob/main/test/utf8codec.ml}here}. *)
 
 open Bytesrw
 
-(** {1:encoding Encoding} *)
+(** {1:encodings Encodings} *)
 
-type encoding =  [ `Utf_8 | `Utf_16be | `Utf_16le ]
-(** The type for UTF encodings. *)
+(** Encoding specification. *)
+module Encoding : sig
 
-val pp_encoding : Format.formatter -> [< encoding | `Utf_16 ] -> unit
-(** [pp_encoding] formats encoding to its
-    {{:https://www.iana.org/assignments/character-sets/character-sets.xhtml}IANA
-    character setname}. *)
+  type t = [
+  | `Utf_8 (** UTF-8 *)
+  | `Utf_16be (** UTF-16BE *)
+  | `Utf_16le (** UTF-16LE *) ]
+  (** The type for UTF encodings. *)
+
+  val to_iana_charset : [< t | `Utf_16 ] -> string
+  (** [to_iana_charaset e] is [e] as its
+      {{:https://www.iana.org/assignments/character-sets/character-sets.xhtml}
+      IANA character set name}. *)
+
+  val pp : Format.formatter -> [< t | `Utf_16 ] -> unit
+  (** [pp] formats encodings with {!to_iana_charset}. *)
+end
 
 (** {1:encoding_guess Encoding guess} *)
 
-val guess_reader_encoding : Bytes.Reader.t -> encoding
+val guess_reader_encoding : Bytes.Reader.t -> Encoding.t
 (** [guess_reader_encoding r] guesses the encoding at the stream
     position of [r] by {{!Bytesrw.Bytes.Reader.sniff}sniff}ing three
     bytes and applying {{!encoding_guess_heuristic}this
     heuristic} which is subject to change in the future. *)
 
+(*
 (** {1:validate Validate} *)
 
 val ensure_reads : encoding -> Bytes.Reader.filter
 (** [ensure_reads encoding r] filters the reads of [r] to make
     sure the stream is a valid [encoding] byte stream. Invalid
     byte sequences *)
+*)
 
 (** {1:encoding_guess_heuristic Encoding guess heurisitic}
-
-    {e Note, this was taken from Uutf. Twelve years laters I'm not sure it's
-    the best way to go about it, in particular this was constrained by the
-    making the JSON guess according to the old spec, JSON starts with ASCII
-    but international text does not.}
 
     The heuristic is compatible with
     {{:http://unicode.org/glossary/#byte_order_mark}BOM} based
     recognition and the
     {{:http://tools.ietf.org/html/rfc4627#section-3}old} JSON encoding
-    recognition that relies on ASCII being present at the beginning of
-    the stream (JSON mandates UTF-8 nowadays).
+    recognition (UTF-8 is mandated nowadays) that relies on ASCII
+    being present at the beginning of the stream.
 
     The heuristic looks at the first three bytes of input (or less if
     impossible) and takes the {e first} matching byte pattern in the

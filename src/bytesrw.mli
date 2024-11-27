@@ -670,9 +670,10 @@ module Bytes : sig
            etc.}} *)
 
     val limit : ?action:(t -> int -> unit) -> int -> filter
-    (** [limit n w] is a writer that writes {e at most} [n] bytes on [w].
+    (** [limit n w ~eod] is a writer that writes {e at most} [n] bytes on [w].
         Any leftover in the slice that exceeds the [n] bytes is
-        lost. If the [n] bytes are exceeded the action
+        lost. If the [n] bytes are exceeded, {!Slice.eod} is written
+        if [eod] is [true], the action
         [action] is invoked once and the filtering writer accepts only
         {!Slice.eod} afterwards. As per filter semantics {!Slice.eod}
         is only written on [w] if [eod] is true. The default [action]

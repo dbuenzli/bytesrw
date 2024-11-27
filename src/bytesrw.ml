@@ -358,19 +358,25 @@ module Bytes = struct
 
     let sub n ?pos ?slice_length r =
       if n <= 0 then empty () else
-      let count = ref n in
-      let read () =
-        if !count <= 0 then Slice.eod else
-        let s = read r in
-        let slen = Slice.length s in
-        if slen <= !count then (count := !count - slen; s) else
-        match Slice.break !count s with
-        | None -> assert false
-        | Some (ret, back) -> count := 0; push_back r back; ret
-      in
+      let slice_length = Option.value ~default:r.slice_length slice_length in
+      let slice_length = Slice.check_length slice_length in
       let pos = Option.value ~default:r.pos pos in
-      let sub = make ~pos ?slice_length read in
-      sub
+      let sr = make ~pos ~slice_length read_eod in
+      let count = ref n in
+      let read () = match read r with
+      | slice when Slice.is_eod slice -> sr.read <- read_eod; slice
+      | slice ->
+          let slen = Slice.length slice in
+          let ret =
+            if slen <= !count then slice else
+            let ret, back = Option.get (Slice.break !count slice) in
+            push_back r back; ret
+          in
+          count := !count - slen;
+          if !count <= 0 then sr.read <- read_eod;
+          ret
+      in
+      sr.read <- read; sr
 
     let limit ?action n ?pos ?slice_length r =
       let action = match action with
@@ -381,16 +387,19 @@ module Bytes = struct
       let pos = Option.value ~default:r.pos pos in
       let lr = make ~pos ~slice_length read_eod in
       let left = ref n in
-      let read () =
-        if !left <= 0 then (lr.read <- read_eod; action lr n; Slice.eod) else
-        match read r with
-        | slice when Slice.is_eod slice -> slice
-        | slice ->
-            let slen = Slice.length slice in
-            left := !left - slen;
-            if !left >= 0 then slice else
-            let ret, back = Option.get (Slice.break (slen + !left) slice) in
+      let read () = match read r with
+      | slice when Slice.is_eod slice -> lr.read <- read_eod; slice
+      | slice when !left <= 0 ->
+          push_back r slice; lr.read <- read_eod; action lr n; Slice.eod
+      | slice ->
+          let slen = Slice.length slice in
+          let ret =
+            if slen <= !left then slice else
+            let ret, back = Option.get (Slice.break !left slice) in
             push_back r back; ret
+          in
+          left := !left - slen;
+          ret
       in
       lr.read <- read; lr
 
@@ -686,6 +695,7 @@ module Bytes = struct
           if !left >= 0 then write w slice else
           begin
             write w (Option.get (Slice.take (slen + !left) slice));
+            if eod then write_eod w;
             lw.write <- write_only_eod;
             action w n
           end

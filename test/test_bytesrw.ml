@@ -193,10 +193,12 @@ let test_reader_skip_sub_limit () =
   Test.string (Bytes.Reader.to_string (Bytes.Reader.sub 128 r0)) "abbccc";
   Test.string (Bytes.Reader.to_string r0) "";
   let r0 = r () in
-  let lr0 = Bytes.Reader.limit 2 r0 in
+  let lr0 = Bytes.Reader.limit 5 r0 in
   test_stream_error @@ (fun () -> Bytes.Reader.to_string lr0);
   eq_eod (Bytes.Reader.read lr0);
-  Test.string (Bytes.Reader.to_string r0) "bccc";
+  let r0 = r () in
+  let lr0 = Bytes.Reader.limit 6 r0 in
+  Test.string (Bytes.Reader.to_string lr0) "abbccc" ~__POS__;
   let r0 = r () in
   let () = Bytes.Reader.skip 2 r0 in
   Test.string (Bytes.Reader.to_string r0) "bccc";
@@ -251,14 +253,26 @@ let test_writer_limit () =
   let b = Buffer.create 255 in
   let w = Bytes.Writer.of_buffer b in
   let lw = Bytes.Writer.limit 2 ~eod:true w in
-  test_stream_error @@ (fun () -> Bytes.Writer.write_string lw "1234");
+  test_stream_error @@ (fun () -> Bytes.Writer.write_string lw "123");
   Test.string (Buffer.contents b) "12";
   Test.invalid_arg @@ (fun () -> Bytes.Writer.write_string lw "bla");
   Test.string (Buffer.contents b) "12";
   Bytes.Writer.write_eod lw;
   Test.string (Buffer.contents b) "12";
-  Bytes.Writer.write_string w "1234";
-  Test.string (Buffer.contents b) "121234";
+  Test.invalid_arg @@ (fun () -> Bytes.Writer.write_string w "1234");
+  Test.string (Buffer.contents b) "12";
+  let w = Bytes.Writer.of_buffer b in
+  let lw = Bytes.Writer.limit 2 ~eod:false w in
+  Bytes.Writer.write_string lw "12";
+  Test.string (Buffer.contents b) "1212";
+  Bytes.Writer.write_eod lw;
+  Test.string (Buffer.contents b) "1212";
+  let lw = Bytes.Writer.limit 2 ~eod:true w in
+  Bytes.Writer.write_string lw "12";
+  Test.string (Buffer.contents b) "121212";
+  Bytes.Writer.write_eod lw;
+  Test.string (Buffer.contents b) "121212";
+  Test.invalid_arg @@ (fun () -> Bytes.Writer.write_string w "1234");
   ()
 
 

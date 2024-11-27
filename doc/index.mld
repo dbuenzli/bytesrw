@@ -37,7 +37,8 @@ Bytesrw.Bytes.Writer}
 The following modules rely only on the [Stdlib]:
 
 {!modules:
-Bytesrw_utf}
+Bytesrw_utf
+Bytesrw_hex}
 
 {1:bytesrw_other_libs Libraries
    [bytesrw.{blake3,md,unix,xxhash,zlib,zstd}]}

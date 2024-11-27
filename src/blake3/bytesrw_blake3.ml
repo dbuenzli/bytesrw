@@ -5,53 +5,6 @@
 
 open Bytesrw
 
-(* XXX find a scheme to avoid these code dupes with xxh *)
-
-let strf = Printf.sprintf
-
-let binary_string_of_hex h = (* raises Failure *)
-  let hex_value s i = match s.[i] with
-  | '0' .. '9' as c -> Char.code c - 0x30
-  | 'A' .. 'F' as c -> 10 + (Char.code c - 0x41)
-  | 'a' .. 'f' as c -> 10 + (Char.code c - 0x61)
-  | c -> failwith (strf "%d: %C is not an ASCII hexadecimal digit" i c)
-  in
-  match String.length h with
-  | len when len mod 2 <> 0 -> failwith "Missing final hex digit"
-  | len ->
-      let rec loop max s i h k = match i > max with
-      | true -> Bytes.unsafe_to_string s
-      | false ->
-          let hi = hex_value h k and lo = hex_value h (k + 1) in
-          Bytes.set s i (Char.chr @@ (hi lsl 4) lor lo);
-          loop max s (i + 1) h (k + 2)
-      in
-      let s_len = len / 2 in
-      let s = Bytes.create s_len in
-      loop (s_len - 1) s 0 h 0
-
-let of_hex ~length of_binary_string s =
-  let slen = String.length s in
-  if slen = length * 2
-  then match binary_string_of_hex s with
-  | exception Failure e -> Error e
-  | h -> of_binary_string h
-  else
-  Error
-    (strf
-       "Expected %d ASCII hexadecimal digit found %d characters" length slen)
-
-let pp_hex ppf s =
-  for i = 0 to String.length s - 1 do
-    Format.fprintf ppf "%02x" (Char.code (s.[i]))
-  done
-
-let string_to_hex s = Format.asprintf "%a" pp_hex s
-let of_binary_string ~length s =
-  let slen = String.length s in
-  if slen = length
-  then Ok s else Error (strf "Expected %d bytes, found %d" length slen)
-
 (* Library parameters *)
 
 external version : unit -> string = "ocaml_bytesrw_blake3_version"
@@ -154,9 +107,9 @@ module Blake3 = struct
 
   let equal = String.equal
   let compare = String.compare
-  let of_binary_string s = of_binary_string ~length s
+  let of_binary_string s = Bytesrw_hex.check_binary_string_length ~length s
   let to_binary_string = Fun.id
-  let of_hex s = of_hex ~length of_binary_string s
-  let pp = pp_hex
-  let to_hex = string_to_hex
+  let of_hex s = Bytesrw_hex.to_binary_string ~length s
+  let pp = Bytesrw_hex.pp_binary_string
+  let to_hex = Bytesrw_hex.of_binary_string
 end

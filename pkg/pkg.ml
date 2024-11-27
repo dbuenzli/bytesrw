@@ -15,7 +15,8 @@ let () =
   let xxhash = Conf.value c xxhash in
   let zlib = Conf.value c zlib in
   let zstd = Conf.value c zstd in
-  Ok [ Pkg.mllib ~api:["Bytesrw"; "Bytesrw_utf"] "src/bytesrw.mllib";
+  Ok [ Pkg.mllib ~api:["Bytesrw"; "Bytesrw_utf"; "Bytesrw_hex"]
+         "src/bytesrw.mllib";
        Pkg.mllib "src/unix/bytesrw_unix.mllib" ~dst_dir:"unix";
        Pkg.mllib ~cond:blake3 "src/blake3/bytesrw_blake3.mllib"
          ~dst_dir:"blake3";

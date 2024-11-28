@@ -1,3 +1,5 @@
+- `bytesrw.*` libraries are made to export `bytesrw`.
+
 v0.1.0 2024-11-28 Zagreb
 ------------------------
 

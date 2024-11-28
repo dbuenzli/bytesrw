@@ -24,41 +24,41 @@ let bytesrw_blake3_lib =
   let doc = "BLAKE3 hashes" in
   let srcs = [ `Dir ~/"src/blake3" ] in
   let c_requires = Cmd.arg "-lblake3" in
-  let requires = [bytesrw] in
-  B0_ocaml.lib bytesrw_blake3 ~srcs ~requires ~c_requires ~doc
+  let requires = [bytesrw] and exports = [bytesrw] in
+  B0_ocaml.lib bytesrw_blake3 ~srcs ~requires ~exports ~c_requires ~doc
 
 let bytesrw_md_lib =
   let doc = "SHA{1,2} hashes" in
   let srcs = [ `Dir ~/"src/md" ] in
   let c_requires = Cmd.arg "-lmd" in
-  let requires = [bytesrw] in
-  B0_ocaml.lib bytesrw_md ~srcs ~requires ~c_requires ~doc
+  let requires = [bytesrw] and exports = [bytesrw] in
+  B0_ocaml.lib bytesrw_md ~srcs ~requires ~exports ~c_requires ~doc
 
 let bytesrw_unix_lib =
   let srcs = [ `Dir ~/"src/unix" ] in
-  let requires = [bytesrw; unix] in
-  B0_ocaml.lib bytesrw_unix ~srcs ~requires
+  let requires = [bytesrw; unix] and exports = [bytesrw] in
+  B0_ocaml.lib bytesrw_unix ~srcs ~requires ~exports
 
 let bytesrw_xxhash_lib =
   let doc = "XXH hashes" in
   let srcs = [ `Dir ~/"src/xxhash" ] in
   let c_requires = Cmd.arg "-lxxhash" in
-  let requires = [bytesrw] in
-  B0_ocaml.lib bytesrw_xxhash ~srcs ~requires ~c_requires ~doc
+  let requires = [bytesrw] and exports = [bytesrw]in
+  B0_ocaml.lib bytesrw_xxhash ~srcs ~requires ~exports ~c_requires ~doc
 
 let bytesrw_zlib_lib =
   let doc = "deflate, zlib and gzip streams" in
   let srcs = [ `Dir ~/"src/zlib" ] in
   let c_requires = Cmd.arg "-lz" in
-  let requires = [bytesrw] in
-  B0_ocaml.lib bytesrw_zlib ~srcs ~requires ~c_requires ~doc
+  let requires = [bytesrw] and exports = [bytesrw] in
+  B0_ocaml.lib bytesrw_zlib ~srcs ~requires ~exports ~c_requires ~doc
 
 let bytesrw_zstd_lib =
   let doc = "zstd streams" in
   let srcs = [ `Dir ~/"src/zstd" ] in
   let c_requires = Cmd.arg "-lzstd" in
-  let requires = [bytesrw] in
-  B0_ocaml.lib bytesrw_zstd ~srcs ~requires ~c_requires ~doc
+  let requires = [bytesrw] and exports = [bytesrw] in
+  B0_ocaml.lib bytesrw_zstd ~srcs ~requires ~exports ~c_requires ~doc
 
 (* Tests *)
 

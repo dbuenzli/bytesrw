@@ -239,7 +239,10 @@ module Bytes : sig
       Byte streams are sequences of non-empty {{!Slice}byte slices}
       ended by a single {!Slice.eod} slice. They have no concrete
       incarnation, they are observed by {!Bytes.Reader}s and
-      {!Bytes.Writer}s. *)
+      {!Bytes.Writer}s.
+
+      See the {{!page-index.quick}quick start} and read more
+      about streams in the {{!page-tutorial.streams}tutorial}. *)
   module Stream : sig
 
     (** {1:positions Positions} *)
@@ -259,11 +262,13 @@ module Bytes : sig
         read or written bytes. Favour mime types or lowercased file extensions
         without the dot. *)
 
-    (** {1:errors Errors} *)
+    (** {1:errors Errors}
+
+        Read more about errors in the {{!page-tutorial.errors}tutorial}. *)
 
     type error = ..
     (** The type for stream errors. Stream formats add their own cases
-        to this type. *)
+        to this type. See {{!page-cookbook.errors}an example}. *)
 
     type error_context
     (** The type for error contexts. *)
@@ -290,7 +295,8 @@ module Bytes : sig
         {- [format] identifies the stream {!format}.}
         {- [case] is the function that injects the type into {!type-error}.}
         {- [message] is a function that must stringify the results of [case].}}
-    *)
+
+        See {{!page-cookbook.errors}an example}. *)
 
     val error : 'e format_error -> ?context:[`R| `W] -> 'e -> 'a
     (** [error fmt e] errors with [e] for a stream [fmt] by raising an
@@ -312,7 +318,10 @@ module Bytes : sig
       provides read access to these slices in order, on demand, but
       only slice by slice: the slice you get is
       {{!Slice.validity}valid for reading} only until the next slice
-      is {{!Reader.read}read} from the reader. *)
+      is {{!Reader.read}read} from the reader.
+
+      See the {{!page-index.quick}quick start} and read about
+      stream readers in the {{!page-tutorial.readers}tutorial}. *)
   module Reader : sig
 
     (** {1:readers Readers} *)
@@ -365,7 +374,7 @@ module Bytes : sig
     (** {1:reads Reading} *)
 
     val read : t -> Slice.t
-    (** [read r] reads the next slice from [r]. The slice is
+    (** [read r] reads the next slice from [r]. The slice is only
         {{!Slice.validity} valid for reading} until the next call to
         [read] on [r]. Once {!Slice.eod} is returned, {!Slice.eod} is
         always returned. *)
@@ -405,7 +414,10 @@ module Bytes : sig
     (** [discard r] reads and discards slices until {!Slice.eod} is returned.
         See also {!skip}. *)
 
-    (** {1:filters Filters} *)
+    (** {1:filters Filters}
+
+        Read more about filters in the
+        {{!page-tutorial.reader_filters}tutorial}. *)
 
     type filter = ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t
     (** The type for byte stream reader filters.
@@ -413,12 +425,12 @@ module Bytes : sig
         Given a reader [r], a filter [f] returns a filtering reader [f
         r], that reads the stream of [r] and transforms it in some
         way. The following conventions should be followed for the
-        filtering reader:
+        resulting filtering reader:
 
         {ul
-        {- If [pos] is unspecfied, it should default to [r]'s position
+        {- If [pos] is unspecified, it should default to [r]'s position
            only if the reads on the filtering reader are always in the same
-           position space as [r] (e.g. {!sub} or {!limit}). Otherwise
+           position space as [r] (see e.g. {!sub} or {!limit}). Otherwise
            it should be [0] (e.g. on decompression filters) or anything
            else that makes sense for the filter.}
         {- If [slice_length] is unspecified, it should default
@@ -427,8 +439,8 @@ module Bytes : sig
         {- If the filter reader does not read all of [r]'s bytes, it
            must, after having returned {!Slice.eod}, leave [r] at the
            position of the leftover data so that [r] can be used again
-           to perform non-filtered reads. {!push_back} can be used to
-           achieve that.}
+           to perform non-filtered reads. This can be done by using
+           {!push_back} on [r] with the leftover data.}
         {- If your filter is in a module [M], then its name should be
            [M.{decode,encode}_reads] or another meaningful verb like
            [M.{decompress,compress}_reads],
@@ -437,15 +449,15 @@ module Bytes : sig
     val sub : int -> filter
     (** [sub n r] is a reader reading at most [n] bytes from [r]
         before returning {!Slice.eod}. [sub] satisfies all the
-        {!type-filter} conventions and is not affected by push backs
-        (reading a push back does not count towards [n]). See also
-        {!limit}. *)
+        {!type-filter} conventions and is not affected by push backs:
+        reading back a push back on the sub stream does not count towards [n].
+        See also {!limit}. *)
 
     val limit : ?action:(t -> int -> unit) -> int -> filter
     (** [limit n r] is like {!sub} except it invokes [action] {b once}
         with the filter reader before returning {!Slice.eod}. The
         default [action] raises {!Stream.Limit} error. See
-        {{!page-index.limiting}an example}. *)
+        {{!page-cookbook.limiting}an example}. *)
 
     val filter_string : filter list -> string -> string
     (** [filter_string fs s] is a convenience function
@@ -453,7 +465,8 @@ module Bytes : sig
         to the string [s] it is equivalent to:
         {[
           to_string (List.fold_left (fun r f -> f r) (of_string s) fs)
-        ]} *)
+        ]}
+        See an {{!page-cookbook.string_filtering}example}. *)
 
     val reslice : filter
     (** [reslice ?pos ?slice_length r] has the data of [r] but ensures
@@ -473,7 +486,7 @@ module Bytes : sig
     (** [tap f r] invokes [f] with the slice read by [r] before returning
         them with {!read}. Note that {!push_back}s are not tapped, so
         this can be used reliably for checksumming the reads of [r].
-        See also {!Slice.tracer}. *)
+        See also {!Slice.tracer} and {{!page-cookbook.tracing}an example}. *)
 
     (** {1:predicates Predicates and comparisons} *)
 
@@ -554,7 +567,10 @@ module Bytes : sig
       given access to these slices in order but only slice by slice in
       its write function: the slice only remains
       {{!Slice.validity}valid for reading} until the write function
-      returns. *)
+      returns.
+
+      See the {{!page-index.quick}quick start} and read more about
+      stream writers in the {{!page-tutorial.writers}tutorial}. *)
   module Writer : sig
 
     (** {1:writers Writers} *)
@@ -607,7 +623,7 @@ module Bytes : sig
         a {!Slice.eod} was written. *)
 
     val write : t -> Slice.t -> unit
-    (** [write w s] writes the slice [s] on [w]. [s] must remain
+    (** [write w s] writes the slice [s] on [w]. The slice [s] must remain
         {{!Slice.validity}valid for reading} until the function
         returns.
 
@@ -639,7 +655,10 @@ module Bytes : sig
         {!Slice.eod} is written iff [eod] is true. The maximal length
         of written slices are [w]'s {!slice_length}. *)
 
-    (** {1:filters Filters} *)
+    (** {1:filters Filters}
+
+        Read more about filters in the
+        {{!page-tutorial.writer_filters}tutorial}. *)
 
     type filter =
       ?pos:Stream.pos -> ?slice_length:Slice.length -> eod:bool -> t -> t
@@ -656,7 +675,7 @@ module Bytes : sig
            data that it couldn't write. It must only write {!Slice.eod}
            on [w] if [eod] is [true]. Otherwise it should leave [w] as
            is so that [w] can be used again to perform other
-           non-filtered writes}
+           non-filtered writes.}
         {- If [pos] is unspecified it should default to [w]'s position
            only if the writes are in the same position space as [w].
            Otherwise it should be [0] (e.g. on compression filters).}
@@ -687,13 +706,15 @@ module Bytes : sig
           let b = Buffer.create (String.length s) in
           let w = List.fold_left (fun w f -> f ~eod:true w) (of_buffer w) fs in
           write_string w s; write_eod w; Buffer.contents b
-        ]} *)
+        ]}
+        See an {{!page-cookbook.string_filtering}example}. *)
 
     (** {1:taps Taps} *)
 
     val tap : (Slice.t -> unit) -> t -> t
     (** [tap f w] is a writer that invokes [f] with the slice before writing
-        it on [w]. See also {!Slice.tracer}. *)
+        it on [w]. See also {!Slice.tracer} and
+        {{!page-cookbook.tracing}an example}.  *)
 
     (** {1:convert Converting} *)
 

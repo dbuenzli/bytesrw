@@ -9,7 +9,7 @@
     encoding guessing, more may be added in the future.
 
     Sample code for decoding UTF-8 with position tracking using a
-    bytes reader and encoding UTF-8 with a bytes writer can be found
+    byte stream reader and encoding UTF-8 with a byte stream writer can be found
     {{:https://github.com/dbuenzli/bytesrw/blob/main/test/utf8codec.ml}here}. *)
 
 open Bytesrw

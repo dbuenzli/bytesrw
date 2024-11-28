@@ -128,10 +128,13 @@ a strong rationale.
 
 {1:upstream Upstreaming}
 
-{b If we determine that this API works well} we should consider
-proposing to upstream the extension of {!Bytesrw.Bytes}. The core code
-is mostly trivial it's "just" three data structures. But added code is
-more code to maintain.
+{b If we determine that the API works well} we should consider
+proposing to upstream the extension of {!Bytesrw.Bytes}.
+
+In particular it would be an alternative to the
+{{:https://github.com/ocaml/RFCs/blob/master/rfcs/modular_io.md}modular
+IO proposal}. The core code is mostly trivial it's "just" three data
+structures. But added code is more code to maintain.
 
 However here are a few things to consider:
 
@@ -173,9 +176,10 @@ However here are a few things to consider:
    One thing I can see not make it is perhaps the nice hex dump
    formatter {!Bytesrw.Bytes.pp_hex} which is maybe too much code for
    upstream to take.}
-
 {- Safety. There are two places where we don't copy a bytes/string
    because we assume that the users abide the Slice validity
    rule. Notably {!Bytesrw.Bytes.Reader.of_string}. Upstream will likely want
    no unsafe usage. These places can be found with [git grep 'Unsafe is
-   ok'].}}
+   ok']. We considered prefixing these functions with [unsafe_] but then
+   it creeps a bit because for example {!Bytesrw.Bytes.Reader.filter_string}
+   uses it.}}

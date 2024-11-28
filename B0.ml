@@ -67,9 +67,12 @@ let test ?(requires = []) =
 
 let utf8codec = test ~/"test/utf8codec.ml" ~long:true
 
-let test_examples =
+let test_quickstart =
+  test ~/"test/quickstart.ml" ~requires:[bytesrw_zstd] ~run:false
+
+let test_cookbook =
   let requires = [bytesrw_zstd; bytesrw_blake3] in
-  test ~/"test/examples.ml" ~requires
+  test ~/"test/cookbook.ml" ~requires ~run:false
 
 let test_bytesrw = test ~/"test/test_bytesrw.ml" ~requires:[]
 let test_utf = test ~/"test/test_utf.ml"

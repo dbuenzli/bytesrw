@@ -1,27 +1,36 @@
-{0 Bytes reader and writer tutorial}
+{0 Byte stream reader and writer tutorial}
 
-See also the {{!page-index.quick}quick start} for short, self-contained,
-code snippets.
+See also the {{!page-index.quick}quick start} and the {{!page-cookbook}
+cookbook} for short, self-contained, code snippets. This tutorial
+is a conceptual overview of byte stream readers and writers.
 
-In [bytesrw] you never get to manipulate bytes streams directly. You
+{1:streams Streams}
+
+In [Bytesrw] you never get to manipulate byte streams directly. You
 observe finite parts of them via stream readers and writers. These
-finite parts are represented by {{!Bytesrw.Bytes.Slice}slices} which
-are non-empty, consecutive, subranges of {!Bytes.t} values. There is a
-single, distinguished, empty slice {!Bytesrw.Bytes.Slice.eod} which is
-used to denote the end of stream. Once this value is seen no more
-bytes can be observed from a stream.
+finite parts are represented by byte slices. A
+{{!Bytesrw.Bytes.Slice}byte slice} is a non-empty, consecutive,
+subrange of a {!Bytes.t} value. There is a single, distinguished,
+empty slice {!Bytesrw.Bytes.Slice.eod} (end-of-data) which is used to
+indicate the end the stream. Once this value is observed no more bytes can
+be observed from a stream.
 
-So for [bytesrw] a byte stream is a sequence of {!Bytesrw.Bytes.Slice.t}
-values ended by a {!Bytesrw.Bytes.Slice.eod} value. Bytes reader and writers
-give you two different ways of observing this sequence, in order, but always
-only slice by slice:
+To sum up, a byte stream is a sequence of {!Bytesrw.Bytes.Slice.t}
+values ended by a {!Bytesrw.Bytes.Slice.eod} value. Byte stream reader
+and writers give you two different ways of observing this sequence, in
+order, but always only slice by slice:
 
-- With byte readers you get to pull from the sequence enumerated by
-  the reader's slice enumerating function until {!Bytesrw.Bytes.Slice.eod}
-  is pulled.
-- With byte writers you get to see slices pushed on the writer
-  in the writer's slice iteration function until {!Bytesrw.Bytes.Slice.eod}
-  is pushed.
+- With byte stream readers you get to pull slices one by one from the reader
+  until {!Bytesrw.Bytes.Slice.eod} is pulled.
+- With byte stream writers you get to see slices pushed on the writer
+  one by one until {!Bytesrw.Bytes.Slice.eod} is pushed.
+
+The system enforces well-formed streams: your readers and writers will
+not hiccup on transient empty slices since they unconditionally
+terminates streams. For this reason the functions in
+{!Bytesrw.Bytes.Slice} always make explicit when
+{!Bytesrw.Bytes.Slice.eod} can be produced by suffixing the function
+names with [_or_eod].
 
 {1:readers Stream readers}
 
@@ -43,68 +52,142 @@ Readers can be created from {{!Bytesrw.Bytes.Reader.of_bytes} bytes},
 {{!Bytesrw.Bytes.Reader.of_in_channel} input channels},
 {{!Bytesrw_unix.bytes_reader_of_fd}file descriptors}, etc. More generally
 {{!Bytesrw.Bytes.Reader.make}any function} that enumerates a stream's slices
-can be turned into a bytes reader.
+can be turned into a byte stream reader.
 
 Readers maintain an informative stream position accessible with
 {!Bytesrw.Bytes.Reader.pos}. The position is the zero based-index of
 the next byte to read or, alternatively, the
 {{!Bytesrw.Bytes.Reader.read_length} number of bytes} that have been
-returned by calls to {!Bytesrw.Bytes.Reader.read}. Positions can be used
-for statistics and for locating errors.
+returned by calls to {!Bytesrw.Bytes.Reader.read}. Positions can be
+used for statistics, for locating errors, for locating substreams or
+computing byte offsets.
 
-Readers have an informative {!Bytesrw.Bytes.Reader.slice_length}
-property. It is a {b hint} on the maximal length of slices that it
-returns. This can be used by reader consumers to adjust their own
-buffers.
+Readers have an informative immutable
+{!Bytesrw.Bytes.Reader.slice_length} property. It is a {b hint} on the
+maximal slice length returned by reads. This can be used by reader
+consumers to adjust their own buffers.
 
 {2:reader_push_back Push backs}
 
 Reader {{!Bytesrw.Bytes.Reader.push_back}push backs} provide a limited
-form of look ahead. They should not be used as a general buffering
-mecanism but they allow to {{!Bytesrw.Bytes.Reader.sniff}sniff stream
-content} (for example to {{!Bytesrw_utf.guess_reader_encoding}guess
-encodings}) in order to invoke designated decoders and to break
-streams into substreams at precise positions when substream lengths may
-not be known before actually consuming them.
+form of look ahead on streams. They should not be used as a general
+buffering mecanism but they allow to
+{{!Bytesrw.Bytes.Reader.sniff}sniff stream content}, for example to
+{{!Bytesrw_utf.guess_reader_encoding}guess encodings}, in order to invoke
+suitable decoders. They are also used to break streams into
+substreams at precise positions when a reader provide you with a
+slice that overlap two substreams.
 
-{2:reader_filters Reader filters}
+{2:reader_filters Filters}
 
 {{!Bytesrw.Bytes.Reader.filters}Reader filters} are reader
-transformers. They take a reader [r] and return a new reader which, when
-read, reads on [r] and transforms its slices. For example given a
+transformers. They take a reader [r] and return a new reader which,
+when read, reads on [r] and transforms its slices. For example given a
 reader [r] that returns compressed bytes a decompress filter like
 {!Bytesrw_zstd.decompress_reads} returns a new reader which reads and
 decompresses the slices of [r].
 
-Filters do not necessarily act on a reader forever. For example
-{!Bytesrw_zstd.decompress_reads} if invoked with [all_frames:false]
-decompresses a single [zstd] frame, after that [r] can be used again
-to read other kind of data.
+Filters do not necessarily act on a reader forever. For example the
+reader returned by {!Bytesrw_zstd.decompress_reads}[ ~all_frames:false
+() r], decompresses exactly a single [zstd] frame by reading from [r]
+and then returns {!Bytesrw.Bytes.Slice.eod}. After that [r] can be
+used again to read the remaining data after the frame.
 
-{2:reader_limits Reader limits}
+{2:reader_limits Limits}
 
 The number of bytes returned by a reader can be limited with
-{!Bytesrw.Bytes.Reader.limit}. See {{!page-index.limiting}this example}
-in the quick start.
+{!Bytesrw.Bytes.Reader.limit}. See {{!page-cookbook.limiting}this
+example} in the cookbook.
 
 {1:writers Stream writers}
 
-{1:positions Stream positions}
+Stream {{!Bytesrw.Bytes.Writer}writers} are push abstractions. Clients
+push the slices of a stream on a writer [w] with
+{!Bytesrw.Bytes.Writer.write}, slice by slice. This allows the write
+function of the writer to get a hand on the slice which the client
+must guarantee {{!Bytesrw.Bytes.Slice.validity}valid for reading}
+until the writer returns.
 
-For many usages stream positions are irrelevant. However one should
-pay attention to them when devising readers and writers so that errors
-are reported accurately.
+Writers, in their write function, are {b only} allowed to read those
+bytes in the range defined by the slice until they return. They are
+not allowed to mutate the bytes in the range of the slice. If a
+writer needs to keep the data for longer or needs to modify it, it
+needs to copy it.
 
-Byte reader and writers maintain a stream position which is the
-zero-based index of the next byte to read or write. This value
-can also be intepreted as the number of bytes that have been
-read or written.
+Writers can be created to write to
+{{!Bytesrw.Bytes.Writer.of_buffer}buffers},
+{{!Bytesrw.Bytes.Writer.of_out_channel}output channels},
+{{!Bytesrw_unix.bytes_writer_of_fd}file descriptors}, etc. More
+generally {{!Bytesrw.Bytes.Writer.make}any slice iterating function}
+can be turned into a byte stream writer.
 
-{1:read_filters Understanding read filters}
+Writers maintain an informative stream position accessible with
+{!Bytesrw.Bytes.Writer.pos}. The position is the zero based-index of
+the next byte to write or, alternatively, the
+{{!Bytesrw.Bytes.Writer.written_length}number of bytes} that have been
+pushed on the writer by calls to
+{!Bytesrw.Bytes.Writer.write}. Positions can be used for statistics,
+for locating errors or computing byte offsets.
 
-The conventions are described in {!Bytesrw.Bytes.Reader.filter}
+Writers have an informative immutable
+{!Bytesrw.Bytes.Writer.slice_length} property. It provides a {b hint}
+for clients on the maximal length of slices the writer would like to
+receive. This can be used by clients to adjust the sizes of the slices
+they write on a writer.
 
-{1:write_filter Understanding write filters}
+{2:writer_filters Filters}
 
-Explain the behaviour about {!Bytesrw.Bytes.Slice.eod}.
-The conventions are described in {!Bytesrw.Bytes.Writer.filter}
+{{!Bytesrw.Bytes.Writer.filters}Writer filters} are writer
+transformers.  They take a writer [w] and return a new writer which,
+when written, transforms the slice and then writes it on [w]. For
+example given a writer [w] that writes to an output channel, a filter
+like {!Bytesrw_zstd.compress_writes} returns a new writer which
+compresses the writes before writing them to [w].
+
+Filters do not necessarily act on a writer forever. This is the
+purpose of the boolean [eod] argument of
+{!Bytesrw.Bytes.Writer.filter}.  When {!Bytesrw.Bytes.Slice.eod} is
+written on the filter the end of data slice should only be written to
+the underyling writer [w] if [eod] is [true]. If not, the filter
+should simply flush its data to [w] and further leave [w] untouched so
+that more data can be written on it. For example the writer returned
+by {!Bytesrw_zstd.compress_writes}[ () ~eod:false w] compresses writes
+until {!Bytesrw.Bytes.Slice.eod} is written. After that [w] can be
+used again to write more data after the compressed stream.
+
+{2:writer_limits Limits}
+
+The number of bytes written on a writer can be limited with
+{!Bytesrw.Bytes.Writer.limit}.
+
+{1:errors Errors}
+
+In general stream readers and writer and their creation function may
+raise the extensible {!Bytesrw.Bytes.Stream.Error} exception.
+
+These errors should only pertain to byte stream errors, that is they
+should mostly be raised by reads and writes on the result of stream
+filters. For example the default behaviour on byte stream reader and
+writer limits is to raises a byte stream exception with a
+{!Bytesrw.Bytes.Stream.Limit} error. Or if you use a [zstd]
+decompression filter, any decompression error will be reported by byte
+stream exception with a {!Bytesrw_zstd.Error} error. See
+{{!page-cookbook.errors}here} for an example on how you can add your
+own case to stream errors.
+
+If you use byte stream readers and writers to codec a higher-level
+data format like JSON that does not result in a byte stream itself,
+you should likely have your own error mecanisms and let stream errors
+simply fly across your use of readers and writers. For example while
+a [zstd] decompression error could occur from the reader you are
+decoding your JSON from, it likely doesn't make sense to capture this
+error in your decoder and produce it as a JSON codec error.
+
+For now the library also decided not to inject {!Sys_error} and
+{!Unix.Unix_error} that readers and writers based on standard library
+channels and {!Unix} file descriptors may raise into the stream error
+exception. The idea is that these errors pertain to the resource being
+acted upon, not the byte stream itself (also: we couldn't do the same
+for potential unknown third-party system abstractions so it feels
+non-compostional). But a bit more practice may be needed to precisely
+pin down the strategy here.

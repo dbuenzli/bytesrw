@@ -5,29 +5,7 @@
 
 open Bytesrw
 
-let stdio_compress_reads () =
-  try
-    let stdin = Bytes.Reader.of_in_channel In_channel.stdin in
-    let stdout = Bytes.Writer.of_out_channel Out_channel.stdout in
-    let params = Bytesrw_zstd.Cctx_params.make ~checksum:true () in
-    let zstdr = Bytesrw_zstd.compress_reads ~params () stdin in
-    Bytes.Writer.write_reader ~eod:true stdout zstdr;
-    Ok ()
-  with
-  | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
-  | Sys_error e -> Error e
-
-let stdio_compress_writes () =
-  try
-    let stdin = Bytes.Reader.of_in_channel In_channel.stdin in
-    let stdout = Bytes.Writer.of_out_channel Out_channel.stdout in
-    let params = Bytesrw_zstd.Cctx_params.make ~checksum:true () in
-    let zstdw = Bytesrw_zstd.compress_writes ~params () ~eod:true stdout in
-    Bytes.Writer.write_reader ~eod:true zstdw stdin;
-    Ok ()
-  with
-  | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
-  | Sys_error e -> Error e
+(* Applying filters to strings *)
 
 let id s =
   let filters = Bytesrw_zstd.[compress_reads (); decompress_reads ()] in
@@ -36,6 +14,8 @@ let id s =
 let id s =
   let filters = Bytesrw_zstd.[decompress_writes (); compress_writes ()] in
   Bytes.Writer.filter_string filters s
+
+(* Checksumming streams *)
 
 let blake3_and_compress ~plain =
   try
@@ -55,6 +35,8 @@ let decompress_and_blake3 ~comp =
   with
   | Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
 
+(* Limiting streams *)
+
 let limited_decompress ~quota ~comp =
   let buf = Buffer.create quota in
   try
@@ -65,3 +47,34 @@ let limited_decompress ~quota ~comp =
   |  Bytes.Stream.Error (Bytes.Stream.Limit _quota, _) ->
       Ok (`Quota_exceeded (Buffer.contents buf))
   |  Bytes.Stream.Error e -> Bytes.Stream.error_to_result e
+
+(* Tracing streams *)
+
+let rtrace ~id r = Bytes.Reader.tap (Bytes.Slice.tracer ~id) r
+let wtrace ~id w = Bytes.Writer.tap (Bytes.Slice.tracer ~id) w
+
+(* Adding your own stream error *)
+
+module Myformat : sig
+
+  (** {1:errors Errors} *)
+
+  type Bytesrw.Bytes.Stream.error +=
+  | Error of string (** *)
+  (** The type for [myformat] stream errors. *)
+
+  (** {1:streams Streams} *)
+
+  (* … *)
+end = struct
+  type Bytes.Stream.error += Error of string
+
+  let format_error =
+    let case msg = Error msg in
+    let message = function Error msg -> msg | _ -> assert false in
+    Bytes.Stream.make_format_error ~format:"myformat" ~case ~message
+
+  let error e = Bytes.Stream.error format_error e
+  let reader_error r e = Bytes.Reader.error format_error r e
+  let writer_error w e = Bytes.Writer.error format_error w e
+end

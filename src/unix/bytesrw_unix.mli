@@ -3,7 +3,7 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** {!Unix} file descriptor bytes readers and writers. *)
+(** {!Unix} file descriptor byte stream readers and writers. *)
 
 open Bytesrw
 

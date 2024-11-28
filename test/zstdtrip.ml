@@ -73,8 +73,12 @@ let cmd =
     Arg.(value & vflag `Compress [c; d])
   in
   let processor =
-    let r = `Reader, Arg.info ["reader"] ~doc:"Use a bytes reader processor." in
-    let w = `Writer, Arg.info ["writer"] ~doc:"Use a bytes writer processor." in
+    let r =
+      `Reader, Arg.info ["reader"] ~doc:"Use a byte stream reader processor."
+    in
+    let w =
+      `Writer, Arg.info ["writer"] ~doc:"Use a byte stream writer processor."
+    in
     Arg.(value & vflag `Reader [r; w])
   in
   let slice_length =

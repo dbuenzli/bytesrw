@@ -37,6 +37,8 @@ type level = int
     An integer between [-1] and [9], see these
     {{!compression_level}constants}. *)
 
+(** {1:streams Streams} *)
+
 (** {{:https://www.rfc-editor.org/rfc/rfc1951}[deflate]} streams. *)
 module Deflate : sig
 

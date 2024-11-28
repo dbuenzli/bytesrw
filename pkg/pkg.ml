@@ -37,5 +37,6 @@ let () =
        Pkg.clib ~cond:zstd "src/zstd/libbytesrw_zstd_stubs.clib"
          ~lib_dst_dir:"zstd";
        Pkg.doc "doc/index.mld" ~dst:"odoc-pages/index.mld";
+       Pkg.doc "doc/cookbook.mld" ~dst:"odoc-pages/cookbook.mld";
        Pkg.doc "doc/notes.mld" ~dst:"odoc-pages/notes.mld";
        Pkg.doc "doc/tutorial.mld" ~dst:"odoc-pages/tutorial.mld";]

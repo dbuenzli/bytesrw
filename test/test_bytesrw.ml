@@ -18,17 +18,17 @@ let test_stream_error f =
   let is_exn = function Bytes.Stream.Error _ -> true | _ -> false in
   Test.raises' is_exn f
 
-let eq_slice sl s =
-  let sl = Bytes.Slice.to_string sl in
-  if sl <> s then (Test.log "%s <> %s" sl s; assert false) else ()
+let eq_slice ?__POS__ sl s =
+  Test.string ?__POS__ (Bytes.Slice.to_string sl) s
 
 let eq_slices ?__POS__ r sl =
   let sl' = reader_to_list r in
-  if sl' <> sl then (List.iter2 (Test.string ?__POS__) sl' sl; assert false)
+  if sl' <> sl then (List.iter2 (Test.string ?__POS__) sl' sl)
 
-let eq_eod sl =
+let eq_eod ?__POS__ sl =
   if not (Bytes.Slice.is_eod sl)
-  then (Test.log "%s <> Slice.eod" (Bytes.Slice.to_string sl); assert false)
+  then Test.fail ?__POS__ "%s <> Slice.eod" (Bytes.Slice.to_string sl)
+  else Test.pass ?__POS__ ()
 
 let test_slices () =
   Test.test "Bytes.Slices" @@ fun () ->

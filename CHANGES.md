@@ -1,6 +1,6 @@
 
 - Fix wrong bound checks in `Slice.{sub,make}[_or_eod]`. The functions
-  now behave like `Bytes.sub` as far as indexing in allowed. Thanks
+  now behave like `Bytes.sub` as far as indexing is allowed. Thanks
   to Adrián Montesinos González for the report and suggesting the fix (#4).
 - `bytesrw.*` libraries are made to export `bytesrw`.
 

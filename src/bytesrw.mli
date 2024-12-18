@@ -74,8 +74,9 @@ module Bytes : sig
         See also {!make_or_eod} and {!of_bytes}. *)
 
     val make_or_eod : bytes -> first:int -> length:int -> t
-    (** [make_or_eod] is like {!make} but returns {!eod} instead of
-        raising [Invalid_argument] if [length] is zero. *)
+    (** [make_or_eod b ~first ~length] is like {!make} but returns {!eod}
+        instead of raising [Invalid_argument] if [length] is zero. [first]
+        must be a valid position of [b], see {!Bytes.sub}. *)
 
     val bytes : t -> bytes
     (** [bytes s] are the underlying bytes of the slice [s]. *)
@@ -141,8 +142,9 @@ module Bytes : sig
         See also {!sub_or_eod}. *)
 
     val sub_or_eod : t -> first:int -> length:int -> t
-    (** [sub_or_eod] is like {!sub} except that if the interval is
-        empty, {!eod} is returned. *)
+    (** [sub_or_eod s ~first ~length] is like {!sub} except that if the
+        interval is empty, {!eod} is returned. [first] must be a valid
+        position of [s], see {!Bytes.sub}. *)
 
     val subrange : ?first:int -> ?last:int -> t -> t
     (** [subrange ~first ~last s] is the slice made of the consecutive

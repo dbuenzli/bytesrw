@@ -30,16 +30,74 @@ let eq_eod ?__POS__ sl =
   then Test.fail ?__POS__ "%s <> Slice.eod" (Bytes.Slice.to_string sl)
   else Test.pass ?__POS__ ()
 
-let test_slices () =
-  Test.test "Bytes.Slices" @@ fun () ->
-  let err = Test.invalid_arg and eq = eq_slice in
-  eq (Bytes.Slice.make (bos "1234") ~first:1 ~length:2) "23";
-  (err @@ fun () -> Bytes.Slice.make (bos "1234") ~first:1 ~length:0);
-  eq_eod (Bytes.Slice.make_or_eod (bos "1234") ~first:1 ~length:0);
-  eq (Bytes.Slice.of_bytes ~first:1 (bos "1234") ) "234";
-  (err @@ fun () -> Bytes.Slice.of_bytes ~first:4 (bos "1234"));
+let test_slice_make () =
+  Test.test "Bytes.Slices.make[_or_eod]" @@ fun () ->
+  let err = Test.invalid_arg in
+  let s1234 = bos "1234" in
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make (bos "") ~first:0 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make s1234 ~first:0 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make s1234 ~first:1 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make s1234 ~first:2 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make s1234 ~first:3 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make s1234 ~first:4 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make s1234 ~first:5 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make_or_eod s1234 ~first:5 ~length:0);
+  eq_slice (Bytes.Slice.make s1234 ~first:0 ~length:2) "12";
+  eq_slice (Bytes.Slice.make s1234 ~first:1 ~length:2) "23";
+  eq_slice (Bytes.Slice.make s1234 ~first:2 ~length:2) "34";
+  (* or_eod *)
+  eq_eod (Bytes.Slice.make_or_eod (bos "") ~first:0 ~length:0);
+  eq_eod (Bytes.Slice.make_or_eod s1234 ~first:0 ~length:0);
+  eq_eod (Bytes.Slice.make_or_eod s1234 ~first:1 ~length:0);
+  eq_eod (Bytes.Slice.make_or_eod s1234 ~first:2 ~length:0);
+  eq_eod (Bytes.Slice.make_or_eod s1234 ~first:3 ~length:0);
+  eq_eod (Bytes.Slice.make_or_eod s1234 ~first:4 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make_or_eod s1234 ~first:5 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make s1234 ~first:3 ~length:2);
+  eq_slice (Bytes.Slice.make_or_eod s1234 ~first:0 ~length:2) "12";
+  eq_slice (Bytes.Slice.make_or_eod s1234 ~first:1 ~length:2) "23";
+  eq_slice (Bytes.Slice.make_or_eod s1234 ~first:2 ~length:2) "34";
+  (err ~__POS__ @@ fun () -> Bytes.Slice.make_or_eod s1234 ~first:3 ~length:2)
+
+let test_slice_sub () =
+  Test.test "Bytes.Slices.sub[_or_eod]" @@ fun () ->
+  let err = Test.invalid_arg in
+  let slice s ~first ~length = Bytes.Slice.make_or_eod (bos s) ~first ~length in
+  let s234 = slice "12345" ~first:1 ~length:3 in
+  (err ~__POS__ @@ fun () -> Bytes.Slice.sub s234 ~first:0 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.sub s234 ~first:1 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.sub s234 ~first:2 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.sub s234 ~first:3 ~length:0);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.sub s234 ~first:4 ~length:0);
+  eq_slice (Bytes.Slice.sub s234 ~first:0 ~length:1) "2";
+  eq_slice (Bytes.Slice.sub s234 ~first:1 ~length:1) "3";
+  eq_slice (Bytes.Slice.sub s234 ~first:2 ~length:1) "4";
+  (err ~__POS__ @@ fun () -> Bytes.Slice.sub s234 ~first:3 ~length:1);
+  (err ~__POS__ @@
+   fun () -> eq_slice (Bytes.Slice.sub s234 ~first:4 ~length:1));
+  (* or_eod *)
+  eq_eod (Bytes.Slice.sub_or_eod s234 ~first:0 ~length:0);
+  eq_eod (Bytes.Slice.sub_or_eod s234 ~first:1 ~length:0);
+  eq_eod (Bytes.Slice.sub_or_eod s234 ~first:2 ~length:0);
+  eq_eod (Bytes.Slice.sub_or_eod s234 ~first:3 ~length:0);
+  (err ~__POS__ @@
+   fun () -> Bytes.Slice.sub_or_eod s234 ~first:4 ~length:0);
+  eq_slice (Bytes.Slice.sub_or_eod s234 ~first:0 ~length:1) "2";
+  eq_slice (Bytes.Slice.sub_or_eod s234 ~first:1 ~length:1) "3";
+  eq_slice (Bytes.Slice.sub_or_eod s234 ~first:2 ~length:1) "4";
+  (err ~__POS__ @@ fun () -> Bytes.Slice.sub_or_eod s234 ~first:3 ~length:1);
+  (err ~__POS__ @@
+   fun () -> eq_slice (Bytes.Slice.sub_or_eod s234 ~first:4 ~length:1));
+  ()
+
+let test_slice_of_bytes () =
+  Test.test "Bytes.Slices.of_bytes[_or_eod]" @@ fun () ->
+  let err = Test.invalid_arg in
+  eq_slice (Bytes.Slice.of_bytes ~first:1 (bos "1234") ) "234";
+  (err ~__POS__ @@ fun () -> Bytes.Slice.of_bytes ~first:4 (bos "1234"));
   eq_eod (Bytes.Slice.of_bytes_or_eod ~first:4 (bos "1234"));
   ()
+
 
 let test_slice_compare () =
   Test.test "Bytes.Slice.compare" @@ fun () ->
@@ -278,7 +336,9 @@ let test_writer_limit () =
 
 let main () =
   Test.main @@ fun () ->
-  test_slices ();
+  test_slice_make ();
+  test_slice_sub ();
+  test_slice_of_bytes ();
   test_slice_compare ();
   test_reader_reslice ();
   test_reader_compare ();

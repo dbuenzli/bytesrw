@@ -43,13 +43,13 @@ module Bytes = struct
 
     let make bytes ~first ~length =
       let len = Bytes.length bytes in
-      if length <= 0 || length > len || first < 0 || first >= len
+      if not (0 <= first && 0 < length && first + length <= len)
       then err_invalid ~first ~length ~len;
       { bytes; first; length }
 
     let make_or_eod bytes ~first ~length =
       let len = Bytes.length bytes in
-      if length > len || first < 0 || first >= len
+      if not (0 <= first && 0 <= length && first + length <= len)
       then err_invalid ~first ~length ~len;
       if length = 0 then eod else { bytes; first; length }
 
@@ -99,11 +99,10 @@ module Bytes = struct
     | Some l -> (match drop n s with None -> None | Some r -> Some (l, r))
 
     let sub' ~allow_eod s ~first ~length =
-      let max = s.length - 1 in
-      if first < 0 || first > max ||
-         length < 0 || first + length > max ||
-         (length = 0 && not allow_eod)
-      then err_invalid_sub ~first ~length ~len:(max + 1) else
+      let len = s.length in
+      if not (0 <= first && (0 < length || (length = 0 && allow_eod)) &&
+              first + length <= len)
+      then err_invalid_sub ~first ~length ~len else
       if length = 0 then eod else
       { bytes = s.bytes; first = s.first + first; length }
 

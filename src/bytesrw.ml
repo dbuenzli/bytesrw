@@ -94,9 +94,7 @@ module Bytes = struct
       if n <= 0 then Some s else
       Some { s with first = s.first + n; length = s.length - n }
 
-    let break n s = match take n s with
-    | None -> None
-    | Some l -> (match drop n s with None -> None | Some r -> Some (l, r))
+    let break n s = take n s, drop n s
 
     let sub' ~allow_eod s ~first ~length =
       let len = s.length in
@@ -368,8 +366,8 @@ module Bytes = struct
           let slen = Slice.length slice in
           let ret =
             if slen <= !count then slice else
-            let ret, back = Option.get (Slice.break !count slice) in
-            push_back r back; ret
+            let ret, back = Slice.break !count slice in
+            push_back r (Option.get back); (Option.get ret)
           in
           count := !count - slen;
           if !count <= 0 then sr.read <- read_eod;
@@ -394,8 +392,8 @@ module Bytes = struct
           let slen = Slice.length slice in
           let ret =
             if slen <= !left then slice else
-            let ret, back = Option.get (Slice.break !left slice) in
-            push_back r back; ret
+            let ret, back = Slice.break !left slice in
+            push_back r (Option.get back); (Option.get ret)
           in
           left := !left - slen;
           ret

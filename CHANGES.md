@@ -1,4 +1,7 @@
 
+- Change unuseful signature of `Slice.break`: do not return 
+  `None` if any of `Slice.take` or `Slice.drop` does. Simply
+  return the result of both operations.
 - Fix wrong bound checks in `Slice.{sub,make}[_or_eod]`. The functions
   now behave like `Bytes.sub` as far as indexing is allowed. Thanks
   to Adrián Montesinos González for the report and suggesting the fix (#4).

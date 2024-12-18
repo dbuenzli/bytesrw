@@ -130,9 +130,8 @@ module Bytes : sig
         [None] if the operation results in {!eod}, including if [s] is
         {!eod} or if [n < 0]. *)
 
-    val break : int -> t -> (t * t) option
-    (** [break n s] is [(take n s, drop n s)] but returns [None]
-        if any result is [None]. *)
+    val break : int -> t -> t option * t option
+    (** [break n s] is [(take n s, drop n s)]. *)
 
     val sub : t -> first:int -> length:int -> t
     (** [sub s ~first ~length] is the slice made of the consecutive bytes

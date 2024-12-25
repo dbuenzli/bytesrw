@@ -107,7 +107,12 @@ a strong rationale.
    can become a value again). One use can be to push a header before
    a stream, while still having byte positions aligned on the stream
    (using {!Bytesrw.Bytes.Reader.val-append} for that would shift positions).
-   Unclear.}
+   Unclear. {b Update.} In fact it is used in Webs_unix.Fd.bytes_reader for
+   creating the reader for bodies, after reading the HTTP header we have [n] bytes of
+   the body in our buffer, we create a reader at position [n] that reads
+   from the fd and push back the initial bytes. So in fact it seems to be
+   a good idea in order to start readers at precise positions despite the fact
+   that you may have pulled too much data.}
 {- For now it was decided not to give access to the reader and writer
    in [read] and [write] functions. This means they can't access
    their properties. Some combinators in [Bytesrw] internally

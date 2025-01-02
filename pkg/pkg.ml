@@ -26,6 +26,10 @@ let () =
          ~dst_dir:"md";
        Pkg.clib ~cond:libmd "src/md/libbytesrw_md_stubs.clib"
          ~lib_dst_dir:"md";
+       Pkg.mllib "src/sysrandom/bytesrw_sysrandom.mllib"
+         ~dst_dir:"sysrandom";
+       Pkg.clib "src/sysrandom/libbytesrw_sysrandom_stubs.clib"
+          ~lib_dst_dir:"sysrandom";
        Pkg.mllib ~cond:xxhash "src/xxhash/bytesrw_xxhash.mllib"
          ~dst_dir:"xxhash";
        Pkg.clib ~cond:xxhash "src/xxhash/libbytesrw_xxhash_stubs.clib"

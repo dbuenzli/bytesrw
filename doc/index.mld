@@ -51,6 +51,7 @@ Compression and hashing libraries depend on their canonical C library.
 {!modules:
 Bytesrw_blake3
 Bytesrw_md
+Bytesrw_sysrandom
 Bytesrw_unix
 Bytesrw_xxhash
 Bytesrw_zlib

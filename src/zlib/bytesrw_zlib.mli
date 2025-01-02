@@ -98,8 +98,8 @@ module Zlib : sig
   (** [decompress_writes () w ~eod] filters writes on [w] by decompressing a
       [zlib] stream until {!Bytesrw.Bytes.Slice.eod} is written, if leftover
       data remains an error is raised. If [eod] is [false] the last
-      {!Bytes.Slice.eod} is not written on [w] and at this point [w] can be
-      used again to perform othe non-filtered writes. *)
+      {!Bytesrw.Bytes.Slice.eod} is not written on [w] and at this point [w]
+      can be used again to perform othe non-filtered writes. *)
 
   (** {1:compress Compress} *)
 

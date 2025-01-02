@@ -5,6 +5,7 @@ open B0_kit.V000
 let bytesrw = B0_ocaml.libname "bytesrw"
 let bytesrw_blake3 = B0_ocaml.libname "bytesrw.blake3"
 let bytesrw_md = B0_ocaml.libname "bytesrw.md"
+let bytesrw_sysrandom = B0_ocaml.libname "bytesrw.sysrandom"
 let bytesrw_unix = B0_ocaml.libname "bytesrw.unix"
 let bytesrw_xxhash = B0_ocaml.libname "bytesrw.xxhash"
 let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
@@ -33,6 +34,12 @@ let bytesrw_md_lib =
   let c_requires = Cmd.arg "-lmd" in
   let requires = [bytesrw] and exports = [bytesrw] in
   B0_ocaml.lib bytesrw_md ~srcs ~requires ~exports ~c_requires ~doc
+
+let bytesrw_sysrandom_lib =
+  let doc = "Cryptographically secure pseudorandom byte streams" in
+  let srcs = [ `Dir ~/"src/sysrandom" ] in
+  let requires = [bytesrw] and exports = [bytesrw] in
+  B0_ocaml.lib bytesrw_sysrandom ~srcs ~requires ~exports ~doc
 
 let bytesrw_unix_lib =
   let srcs = [ `Dir ~/"src/unix" ] in
@@ -77,7 +84,10 @@ let test_cookbook =
 let test_bytesrw = test ~/"test/test_bytesrw.ml" ~requires:[]
 let test_utf = test ~/"test/test_utf.ml"
 let test_blake3 = test ~/"test/test_blake3.ml" ~requires:[bytesrw_blake3]
-let test_blake3 = test ~/"test/test_md.ml" ~requires:[bytesrw_md]
+let test_md = test ~/"test/test_md.ml" ~requires:[bytesrw_md]
+let test_sysrandom =
+  test ~/"test/test_sysrandom.ml" ~requires:[bytesrw_sysrandom]
+
 let test_xxhash = test ~/"test/test_xxhash.ml" ~requires:[bytesrw_xxhash]
 let test_zlib = test ~/"test/test_zlib.ml" ~requires:[bytesrw_zlib]
 let test_zstd = test ~/"test/test_zstd.ml" ~requires:[bytesrw_zstd]
@@ -117,9 +127,10 @@ let default =
    |> ~~ B0_meta.repo "git+https://erratique.ch/repos/bytesrw.git"
    |> ~~ B0_meta.issues "https://github.com/dbuenzli/bytesrw/issues"
    |> ~~ B0_meta.description_tags
-     ["bytes"; "streaming"; "zstd"; "zlib"; "gzip"; "deflate";
-      "sha1"; "sha2"; "compression"; "hashing";
-      "utf"; "xxhash"; "blake3"; "org:erratique"; ]
+     ["bytes"; "entropy"; "streaming"; "zstd"; "zlib"; "gzip"; "deflate";
+      "random"; "csprng"; "sha1"; "sha2"; "compression"; "hashing";
+      "utf"; "xxhash"; "blake3";
+      "sha3"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
                  "--with-conf-libblake3" "%{conf-libblake3:installed}%"

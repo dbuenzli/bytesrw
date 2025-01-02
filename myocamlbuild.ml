@@ -71,6 +71,10 @@ let lib_with_clib ~lib ~clib ~has_lib ~src_dir ~stublib =
     ocaml_lib ~tag_name:use_lib ~dir:src_dir (strf "%s/%s" src_dir lib)
   end
 
+let lib s = match !Ocamlbuild_plugin.Options.ext_lib with
+| "" -> s ^ ".a"
+| x -> s ^ "." ^ x
+
 let () =
   dispatch begin function
   | After_rules ->
@@ -94,5 +98,22 @@ let () =
         lib_with_clib
           ~lib:"bytesrw_zstd" ~clib:"libzstd" ~has_lib:"-DHAS_ZSTD"
           ~src_dir:"src/zstd" ~stublib:"bytesrw_zstd_stubs";
+
+      (* bytesrw.sysrandom *)
+
+      dep ["record_bytesrw_sysrandom_stubs"]
+        [lib "src/sysrandom/libbytesrw_sysrandom_stubs"];
+
+      flag_and_dep
+        ["link"; "ocaml"; "link_bytesrw_sysrandom_stubs"]
+        (P (lib "src/sysrandom/libbytesrw_sysrandom_stubs"));
+
+      flag ["library"; "ocaml"; "byte"; "record_bytesrw_sysrandom_stubs"]
+        (S ([A "-dllib"; A "-lbytesrw_sysrandom_stubs"]));
+
+      flag ["library"; "ocaml"; (* byte and native *)
+            "record_bytesrw_sysrandom_stubs"]
+        (S ([A "-cclib"; A "-lbytesrw_sysrandom_stubs"]));
+
   | _ -> ()
   end

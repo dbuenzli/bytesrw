@@ -33,6 +33,19 @@ package "md" (
   exists_if = "bytesrw_md.cma bytesrw_md.cmxa"
 )
 
+package "sysrandom" (
+  directory = "sysrandom"
+  description = "Cryptographically secure pseudorandom byte streams"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw"
+  exports = "bytesrw"
+  archive(byte) = "bytesrw_sysrandom.cma"
+  archive(native) = "bytesrw_sysrandom.cmxa"
+  plugin(byte) = "bytesrw_sysrandom.cma"
+  plugin(native) = "bytesrw_sysrandom.cmxs"
+  exists_if = "bytesrw_sysrandom.cma bytesrw_sysrandom.cmxa"
+)
+
 package "unix" (
   directory = "unix"
   description = "The bytesrw.unix library"

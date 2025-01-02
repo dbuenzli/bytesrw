@@ -1,6 +1,10 @@
 - Add `Bytesrw_unix.bytes_writer_of_socket_fd` which shutdowns the
   fd in the send direction when the end of stream is written.
 
+- Add the `Bytesrw_sysrandom` module for operating system provided
+  cryptographically secure pseudorandom byte streams and an entropy
+  primitive.
+
 - Add `Bytes.Slice.last`.
 
 - Review `Int_val` vs `Long_val` in C bindings. Affects

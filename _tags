@@ -17,6 +17,10 @@ true : bin_annot, safe_string
 <src/md/bytesrw_md.{cmxs}> : link_bytesrw_md_stubs_archive
 <src/md/libbytesrw_md_stubs.*> : use_libmd
 
+<src/sysrandom> : include
+<src/sysrandom/bytesrw_sysrandom.{cma,cmxa}> : record_bytesrw_sysrandom_stubs
+<src/sysrandom/bytesrw_sysrandom.{cmxs}> : link_bytesrw_sysrandom_stubs
+
 <src/xxhash> : include
 <src/xxhash/bytesrw_xxhash_stubs.c> : use_libxxhash
 <src/xxhash/bytesrw_xxhash.{cma,cmxa}> : record_bytesrw_xxhash_stubs

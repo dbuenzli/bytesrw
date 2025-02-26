@@ -28,7 +28,7 @@ let eq_slices ?__POS__ r sl =
 let eq_eod ?__POS__ sl =
   if not (Bytes.Slice.is_eod sl)
   then Test.fail ?__POS__ "%s <> Slice.eod" (Bytes.Slice.to_string sl)
-  else Test.pass ?__POS__ ()
+  else Test.pass ()
 
 let test_slice_make () =
   Test.test "Bytes.Slices.make[_or_eod]" @@ fun () ->

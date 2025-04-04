@@ -82,6 +82,10 @@ let () =
         lib_with_clib
           ~lib:"bytesrw_blake3" ~clib:"libblake3" ~has_lib:"-DHAS_BLAKE3"
           ~src_dir:"src/blake3" ~stublib:"bytesrw_blake3_stubs";
+      if pkg_config_exists "mbedcrypto" then
+        lib_with_clib
+          ~lib:"bytesrw_crypto" ~clib:"mbedcrypto" ~has_lib:"-DHAS_PSA_CRYPTO"
+          ~src_dir:"src/crypto" ~stublib:"bytesrw_crypto_stubs";
       if pkg_config_exists "libmd" then
         lib_with_clib
           ~lib:"bytesrw_md" ~clib:"libmd" ~has_lib:"-DHAS_LIBMD"

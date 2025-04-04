@@ -4,6 +4,7 @@ open B0_kit.V000
 
 let bytesrw = B0_ocaml.libname "bytesrw"
 let bytesrw_blake3 = B0_ocaml.libname "bytesrw.blake3"
+let bytesrw_crypto = B0_ocaml.libname "bytesrw.crypto"
 let bytesrw_md = B0_ocaml.libname "bytesrw.md"
 let bytesrw_sysrandom = B0_ocaml.libname "bytesrw.sysrandom"
 let bytesrw_unix = B0_ocaml.libname "bytesrw.unix"
@@ -27,6 +28,13 @@ let bytesrw_blake3_lib =
   let c_requires = Cmd.arg "-lblake3" in
   let requires = [bytesrw] and exports = [bytesrw] in
   B0_ocaml.lib bytesrw_blake3 ~srcs ~requires ~exports ~c_requires ~doc
+
+let bytesrw_crypto_lib =
+  let doc = "Cryptographic primitives" in
+  let srcs = [ `Dir ~/"src/crypto" ] in
+  let c_requires = Cmd.arg "-lmbedcrypto" in
+  let requires = [bytesrw] and exports = [bytesrw] in
+  B0_ocaml.lib bytesrw_crypto ~srcs ~requires ~exports ~c_requires ~doc
 
 let bytesrw_md_lib =
   let doc = "SHA{1,2} hashes" in
@@ -84,6 +92,8 @@ let test_cookbook =
 let test_bytesrw = test ~/"test/test_bytesrw.ml" ~requires:[]
 let test_utf = test ~/"test/test_utf.ml"
 let test_blake3 = test ~/"test/test_blake3.ml" ~requires:[bytesrw_blake3]
+let test_psa = test ~/"test/test_psa.ml" ~requires:[bytesrw_crypto]
+let test_crypto = test ~/"test/test_crypto.ml" ~requires:[bytesrw_crypto]
 let test_md = test ~/"test/test_md.ml" ~requires:[bytesrw_md]
 let test_sysrandom =
   test ~/"test/test_sysrandom.ml" ~requires:[bytesrw_sysrandom]
@@ -114,6 +124,11 @@ let zstdtrip =
   let requires = bytesrw_zstd :: tool_requires in
   test ~/"test/zstdtrip.ml" ~run:false ~requires ~doc
 
+let webget =
+  let doc = "http and https requests" in
+  let requires = b0_std :: tool_requires in
+  test ~/"test/webget.ml" ~run:false ~requires ~doc
+
 (* Packs *)
 
 let default =
@@ -130,15 +145,17 @@ let default =
      ["bytes"; "entropy"; "streaming"; "zstd"; "zlib"; "gzip"; "deflate";
       "random"; "csprng"; "sha1"; "sha2"; "compression"; "hashing";
       "utf"; "xxhash"; "blake3";
-      "sha3"; "org:erratique"; ]
+      "cryptography"; "sha3"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
                  "--with-conf-libblake3" "%{conf-libblake3:installed}%"
+                 "--with-conf-mbedtls" "%{conf-mbedtls:installed}%"
                  "--with-conf-libmd" "%{conf-libmd:installed}%"
                  "--with-conf-xxhash" "%{conf-xxhash:installed}%"
                  "--with-conf-zlib" "%{conf-zlib:installed}%"
                  "--with-conf-zstd" "%{conf-zstd:installed}%"]]|}
-   |> ~~ B0_opam.depopts ["conf-xxhash", "";
+   |> ~~ B0_opam.depopts ["conf-mbedtls", "";
+                          "conf-xxhash", "";
                           "conf-zlib", "";
                           "conf-zstd", "";
                           "conf-libmd", "";
@@ -149,6 +166,7 @@ let default =
        "ocamlfind", {|build|};
        "ocamlbuild", {|build|};
        "topkg", {|build & >= "1.1.0"|};
+       "cmdliner", {|test & >= 2.0.0"|};
      ]
    |> B0_meta.tag B0_opam.tag
  in

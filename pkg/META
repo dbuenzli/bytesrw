@@ -20,6 +20,19 @@ package "blake3" (
   exists_if = "bytesrw_blake3.cma bytesrw_blake3.cmxa"
 )
 
+package "crypto" (
+  directory = "crypto"
+  description = "Cryptographic primitives"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw"
+  exports = "bytesrw"
+  archive(byte) = "bytesrw_crypto.cma"
+  archive(native) = "bytesrw_crypto.cmxa"
+  plugin(byte) = "bytesrw_crypto.cma"
+  plugin(native) = "bytesrw_crypto.cmxs"
+  exists_if = "bytesrw_crypto.cma bytesrw_crypto.cmxa"
+)
+
 package "md" (
   directory = "md"
   description = "SHA{1,2} hashes"

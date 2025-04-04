@@ -36,7 +36,9 @@ module Bytes = struct
 
     (* Slices *)
 
-    type t = { bytes : Bytes.t; first : int; length : int }
+    type t =
+      (* Note: some C bindings rely on this layout. *)
+      { bytes : Bytes.t; first : int; length : int }
 
     let eod = { bytes = Bytes.empty; first = 0; length = 0 }
     let is_eod s = s == eod

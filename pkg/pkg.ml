@@ -5,6 +5,7 @@ open Topkg
 
 let blake3 = Conf.with_pkg "conf-libblake3"
 let libmd = Conf.with_pkg "conf-libmd"
+let mbedtls = Conf.with_pkg "conf-mbedtls"
 let xxhash = Conf.with_pkg "conf-xxhash"
 let zstd = Conf.with_pkg "conf-zstd"
 let zlib = Conf.with_pkg "conf-zlib"
@@ -12,6 +13,7 @@ let () =
   Pkg.describe "bytesrw" @@ fun c ->
   let blake3 = Conf.value c blake3 in
   let libmd = Conf.value c libmd in
+  let mbedtls = Conf.value c mbedtls in
   let xxhash = Conf.value c xxhash in
   let zlib = Conf.value c zlib in
   let zstd = Conf.value c zstd in
@@ -22,6 +24,10 @@ let () =
          ~dst_dir:"blake3";
        Pkg.clib ~cond:blake3 "src/blake3/libbytesrw_blake3_stubs.clib"
          ~lib_dst_dir:"blake3";
+       Pkg.mllib ~cond:mbedtls "src/crypto/bytesrw_crypto.mllib"
+         ~dst_dir:"crypto";
+       Pkg.clib ~cond:mbedtls "src/crypto/libbytesrw_crypto_stubs.clib"
+         ~lib_dst_dir:"crypto";
        Pkg.mllib ~cond:libmd "src/md/bytesrw_md.mllib"
          ~dst_dir:"md";
        Pkg.clib ~cond:libmd "src/md/libbytesrw_md_stubs.clib"

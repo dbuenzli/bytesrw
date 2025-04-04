@@ -1,4 +1,6 @@
 
+- Fix `Bytesrw_xxhash.Xxh64.{to_hex,pp}`. Leading zeros
+  were not being printed (#5).
 - Change unuseful signature of `Slice.break`: do not return 
   `None` if any of `Slice.take` or `Slice.drop` does. Simply
   return the result of both operations.

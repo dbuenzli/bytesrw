@@ -21,9 +21,15 @@ let t1 =
     xxh3_64 = "339d1954a9e06117";
     xxh3_128 = "07b0640ae1f202e6990373bfcc1e5c75" }
 
+let t2 =
+  { data = "abc\n";
+    xxh3_64 = "079364cbfdf9f4cb";
+    xxh3_128 = "158bbebef0c159c99914d27c01087efa"; }
+
 let test_module (module H : Bytesrw_xxhash.Xxh3) testh =
   let hex = H.to_hex in
   assert (H.(hex (string t0.data) = testh t0));
+  assert (H.(hex (string t1.data) = testh t1));
   assert (H.(hex (string t1.data) = testh t1));
   begin repeat 5 @@ fun n ->
     let r = Bytes.Reader.of_string ~slice_length:n t1.data in
@@ -46,10 +52,14 @@ let test_module (module H : Bytesrw_xxhash.Xxh3) testh =
   let w, st = H.writes w in
   let () = Bytes.Writer.write_eod w in
   assert (H.(hex (value st) = testh t0));
-  let h = H.(string t1.data) in
-  assert (H.equal h (H.of_hex (H.to_hex h) |> Result.get_ok));
-  assert (H.equal h
-            (H.of_binary_string (H.to_binary_string h) |> Result.get_ok));
+  let f h =
+    assert (H.equal h (H.of_hex (H.to_hex h) |> Result.get_ok));
+    assert (H.equal h
+              (H.of_binary_string (H.to_binary_string h) |> Result.get_ok));
+  in
+  f H.(string t0.data);
+  f H.(string t1.data);
+  f H.(string t2.data);
   ()
 
 let test_xxh3_64 =

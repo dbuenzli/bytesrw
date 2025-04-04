@@ -173,10 +173,10 @@ module Xxh3_64 = struct
   | Error _ as e -> e
   | Ok s -> Ok (layout (get_64u s 0))
 
-  let to_hex h = Printf.sprintf "%Lx" h
+  let to_hex h = Printf.sprintf "%016Lx" h
   let to_uint64 = Fun.id
   let of_uint64 = Fun.id
-  let pp ppf h = Format.fprintf ppf "%Lx" h
+  let pp ppf h = Format.fprintf ppf "%016Lx" h
 end
 
 module Xxh3_128 = struct

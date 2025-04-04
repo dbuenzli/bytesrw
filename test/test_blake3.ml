@@ -28,7 +28,7 @@ let t1 =
 
 (* Testing *)
 
-let test_blake3 () =
+let test_blake3 =
   Test.test "Bytesrw_blake3.Blake3" @@ fun () ->
   let module H = Bytesrw_blake3.Blake3 in
   let testh t = t.blake3 and hex = H.to_hex in
@@ -62,9 +62,10 @@ let test_blake3 () =
             (H.of_binary_string (H.to_binary_string h) |> Result.get_ok));
   ()
 
-let main () = Test.main @@ fun () ->
+let main () =
+  Test.main @@ fun () ->
   Test.log "Using libblake3 %s" (Bytesrw_blake3.version ());
-  test_blake3 ();
+  Test.autorun ();
   Gc.full_major ()
 
 let () = if !Sys.interactive then () else exit (main ())

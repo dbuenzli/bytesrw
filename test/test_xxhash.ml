@@ -52,7 +52,7 @@ let test_module (module H : Bytesrw_xxhash.Xxh3) testh =
             (H.of_binary_string (H.to_binary_string h) |> Result.get_ok));
   ()
 
-let test_xxh3_64 () =
+let test_xxh3_64 =
   Test.test "Bytesrw_xxhash.Xxh3_64" @@ fun () ->
   test_module (module Bytesrw_xxhash.Xxh3_64) (fun t -> t.xxh3_64);
   let h = Bytesrw_xxhash.Xxh3_64.(string t1.data) in
@@ -60,7 +60,7 @@ let test_xxh3_64 () =
           t1.xxh3_64);
   ()
 
-let test_xxh3_128 () =
+let test_xxh3_128 =
   Test.test "Testing Bytesrw_xxhash.Xxh3_128" @@ fun () ->
   test_module (module Bytesrw_xxhash.Xxh3_128) (fun t -> t.xxh3_128);
   ()
@@ -70,8 +70,7 @@ let test_xxh3_128 () =
 let main () =
   Test.main @@ fun () ->
   Test.log "Using libxxhash %s" (Bytesrw_xxhash.version ());
-  test_xxh3_64 ();
-  test_xxh3_128 ();
+  Test.autorun ();
   Gc.full_major ()
 
 let () = if !Sys.interactive then () else exit (main ())

@@ -74,34 +74,27 @@ let test_mod (module H : Bytesrw_md.Sha) testh =
             (H.of_binary_string (H.to_binary_string h) |> Result.get_ok));
   ()
 
-let test_sha_1 () =
+let test_sha_1 =
   Test.test "Bytesrw_md.Sha_1" @@ fun () ->
   test_mod (module Bytesrw_md.Sha_1) (fun t -> t.sha_1);
   ()
 
-let test_sha_256 () =
+let test_sha_256 =
   Test.test "Bytesrw_md.Sha_256" @@ fun () ->
   test_mod (module Bytesrw_md.Sha_256) (fun t -> t.sha_256);
   ()
 
-let test_sha_384 () =
+let test_sha_384 =
   Test.test "Bytesrw_md.Sha_384" @@ fun () ->
   test_mod (module Bytesrw_md.Sha_384) (fun t -> t.sha_384);
   ()
 
-let test_sha_512 () =
+let test_sha_512 =
   Test.test "Bytesrw_md.Sha_512" @@ fun () ->
   test_mod (module Bytesrw_md.Sha_512) (fun t -> t.sha_512);
   ()
 
 (* Tests *)
 
-let main () =
-  Test.main @@ fun () ->
-  test_sha_1 ();
-  test_sha_256 ();
-  test_sha_384 ();
-  test_sha_512 ();
-  Gc.full_major ()
-
+let main () = Test.main @@ fun () -> Test.autorun (); Gc.full_major ()
 let () = if !Sys.interactive then () else exit (main ())

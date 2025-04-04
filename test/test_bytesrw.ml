@@ -16,7 +16,7 @@ let reader_to_list r =
 
 let test_stream_error f =
   let is_exn = function Bytes.Stream.Error _ -> true | _ -> false in
-  Test.raises' is_exn f
+  Test.catch f @@ function fnd -> Test.holds (is_exn fnd)
 
 let eq_slice ?__POS__ sl s =
   Test.string ?__POS__ (Bytes.Slice.to_string sl) s
@@ -30,7 +30,7 @@ let eq_eod ?__POS__ sl =
   then Test.fail ?__POS__ "%s <> Slice.eod" (Bytes.Slice.to_string sl)
   else Test.pass ()
 
-let test_slice_make () =
+let test_slice_make =
   Test.test "Bytes.Slices.make[_or_eod]" @@ fun () ->
   let err = Test.invalid_arg in
   let s1234 = bos "1234" in
@@ -59,7 +59,7 @@ let test_slice_make () =
   eq_slice (Bytes.Slice.make_or_eod s1234 ~first:2 ~length:2) "34";
   (err ~__POS__ @@ fun () -> Bytes.Slice.make_or_eod s1234 ~first:3 ~length:2)
 
-let test_slice_sub () =
+let test_slice_sub =
   Test.test "Bytes.Slices.sub[_or_eod]" @@ fun () ->
   let err = Test.invalid_arg in
   let slice s ~first ~length = Bytes.Slice.make_or_eod (bos s) ~first ~length in
@@ -90,7 +90,7 @@ let test_slice_sub () =
    fun () -> eq_slice (Bytes.Slice.sub_or_eod s234 ~first:4 ~length:1));
   ()
 
-let test_slice_of_bytes () =
+let test_slice_of_bytes =
   Test.test "Bytes.Slices.of_bytes[_or_eod]" @@ fun () ->
   let err = Test.invalid_arg in
   eq_slice (Bytes.Slice.of_bytes ~first:1 (bos "1234") ) "234";
@@ -99,7 +99,7 @@ let test_slice_of_bytes () =
   ()
 
 
-let test_slice_compare () =
+let test_slice_compare =
   Test.test "Bytes.Slice.compare" @@ fun () ->
   let test_cmp ?__POS__ s0 s1 v =
     Test.int ?__POS__ (Bytes.Slice.compare s0 s1) v;
@@ -131,7 +131,7 @@ let test_slice_compare () =
   test_cmp s1234 s1234 0 ~__POS__;
   ()
 
-let test_reader_reslice () =
+let test_reader_reslice =
   Test.test "Bytes.Reader.reslice" @@ fun () ->
   let test ?__POS__ ~slice_length sls rsl =
     let r = Bytes.Reader.reslice ~slice_length (reader_of_list sls) in
@@ -148,7 +148,7 @@ let test_reader_reslice () =
   test ~slice_length:2 ["ab"; "bc"; "de"] ["ab"; "bc"; "de"] ~__POS__;
   ()
 
-let test_reader_compare () =
+let test_reader_compare =
   Test.test "Bytes.Reader.compare" @@ fun () ->
   let test ?__POS__ l0 l1 eq =
     let r0 = reader_of_list l0 and r1 = reader_of_list l1 in
@@ -163,7 +163,7 @@ let test_reader_compare () =
   test [] ["a"; "bc"; "d"] (-1) ~__POS__;
   ()
 
-let test_read_length () =
+let test_read_length =
   Test.test "Bytes.Reader.read_length" @@ fun () ->
   let r = Bytes.Reader.of_string ~slice_length:2  "1234" in
   Test.int (Bytes.Reader.read_length r) 0;
@@ -175,7 +175,7 @@ let test_read_length () =
   Test.int (Bytes.Reader.read_length r) 4;
   ()
 
-let test_written_length () =
+let test_written_length =
   Test.test "Bytes.Writer.written_length" @@ fun () ->
   let b = Buffer.create 255 in
   let w = Bytes.Writer.of_buffer ~slice_length:2 b in
@@ -191,7 +191,7 @@ let test_written_length () =
   Test.string (Buffer.contents b) "123456";
   ()
 
-let test_read_fun_eod () =
+let test_read_fun_eod =
   Test.test "Bytes.Reader.t end of stream" @@ fun () ->
   let once = ref false in
   let read () =
@@ -203,7 +203,7 @@ let test_read_fun_eod () =
   assert (Bytes.Slice.is_eod (Bytes.Reader.read r));
   ()
 
-let test_write_fun_eod () =
+let test_write_fun_eod =
   Test.test "Bytes.Writer.t end of stream" @@ fun () ->
   let once = ref false in
   let write _slice = if !once then assert false else once := true in
@@ -215,7 +215,7 @@ let test_write_fun_eod () =
    Bytes.Writer.write w (Bytes.Slice.of_bytes (bos "nooooo!")));
   ()
 
-let test_reader_push_backs () =
+let test_reader_push_backs =
   Test.test "Bytes.Reader.push_back" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
@@ -241,7 +241,7 @@ let test_reader_push_backs () =
   Test.string (Bytes.Reader.to_string r1) "bbccc";
   ()
 
-let test_reader_skip_sub_limit () =
+let test_reader_skip_sub_limit =
   Test.test "Bytes.Reader.{skip,sub,limit}" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
@@ -265,7 +265,7 @@ let test_reader_skip_sub_limit () =
   Test.string (Bytes.Reader.to_string r0) "";
   ()
 
-let test_reader_append () =
+let test_reader_append =
   Test.test "Bytes.Reader.append" @@ fun () ->
   let r0 () = reader_of_list ["a"; "bb"; "ccc"] in
   let r1 () = reader_of_list ["d"; "ee"] in
@@ -274,7 +274,7 @@ let test_reader_append () =
   Test.string Bytes.Reader.(to_string (append (empty ()) (r1 ()))) "dee";
   ()
 
-let test_reader_sniff () =
+let test_reader_sniff =
   Test.test "Bytes.Reader.sniff" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
   let r0 = r () in
@@ -295,7 +295,7 @@ let test_reader_sniff () =
   Test.string (Bytes.Reader.to_string r5) "";
   ()
 
-let test_reader_of_slice () =
+let test_reader_of_slice =
   Test.test "Bytes.Reader.of_slice" @@ fun () ->
   let r ~slice_length () =
     Bytes.Reader.of_slice ?slice_length (Bytes.Slice.of_string "bla")
@@ -306,7 +306,7 @@ let test_reader_of_slice () =
   eq_slices (r ~slice_length:(Some 5) ()) ["bla"];
   ()
 
-let test_writer_limit () =
+let test_writer_limit =
   Test.test "Bytes.Writer.limit" @@ fun () ->
   let b = Buffer.create 255 in
   let w = Bytes.Writer.of_buffer b in
@@ -333,26 +333,5 @@ let test_writer_limit () =
   Test.invalid_arg @@ (fun () -> Bytes.Writer.write_string w "1234");
   ()
 
-
-let main () =
-  Test.main @@ fun () ->
-  test_slice_make ();
-  test_slice_sub ();
-  test_slice_of_bytes ();
-  test_slice_compare ();
-  test_reader_reslice ();
-  test_reader_compare ();
-  test_read_length ();
-  test_written_length ();
-  test_read_fun_eod ();
-  test_write_fun_eod ();
-  test_reader_push_backs ();
-  test_reader_skip_sub_limit ();
-  test_reader_append ();
-  test_reader_sniff ();
-  test_reader_of_slice ();
-  test_writer_limit ();
-  ()
-
-
+let main () = Test.main @@ fun () -> Test.autorun ()
 let () = if !Sys.interactive then () else exit (main ())

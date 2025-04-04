@@ -10,7 +10,7 @@ let repeat n = Test.range ~kind:"slice_length" ~first:1 ~last:n
 
 let test_stream_error f =
   let is_exn = function Bytes.Stream.Error _ -> true | _ -> false in
-  Test.raises' is_exn f
+  Test.catch f @@ function fnd -> Test.holds (is_exn fnd)
 
 (* Test vectors *)
 
@@ -32,7 +32,7 @@ let more = "moreatthedoor"
 
 (* Tests *)
 
-let test_deflate_decompress_reads () =
+let test_deflate_decompress_reads =
   Test.test "Bytesrw_zlib.Deflate.decompress_reads" @@ fun () ->
   begin repeat 5 @@ fun n -> (* One stream *)
   let c = Bytes.Reader.of_string ~slice_length:n (fst a30_deflate) in
@@ -63,7 +63,7 @@ let test_deflate_decompress_reads () =
   end;
   ()
 
-let test_deflate_decompress_writes () =
+let test_deflate_decompress_writes =
   Test.test "Bytesrw_zlib.Deflate.decompress_writes" @@ fun () ->
   begin repeat 5 @@ fun n -> (* One stream. *)
     let b = Buffer.create 255 in
@@ -84,7 +84,7 @@ let test_deflate_decompress_writes () =
   end;
   ()
 
-let test_deflate_compress_reads () =
+let test_deflate_compress_reads =
   Test.test "Bytesrw_zlib.Deflate.compress_reads" @@ fun () ->
   begin repeat 5 @@ fun n ->
     let data = snd a30_deflate in
@@ -94,7 +94,7 @@ let test_deflate_compress_reads () =
     assert (Bytes.Reader.to_string trip = data)
   end
 
-let test_deflate_compress_writes () =
+let test_deflate_compress_writes =
   Test.test "Bytesrw_zlib.Deflate.compress_writes" @@ fun () ->
   begin repeat 5 @@ fun n ->
     let b = Buffer.create 255 in
@@ -110,7 +110,7 @@ let test_deflate_compress_writes () =
     assert (Buffer.contents b = data)
   end
 
-let test_zlib_decompress_reads () =
+let test_zlib_decompress_reads =
   Test.test "Bytesrw_zlib.Zlib.decompress_reads" @@ fun () ->
   begin repeat 5 @@ fun n -> (* One stream *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_zlib) in
@@ -127,7 +127,7 @@ let test_zlib_decompress_reads () =
   end;
   ()
 
-let test_zlib_decompress_writes () =
+let test_zlib_decompress_writes =
   Test.test "Bytesrw_zlib.Zlib.decompress_writes" @@ fun () ->
   begin repeat 5 @@ fun n -> (* One stream *)
     let b = Buffer.create 255 in
@@ -138,7 +138,7 @@ let test_zlib_decompress_writes () =
     assert (Buffer.contents b = snd a30_zlib);
   end
 
-let test_zlib_compress_reads () =
+let test_zlib_compress_reads =
   Test.test "Bytesrw_zlib.Zlib.compress_reads" @@ fun () ->
   begin repeat 5 @@ fun n ->
     let data = snd a30_zlib in
@@ -148,7 +148,7 @@ let test_zlib_compress_reads () =
     assert (Bytes.Reader.to_string trip = data)
   end
 
-let test_zlib_compress_writes () =
+let test_zlib_compress_writes =
   Test.test "Bytesrw_zlib.Zlib.compress_writes" @@ fun () ->
   begin repeat 5 @@ fun n ->
     let b = Buffer.create 255 in
@@ -164,7 +164,7 @@ let test_zlib_compress_writes () =
     assert (Buffer.contents b = data)
   end
 
-let test_gzip_decompress_reads () =
+let test_gzip_decompress_reads =
   Test.test "Bytesrw_zlib.Gzip.decompress_reads" @@ fun () ->
   begin repeat 5 @@ fun n -> (* One member *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a_gz) in
@@ -206,7 +206,7 @@ let test_gzip_decompress_reads () =
   end;
   ()
 
-let test_gzip_decompress_writes () =
+let test_gzip_decompress_writes =
   Test.test "Bytesrw_zlib.Gzip.decompress_writes" @@ fun () ->
   begin repeat 5 @@ fun n ->
     let b = Buffer.create 255 in
@@ -227,7 +227,7 @@ let test_gzip_decompress_writes () =
     assert (Buffer.contents b = res);
   end
 
-let test_gzip_compress_reads () =
+let test_gzip_compress_reads =
   Test.test "Bytesrw_zlib.Gzip.compress_reads" @@ fun () ->
   begin repeat 5 @@ fun n ->
     let data = snd a_gz in
@@ -237,7 +237,7 @@ let test_gzip_compress_reads () =
     assert (Bytes.Reader.to_string trip = data)
   end
 
-let test_gzip_compress_writes () =
+let test_gzip_compress_writes =
   Test.test "Bytesrw_zlib.Gzip.compress_writes" @@ fun () ->
   begin repeat 5 @@ fun n ->
     let b = Buffer.create 255 in
@@ -256,18 +256,7 @@ let test_gzip_compress_writes () =
 let main () =
   Test.main @@ fun () ->
   Test.log "Using zlib %s" (Bytesrw_zlib.version ());
-  test_deflate_decompress_reads ();
-  test_deflate_decompress_writes ();
-  test_deflate_compress_reads ();
-  test_deflate_compress_writes ();
-  test_zlib_decompress_reads ();
-  test_zlib_decompress_writes ();
-  test_zlib_compress_reads ();
-  test_zlib_compress_writes ();
-  test_gzip_decompress_reads ();
-  test_gzip_decompress_writes ();
-  test_gzip_compress_reads ();
-  test_gzip_compress_writes ();
+  Test.autorun ();
   Gc.full_major ()
 
 let () = if !Sys.interactive then () else exit (main ())

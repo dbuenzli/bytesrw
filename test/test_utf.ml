@@ -10,7 +10,7 @@ let tracer = Bytes.Slice.tracer ~ppf:Format.std_formatter
 let reader_of_list ss =
   Bytes.Reader.of_slice_seq (List.to_seq (List.map Bytes.Slice.of_string ss))
 
-let test_guess_reader_encoding () =
+let test_guess_reader_encoding =
   Test.test "Test Bytesrw_utf.guess_reader_encoding" @@ fun () ->
   let test (s, exp) =
     let r = Bytes.Reader.of_string s in
@@ -62,8 +62,5 @@ let test_guess_reader_encoding () =
   test ("\x0A\x00\x0A\x00", `Utf_16le);
   ()
 
-let main () =
-  Test.main @@ fun () ->
-  test_guess_reader_encoding ()
-
+let main () = Test.main @@ fun () -> Test.autorun ()
 let () = if !Sys.interactive then () else exit (main ())

@@ -10,7 +10,7 @@ let repeat n = Test.range ~kind:"slice_length" ~first:1 ~last:n
 
 let test_stream_error f =
   let is_exn = function Bytes.Stream.Error _ -> true | _ -> false in
-  Test.raises' is_exn f
+  Test.catch f @@ fun fnd -> Test.holds (is_exn fnd)
 
 (* Test vectors *)
 
@@ -26,7 +26,7 @@ let more = "moreatthedoor"
 
 (* Tests *)
 
-let test_decompress_reads () =
+let test_decompress_reads =
   Test.test "Bytesrw_zstd.decompress_reads" @@ fun () ->
   begin repeat 5 @@ fun n -> (* one frame *)
     let c = Bytes.Reader.of_string ~slice_length:n (fst a30_zstd) in
@@ -70,7 +70,7 @@ let test_decompress_reads () =
   end;
   ()
 
-let test_decompress_writes () =
+let test_decompress_writes =
   Test.test "Bytesrw_zstd.decompress_writes" @@ fun () ->
   begin repeat 5 @@ fun n -> (* one frame *)
     let b = Buffer.create 255 in
@@ -89,7 +89,7 @@ let test_decompress_writes () =
   end;
   ()
 
-let test_compress_reads () =
+let test_compress_reads =
   Test.test "Bytesrw_zstd.compress_reads" @@ fun () ->
   repeat 5 @@ fun n ->
   let data = snd a30_zstd in
@@ -98,7 +98,7 @@ let test_compress_reads () =
   let trip = Bytesrw_zstd.decompress_reads () ~slice_length:n c in
   assert (Bytes.Reader.to_string trip = data)
 
-let test_compress_writes () =
+let test_compress_writes =
   Test.test "Bytesrw_zstd.compress_writes" @@ fun () ->
   repeat 5 @@ fun n ->
   let data = snd a30_zstd in
@@ -110,7 +110,7 @@ let test_compress_writes () =
   let () = Bytes.Writer.write_reader ~eod:true c rdata in
   assert (Buffer.contents b = data)
 
-let test_dictionary_support () =
+let test_dictionary_support =
   Test.test "dictionary support" @@ fun () ->
   repeat 5 @@ fun n ->
   let dict = "aaaaaaaa" in
@@ -126,11 +126,7 @@ let test_dictionary_support () =
 let main () =
   Test.main @@ fun () ->
   Test.log "Using libsztd %s" (Bytesrw_zstd.version ());
-  test_decompress_reads ();
-  test_decompress_writes ();
-  test_compress_reads ();
-  test_compress_writes ();
-  test_dictionary_support ();
+  Test.autorun ();
   Gc.full_major ()
 
 let () = if !Sys.interactive then () else exit (main ())

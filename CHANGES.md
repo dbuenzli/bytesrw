@@ -1,3 +1,5 @@
+v0.2.0 2025-07-25 Zagreb
+------------------------
 
 - Fix `Bytesrw_xxhash.Xxh64.{to_hex,pp}`. Leading zeros
   were not being printed (#5).

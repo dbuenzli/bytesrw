@@ -75,3 +75,4 @@ build: [
   "%{conf-zstd:installed}%"
 ]
 dev-repo: "git+https://erratique.ch/repos/bytesrw.git"
+x-maintenance-intent: ["(latest)"]

@@ -55,6 +55,7 @@ module Bytes = struct
 
     let bytes s = s.bytes
     let first s = s.first
+    let last s = s.first + s.length - 1
     let length s = s.length
 
     let copy ~tight s =

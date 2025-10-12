@@ -1,3 +1,5 @@
+- Add `Bytes.Slice.last`.
+
 - Review `Int_val` vs `Long_val` in C bindings. Affects
   `Bytesrw_blake3`, `Bytesrw_md`, `Bytesrw_xxh`, `Bytesrw_zlib`,
   `Bytesrw_zstd`

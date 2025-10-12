@@ -85,6 +85,10 @@ module Bytes : sig
     (** [first s] is the index, in [bytes s], of the first byte of the byte
         range of [s]. *)
 
+    val last : t -> int
+    (** [last s] is the index, in [bytes s], of the last byte of the byte
+        range of [s]. *)
+
     val length : t -> int
     (** [length s] is the byte length of the byte range of [s]. This returns [0]
         only on {!eod}. *)

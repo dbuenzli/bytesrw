@@ -44,26 +44,26 @@ CAMLprim value ocaml_bytesrw_ZSTD_versionString (value unit)
 { return (caml_copy_string (ZSTD_versionString ())); }
 
 CAMLprim value ocaml_bytesrw_ZSTD_minCLevel (value unit)
-{ return (Val_int (ZSTD_minCLevel ())); }
+{ return (Val_long (ZSTD_minCLevel ())); }
 
 CAMLprim value ocaml_bytesrw_ZSTD_maxCLevel (value unit)
-{ return (Val_int (ZSTD_maxCLevel ())); }
+{ return (Val_long (ZSTD_maxCLevel ())); }
 
 CAMLprim value ocaml_bytesrw_ZSTD_defaultCLevel (value unit)
 /* Once 1.5.0 is required we can use ZSTD_defaultCLevel () */
-{ return (Val_int (ZSTD_CLEVEL_DEFAULT)); }
+{ return (Val_long (ZSTD_CLEVEL_DEFAULT)); }
 
 CAMLprim value ocaml_bytesrw_ZSTD_CStreamInSize (value unit)
-{ return (Val_int (ZSTD_CStreamInSize ())); }
+{ return (Val_long (ZSTD_CStreamInSize ())); }
 
 CAMLprim value ocaml_bytesrw_ZSTD_CStreamOutSize (value unit)
-{ return (Val_int (ZSTD_CStreamOutSize ())); }
+{ return (Val_long (ZSTD_CStreamOutSize ())); }
 
 CAMLprim value ocaml_bytesrw_ZSTD_DStreamInSize (value unit)
-{ return (Val_int (ZSTD_DStreamInSize ())); }
+{ return (Val_long (ZSTD_DStreamInSize ())); }
 
 CAMLprim value ocaml_bytesrw_ZSTD_DStreamOutSize (value unit)
-{ return (Val_int (ZSTD_DStreamOutSize ())); }
+{ return (Val_long (ZSTD_DStreamOutSize ())); }
 
 /* Decompression */
 
@@ -113,19 +113,19 @@ CAMLprim value ocaml_bytesrw_ZSTD_decompressStream
   ZSTD_DCtx *ctx = ZSTD_DCtx_val (dctx);
   ZSTD_inBuffer bsrc;
   bsrc.src = Bytes_val (Field (src, ocaml_zbuf_bytes));
-  bsrc.size = Int_val (Field (src, ocaml_zbuf_size));
-  bsrc.pos = Int_val (Field (src, ocaml_zbuf_pos));
+  bsrc.size = Long_val (Field (src, ocaml_zbuf_size));
+  bsrc.pos = Long_val (Field (src, ocaml_zbuf_pos));
 
   ZSTD_outBuffer bdst;
   bdst.dst = Bytes_val (Field (dst, ocaml_zbuf_bytes));
-  bdst.size = Int_val (Field (dst, ocaml_zbuf_size));
-  bdst.pos = Int_val (Field (dst, ocaml_zbuf_pos));
+  bdst.size = Long_val (Field (dst, ocaml_zbuf_size));
+  bdst.pos = Long_val (Field (dst, ocaml_zbuf_pos));
 
   size_t rc = ZSTD_decompressStream (ctx, &bdst, &bsrc);
   if (ZSTD_isError (rc)) caml_failwith (ZSTD_getErrorName (rc));
 
-  Store_field (src, ocaml_zbuf_pos, Val_int (bsrc.pos));
-  Store_field (dst, ocaml_zbuf_pos, Val_int (bdst.pos));
+  Store_field (src, ocaml_zbuf_pos, Val_long (bsrc.pos));
+  Store_field (dst, ocaml_zbuf_pos, Val_long (bdst.pos));
   return Val_bool (rc == 0 /* End of frame */);
 }
 
@@ -179,19 +179,19 @@ CAMLprim value ocaml_bytesrw_ZSTD_compressStream2
 
   ZSTD_inBuffer bsrc;
   bsrc.src = Bytes_val (Field (src, ocaml_zbuf_bytes));
-  bsrc.size = Int_val (Field (src, ocaml_zbuf_size));
-  bsrc.pos = Int_val (Field (src, ocaml_zbuf_pos));
+  bsrc.size = Long_val (Field (src, ocaml_zbuf_size));
+  bsrc.pos = Long_val (Field (src, ocaml_zbuf_pos));
 
   ZSTD_outBuffer bdst;
   bdst.dst = Bytes_val (Field (dst, ocaml_zbuf_bytes));
-  bdst.size = Int_val (Field (dst, ocaml_zbuf_size));
-  bdst.pos = Int_val (Field (dst, ocaml_zbuf_pos));
+  bdst.size = Long_val (Field (dst, ocaml_zbuf_size));
+  bdst.pos = Long_val (Field (dst, ocaml_zbuf_pos));
 
   size_t rem = ZSTD_compressStream2 (ctx, &bdst, &bsrc,
                                      ocaml_zstd_end_directive[Int_val (edir)]);
 
   if (ZSTD_isError (rem)) caml_failwith (ZSTD_getErrorName (rem));
-  Store_field (src, ocaml_zbuf_pos, Val_int (bsrc.pos));
-  Store_field (dst, ocaml_zbuf_pos, Val_int (bdst.pos));
+  Store_field (src, ocaml_zbuf_pos, Val_long (bsrc.pos));
+  Store_field (dst, ocaml_zbuf_pos, Val_long (bdst.pos));
   return Val_bool (rem == 0 /* end_dir completed */);
 }

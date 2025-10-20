@@ -25,26 +25,26 @@
 /* Library parameters */
 
 CAMLprim value ocaml_bytesrw_XXH_versionNumber (value unit)
-{ return Val_int (XXH_VERSION_NUMBER); }
+{ return Val_long (XXH_VERSION_NUMBER); }
 
 CAMLprim value ocaml_bytesrw_XXH3_SECRET_SIZE_MIN (value unit)
-{ return Val_int (XXH3_SECRET_SIZE_MIN); }
+{ return Val_long (XXH3_SECRET_SIZE_MIN); }
 
 /* Hashing bytes */
 
 CAMLprim value ocaml_bytesrw_XXH3_64bits_withSeed
 (value str, value ofs, value len, value seed)
 {
-  XXH64_hash_t h = XXH3_64bits_withSeed (Bp_val (str) + Int_val (ofs),
-                                         Int_val (len), Int64_val (seed));
+  XXH64_hash_t h = XXH3_64bits_withSeed (Bp_val (str) + Long_val (ofs),
+                                         Long_val (len), Int64_val (seed));
   return (caml_copy_int64 (h));
 }
 
 CAMLprim value ocaml_bytesrw_XXH3_128bits_withSeed
 (value str, value ofs, value len, value seed)
 {
-  XXH128_hash_t h = XXH3_128bits_withSeed (Bp_val (str) + Int_val (ofs),
-                                         Int_val (len), Int64_val (seed));
+  XXH128_hash_t h = XXH3_128bits_withSeed (Bp_val (str) + Long_val (ofs),
+                                           Long_val (len), Int64_val (seed));
   value res = caml_alloc_string (16);
   ((XXH64_hash_t *)Bp_val(res))[0] = _BE64 (h.high64);
   ((XXH64_hash_t *)(Bp_val(res)))[1] = _BE64 (h.low64);
@@ -115,8 +115,8 @@ CAMLprim value ocaml_bytesrw_XXH3_64bits_reset_withSecretandSeed
 CAMLprim value ocaml_bytesrw_XXH3_64bits_update
 (value hst, value str, value ofs, value len)
 {
-  XXH3_64bits_update (XXH3_state_t_val (hst),  Bp_val (str) + Int_val (ofs),
-                      Int_val (len));
+  XXH3_64bits_update (XXH3_state_t_val (hst),  Bp_val (str) + Long_val (ofs),
+                      Long_val (len));
   return Val_unit;
 }
 
@@ -165,8 +165,8 @@ CAMLprim value ocaml_bytesrw_XXH3_128bits_reset_withSecretandSeed
 CAMLprim value ocaml_bytesrw_XXH3_128bits_update
 (value hst, value str, value ofs, value len)
 {
-  XXH3_128bits_update (XXH3_state_t_val (hst),  Bp_val (str) + Int_val (ofs),
-                       Int_val (len));
+  XXH3_128bits_update (XXH3_state_t_val (hst),  Bp_val (str) + Long_val (ofs),
+                       Long_val (len));
   return Val_unit;
 }
 

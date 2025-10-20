@@ -30,8 +30,8 @@ CAMLprim value ocaml_bytesrw_sha1_init (value unit)
 CAMLprim value ocaml_bytesrw_sha1_update
 (value hctx, value str, value ofs, value len)
 {
-  SHA1Update (sha1_ctx_val (hctx), Bytes_val (str) + Int_val (ofs),
-              Int_val (len));
+  SHA1Update (sha1_ctx_val (hctx), Bytes_val (str) + Long_val (ofs),
+              Long_val (len));
   return Val_unit;
 }
 
@@ -50,7 +50,7 @@ CAMLprim value ocaml_bytesrw_sha1_hash
   SHA1_CTX h;
   uint8_t hash[SHA1_DIGEST_LENGTH];
   SHA1Init (&h);
-  SHA1Update (&h, Bytes_val (str) + Int_val (ofs), Int_val (len));
+  SHA1Update (&h, Bytes_val (str) + Long_val (ofs), Long_val (len));
   SHA1Final (hash, &h);
   return caml_alloc_initialized_string (SHA1_DIGEST_LENGTH, (char *)hash);
 }
@@ -67,8 +67,8 @@ CAMLprim value ocaml_bytesrw_sha256_init (value unit)
 CAMLprim value ocaml_bytesrw_sha256_update
 (value hctx, value str, value ofs, value len)
 {
-  SHA256Update (sha2_ctx_val (hctx), Bytes_val (str) + Int_val (ofs),
-                Int_val (len));
+  SHA256Update (sha2_ctx_val (hctx), Bytes_val (str) + Long_val (ofs),
+                Long_val (len));
   return Val_unit;
 }
 
@@ -87,7 +87,7 @@ CAMLprim value ocaml_bytesrw_sha256_hash
   SHA2_CTX h;
   uint8_t hash[SHA256_DIGEST_LENGTH];
   SHA256Init (&h);
-  SHA256Update (&h, Bytes_val (str) + Int_val (ofs), Int_val (len));
+  SHA256Update (&h, Bytes_val (str) + Long_val (ofs), Long_val (len));
   SHA256Final (hash, &h);
   return caml_alloc_initialized_string (SHA256_DIGEST_LENGTH, (char *)hash);
 }
@@ -104,8 +104,8 @@ CAMLprim value ocaml_bytesrw_sha384_init (value unit)
 CAMLprim value ocaml_bytesrw_sha384_update
 (value hctx, value str, value ofs, value len)
 {
-  SHA384Update (sha2_ctx_val (hctx), Bytes_val (str) + Int_val (ofs),
-                Int_val (len));
+  SHA384Update (sha2_ctx_val (hctx), Bytes_val (str) + Long_val (ofs),
+                Long_val (len));
   return Val_unit;
 }
 
@@ -124,7 +124,7 @@ CAMLprim value ocaml_bytesrw_sha384_hash
   SHA2_CTX h;
   uint8_t hash[SHA384_DIGEST_LENGTH];
   SHA384Init (&h);
-  SHA384Update (&h, Bytes_val (str) + Int_val (ofs), Int_val (len));
+  SHA384Update (&h, Bytes_val (str) + Long_val (ofs), Long_val (len));
   SHA384Final (hash, &h);
   return caml_alloc_initialized_string (SHA384_DIGEST_LENGTH, (char *)hash);
 }
@@ -141,8 +141,8 @@ CAMLprim value ocaml_bytesrw_sha512_init (value unit)
 CAMLprim value ocaml_bytesrw_sha512_update
 (value hctx, value str, value ofs, value len)
 {
-  SHA512Update (sha2_ctx_val (hctx), Bytes_val (str) + Int_val (ofs),
-                Int_val (len));
+  SHA512Update (sha2_ctx_val (hctx), Bytes_val (str) + Long_val (ofs),
+                Long_val (len));
   return Val_unit;
 }
 
@@ -161,7 +161,7 @@ CAMLprim value ocaml_bytesrw_sha512_hash
   SHA2_CTX h;
   uint8_t hash[SHA512_DIGEST_LENGTH];
   SHA512Init (&h);
-  SHA512Update (&h, Bytes_val (str) + Int_val (ofs), Int_val (len));
+  SHA512Update (&h, Bytes_val (str) + Long_val (ofs), Long_val (len));
   SHA512Final (hash, &h);
   return caml_alloc_initialized_string (SHA512_DIGEST_LENGTH, (char *)hash);
 }

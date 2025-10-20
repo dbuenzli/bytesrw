@@ -81,13 +81,13 @@ CAMLprim value ocaml_bytesrw_inflate
 {
   z_streamp s = z_streamp_val (zs);
 
-  size_t in_pos = Int_val (Field (src, ocaml_zbuf_pos));
-  size_t in_size = Int_val (Field (src, ocaml_zbuf_size));
+  size_t in_pos = Long_val (Field (src, ocaml_zbuf_pos));
+  size_t in_size = Long_val (Field (src, ocaml_zbuf_size));
   s->next_in = Bytes_val (Field (src, ocaml_zbuf_bytes)) + in_pos;
   s->avail_in = in_size - in_pos;
 
-  size_t out_pos = Int_val (Field (dst, ocaml_zbuf_pos));
-  size_t out_size = Int_val (Field (dst, ocaml_zbuf_size));
+  size_t out_pos = Long_val (Field (dst, ocaml_zbuf_pos));
+  size_t out_size = Long_val (Field (dst, ocaml_zbuf_size));
   s->next_out = Bytes_val (Field (dst, ocaml_zbuf_bytes)) + out_pos;
   s->avail_out = out_size - out_pos;
 
@@ -98,8 +98,8 @@ CAMLprim value ocaml_bytesrw_inflate
   size_t in_consumed = in_size - in_pos - s->avail_in;
   size_t out_consumed = out_size - out_pos - s->avail_out;
 
-  Store_field (src, ocaml_zbuf_pos, Val_int (in_pos + in_consumed));
-  Store_field (dst, ocaml_zbuf_pos, Val_int (out_pos + out_consumed));
+  Store_field (src, ocaml_zbuf_pos, Val_long (in_pos + in_consumed));
+  Store_field (dst, ocaml_zbuf_pos, Val_long (out_pos + out_consumed));
 
   return Val_bool (rc == Z_STREAM_END);
 }
@@ -154,13 +154,13 @@ CAMLprim value ocaml_bytesrw_deflate
 {
   z_streamp s = z_streamp_val (zs);
 
-  size_t in_pos = Int_val (Field (src, ocaml_zbuf_pos));
-  size_t in_size = Int_val (Field (src, ocaml_zbuf_size));
+  size_t in_pos = Long_val (Field (src, ocaml_zbuf_pos));
+  size_t in_size = Long_val (Field (src, ocaml_zbuf_size));
   s->next_in = Bytes_val (Field (src, ocaml_zbuf_bytes)) + in_pos;
   s->avail_in = in_size - in_pos;
 
-  size_t out_pos = Int_val (Field (dst, ocaml_zbuf_pos));
-  size_t out_size = Int_val (Field (dst, ocaml_zbuf_size));
+  size_t out_pos = Long_val (Field (dst, ocaml_zbuf_pos));
+  size_t out_size = Long_val (Field (dst, ocaml_zbuf_size));
   s->next_out = Bytes_val (Field (dst, ocaml_zbuf_bytes)) + out_pos;
   s->avail_out = out_size - out_pos;
 
@@ -171,8 +171,8 @@ CAMLprim value ocaml_bytesrw_deflate
   size_t in_consumed = in_size - in_pos - s->avail_in;
   size_t out_consumed = out_size - out_pos - s->avail_out;
 
-  Store_field (src, ocaml_zbuf_pos, Val_int (in_pos + in_consumed));
-  Store_field (dst, ocaml_zbuf_pos, Val_int (out_pos + out_consumed));
+  Store_field (src, ocaml_zbuf_pos, Val_long (in_pos + in_consumed));
+  Store_field (dst, ocaml_zbuf_pos, Val_long (out_pos + out_consumed));
 
   return Val_bool (rc == Z_STREAM_END);
 }

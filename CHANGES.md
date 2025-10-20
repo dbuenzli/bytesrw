@@ -1,3 +1,6 @@
+- Review `Int_val` vs `Long_val` in C bindings. Affects
+  `Bytesrw_blake3`
+
 v0.2.0 2025-07-25 Zagreb
 ------------------------
 

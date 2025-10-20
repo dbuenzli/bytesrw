@@ -35,7 +35,7 @@ CAMLprim value ocaml_bytesrw_blake3_update
 (value hst, value str, value ofs, value len)
 {
   blake3_hasher_update (blake3_hasher_val (hst),
-                        Bytes_val (str) + Int_val (ofs), Int_val (len));
+                        Bytes_val (str) + Long_val (ofs), Long_val (len));
   return Val_unit;
 }
 
@@ -52,7 +52,7 @@ CAMLprim value ocaml_bytesrw_blake3_hash
   blake3_hasher h;
   uint8_t hash[BLAKE3_OUT_LEN];
   blake3_hasher_init(&h);
-  blake3_hasher_update (&h, Bytes_val (str) + Int_val (ofs), Int_val (len));
+  blake3_hasher_update (&h, Bytes_val (str) + Long_val (ofs), Long_val (len));
   blake3_hasher_finalize (&h, hash, BLAKE3_OUT_LEN);
   return caml_alloc_initialized_string (BLAKE3_OUT_LEN, (char *)hash);
 }
@@ -63,7 +63,7 @@ CAMLprim value ocaml_bytesrw_blake3_hash_keyed
   blake3_hasher h;
   uint8_t hash[BLAKE3_OUT_LEN];
   blake3_hasher_init_keyed(&h, Bytes_val (key));
-  blake3_hasher_update (&h, Bytes_val (str) + Int_val (ofs), Int_val (len));
+  blake3_hasher_update (&h, Bytes_val (str) + Long_val (ofs), Long_val (len));
   blake3_hasher_finalize (&h, hash, BLAKE3_OUT_LEN);
   return caml_alloc_initialized_string (BLAKE3_OUT_LEN, (char *)hash);
 }

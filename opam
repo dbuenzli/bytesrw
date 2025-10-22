@@ -44,6 +44,8 @@ tags: [
   "utf"
   "xxhash"
   "blake3"
+  "psa"
+  "tls"
   "cryptography"
   "sha3"
   "org:erratique"
@@ -64,28 +66,47 @@ depopts: [
   "conf-zstd"
   "conf-libmd"
   "conf-libblake3"
+  "cmdliner"
+  "b0"
 ]
 conflicts: [
   "conf-zstd" {< "1.3.8"}
+  "cmdliner" {< "2.0.0"}
+  "b0" {< "0.0.6"}
 ]
 build: [
-  "ocaml"
-  "pkg/pkg.ml"
-  "build"
-  "--dev-pkg"
-  "%{dev}%"
-  "--with-conf-libblake3"
-  "%{conf-libblake3:installed}%"
-  "--with-conf-mbedtls"
-  "%{conf-mbedtls:installed}%"
-  "--with-conf-libmd"
-  "%{conf-libmd:installed}%"
-  "--with-conf-xxhash"
-  "%{conf-xxhash:installed}%"
-  "--with-conf-zlib"
-  "%{conf-zlib:installed}%"
-  "--with-conf-zstd"
-  "%{conf-zstd:installed}%"
+  [
+    "ocaml"
+    "pkg/pkg.ml"
+    "build"
+    "--dev-pkg"
+    "%{dev}%"
+    "--with-cmdliner"
+    "%{cmdliner:installed}%"
+    "--with-b0"
+    "%{b0:installed}%"
+    "--with-conf-libblake3"
+    "%{conf-libblake3:installed}%"
+    "--with-conf-mbedtls"
+    "%{conf-mbedtls:installed}%"
+    "--with-conf-libmd"
+    "%{conf-libmd:installed}%"
+    "--with-conf-xxhash"
+    "%{conf-xxhash:installed}%"
+    "--with-conf-zlib"
+    "%{conf-zlib:installed}%"
+    "--with-conf-zstd"
+    "%{conf-zstd:installed}%"
+  ]
+  [
+    "cmdliner"
+    "install"
+    "tool-support"
+    "--update-opam-install=%{_:name}%.install"
+    "_build/test/certown.native:certown" {ocaml:native}
+    "_build/test/certown.byte:certown" {!ocaml:native}
+    "_build/cmdliner-install"
+  ] {cmdliner:installed & b0:installed & conf-mbedtls:installed}
 ]
 dev-repo: "git+https://erratique.ch/repos/bytesrw.git"
 x-maintenance-intent: ["(latest)"]

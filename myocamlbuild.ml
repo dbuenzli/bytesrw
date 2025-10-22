@@ -1,22 +1,33 @@
 open Ocamlbuild_plugin
 open Command
 
+let os =
+  String.trim @@
+  try Sys.getenv "HOST_OS"
+  with Not_found -> run_and_read "uname -s"
+
+let darwin = os = "Darwin"
+
 (* Generic pkg-config(1) support. *)
 
 let pkg_config_exists package =
   Sys.command ("pkg-config --exists " ^ package) = 0
 
-let lib_with_clib ~lib ~clib ~has_lib ~src_dir ~stublib =
+let lib_with_clib
+    ?(more_clib = []) ?(frameworks = []) ~lib ~clib ~has_lib ~src_dir
+    ~stublib ()
+  =
   let strf = Printf.sprintf in
   let windows = !Ocamlbuild_plugin.Options.ext_lib = "lib" in
-  let pkg_config flags package =
+  let pkg_config flags packages =
     let cmd tmp =
       let pkg_config =
         if not windows then A "pkg-config" else
         S [A "pkg-config"; A "--msvc-syntax"]
       in
+      let pkgs = List.map (fun arg -> A arg) packages in
       Command.execute ~quiet:true &
-      Cmd( S [ pkg_config; A ("--" ^ flags); A package; Sh ">"; A tmp]);
+      Cmd( S [ pkg_config; A ("--" ^ flags); S pkgs; Sh ">"; A tmp]);
       List.map (fun arg -> A arg) (string_list_of_file tmp)
     in
     with_temp_file "pkgconfig" "pkg-config" cmd
@@ -39,6 +50,7 @@ let lib_with_clib ~lib ~clib ~has_lib ~src_dir ~stublib =
   let dynamic_stub_l =
     if windows then A (strf "dll%s.dll" stublib) else static_stub_l
   in
+  let clib = more_clib @ [clib] in
   let clib_l = pkg_config "libs-only-l" clib in
   let clib_L =
     let dashldify = function
@@ -47,15 +59,21 @@ let lib_with_clib ~lib ~clib ~has_lib ~src_dir ~stublib =
     in
     List.map dashldify (pkg_config "libs-only-L" clib)
   in
+  let mklib_frameworks, clib_frameworks =
+    if not darwin then [], [] else
+    let clib = List.map (fun f -> A (strf "-framework %s" f)) frameworks in
+    let mklib = List.map (fun f -> [A "-framework"; A f]) frameworks in
+    List.concat mklib, clib
+  in
   let clib_cflags = ccopts @@ (A has_lib) :: pkg_config "cflags" clib in
-  let clib_cclibs = cclibs @@ static_stub_l :: clib_l in
+  let clib_cclibs = cclibs @@ static_stub_l :: (clib_l @ clib_frameworks) in
   let clib_ccopts = ccopts @@ clib_L in
   begin
     dep [record_stub_lib] [stub_ar];
 
     flag ["c"; "compile"; use_clib] (S clib_cflags);
 
-    flag ["c"; "ocamlmklib"; use_clib] (S (clib_L @ clib_l));
+    flag ["c"; "ocamlmklib"; use_clib] (S (clib_L @ clib_l @ mklib_frameworks));
 
     flag ["link"; "ocaml"; "library"; "byte"; record_stub_lib]
       (S (dllibs [dynamic_stub_l] @ clib_ccopts @ clib_cclibs));
@@ -81,27 +99,33 @@ let () =
       if pkg_config_exists "libblake3" then
         lib_with_clib
           ~lib:"bytesrw_blake3" ~clib:"libblake3" ~has_lib:"-DHAS_BLAKE3"
-          ~src_dir:"src/blake3" ~stublib:"bytesrw_blake3_stubs";
-      if pkg_config_exists "mbedcrypto" then
+          ~src_dir:"src/blake3" ~stublib:"bytesrw_blake3_stubs" ();
+      if pkg_config_exists "tfpsacrypto" then
         lib_with_clib
-          ~lib:"bytesrw_crypto" ~clib:"mbedcrypto" ~has_lib:"-DHAS_PSA_CRYPTO"
-          ~src_dir:"src/crypto" ~stublib:"bytesrw_crypto_stubs";
+          ~lib:"bytesrw_crypto" ~clib:"tfpsacrypto" ~has_lib:"-DHAS_PSA_CRYPTO"
+          ~src_dir:"src/crypto" ~stublib:"bytesrw_crypto_stubs" ();
+      if pkg_config_exists "mbedtls" then
+        lib_with_clib
+          ~more_clib:["mbedx509"]
+          ~frameworks:["Security"; "CoreFoundation"]
+          ~lib:"bytesrw_tls" ~clib:"mbedtls" ~has_lib:"-DHAS_MBEDTLS"
+          ~src_dir:"src/tls" ~stublib:"bytesrw_tls_stubs" ();
       if pkg_config_exists "libmd" then
         lib_with_clib
           ~lib:"bytesrw_md" ~clib:"libmd" ~has_lib:"-DHAS_LIBMD"
-          ~src_dir:"src/md" ~stublib:"bytesrw_md_stubs";
+          ~src_dir:"src/md" ~stublib:"bytesrw_md_stubs" ();
       if pkg_config_exists "libxxhash" then
         lib_with_clib
           ~lib:"bytesrw_xxhash" ~clib:"libxxhash" ~has_lib:"-DHAS_XXHASH"
-          ~src_dir:"src/xxhash" ~stublib:"bytesrw_xxhash_stubs";
+          ~src_dir:"src/xxhash" ~stublib:"bytesrw_xxhash_stubs" ();
       if pkg_config_exists "zlib" then
         lib_with_clib
           ~lib:"bytesrw_zlib" ~clib:"zlib" ~has_lib:"-DHAS_ZLIB"
-          ~src_dir:"src/zlib" ~stublib:"bytesrw_zlib_stubs";
+          ~src_dir:"src/zlib" ~stublib:"bytesrw_zlib_stubs" ();
       if pkg_config_exists "libzstd" then
         lib_with_clib
           ~lib:"bytesrw_zstd" ~clib:"libzstd" ~has_lib:"-DHAS_ZSTD"
-          ~src_dir:"src/zstd" ~stublib:"bytesrw_zstd_stubs";
+          ~src_dir:"src/zstd" ~stublib:"bytesrw_zstd_stubs" ();
 
       (* bytesrw.sysrandom *)
 

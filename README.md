@@ -36,8 +36,11 @@ Bytesrw can be installed with `opam`
     # Hashing support
     opam install bytesrw conf-libblake3 conf-libmd conf-xxhash
     
-    # Cryptography support 
+    # Cryptography (and hashing) support 
     opam install conf-mbedtsl
+    
+    # certown tool 
+    opam install bytesrw conf-mbedtls b0 cmdliner
 
 If you don't use `opam` consult the [`opam`](opam) file for build
 instructions.
@@ -59,6 +62,6 @@ A few examples can be found in the [test](test/) directory.
 ## Acknowledgments 
 
 A grant from the [OCaml Software Foundation] helped to bring the first
-public release of `bytesrw`.
+public release of `bytesrw`. Another one funded the cryptography support.
 
 [OCaml Software Foundation]: http://ocaml-sf.org/

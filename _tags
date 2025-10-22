@@ -27,6 +27,15 @@ true : bin_annot, safe_string
 <src/sysrandom/bytesrw_sysrandom.{cma,cmxa}> : record_bytesrw_sysrandom_stubs
 <src/sysrandom/bytesrw_sysrandom.{cmxs}> : link_bytesrw_sysrandom_stubs
 
+<src/tls> : include
+<src/tls/bytesrw_tls__mbedtls_stubs.c> : use_mbedtls
+<src/tls/bytesrw_tls.{cma,cmxa}> : record_bytesrw_tls_stubs
+<src/tls/bytesrw_tls.{cmxs}> : link_bytesrw_tls_stubs_archive
+<src/tls/libbytesrw_tls_stubs.*> : use_mbedtls
+
+<test/certown*> : package(unix,cmdliner,b0.std), use_bytesrw_crypto, use_bytesrw_tls
+
+
 <src/xxhash> : include
 <src/xxhash/bytesrw_xxhash_stubs.c> : use_libxxhash
 <src/xxhash/bytesrw_xxhash.{cma,cmxa}> : record_bytesrw_xxhash_stubs

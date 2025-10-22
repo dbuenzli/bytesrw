@@ -150,7 +150,7 @@ end = struct
     let message = function Error msg -> msg | _ -> assert false in
     Bytes.Stream.make_format_error ~format:"myformat" ~case ~message
 
-  let error e = Bytes.Stream.error format_error e
+  let stream_error e = Bytes.Stream.error format_error e
   let reader_error r e = Bytes.Reader.error format_error r e
   let writer_error w e = Bytes.Writer.error format_error w e
 end

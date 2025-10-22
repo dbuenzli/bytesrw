@@ -43,16 +43,19 @@ Bytesrw_utf
 Bytesrw_hex}
 
 {1:bytesrw_other_libs Libraries
-                      [bytesrw.{blake3,crypto,md,unix,xxhash,zlib,zstd}]}
+                      [bytesrw.{blake3,crypto,md,tls,unix,xxhash,zlib,zstd}]}
 
-Each of these modules lives in its corresponding library.
-Compression and hashing libraries depend on their canonical C library.
+Each of these modules lives in its corresponding library. Compression
+and hashing libraries depend on their canonical C library and
+encryption on Mbed TLS. If a library is missing, install the
+corresponding [conf] opam package and reinstall [bytesrw].
 
 {!modules:
 Bytesrw_blake3
 Bytesrw_crypto
 Bytesrw_md
 Bytesrw_sysrandom
+Bytesrw_tls
 Bytesrw_unix
 Bytesrw_xxhash
 Bytesrw_zlib

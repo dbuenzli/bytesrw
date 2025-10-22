@@ -3,14 +3,19 @@
 #require "topkg"
 open Topkg
 
+let cmdliner = Conf.with_pkg "cmdliner"
+let b0 = Conf.with_pkg "b0"
 let blake3 = Conf.with_pkg "conf-libblake3"
 let libmd = Conf.with_pkg "conf-libmd"
 let mbedtls = Conf.with_pkg "conf-mbedtls"
 let xxhash = Conf.with_pkg "conf-xxhash"
 let zstd = Conf.with_pkg "conf-zstd"
 let zlib = Conf.with_pkg "conf-zlib"
+
 let () =
   Pkg.describe "bytesrw" @@ fun c ->
+  let cmdliner = Conf.value c cmdliner in
+  let b0 = Conf.value c b0 in
   let blake3 = Conf.value c blake3 in
   let libmd = Conf.value c libmd in
   let mbedtls = Conf.value c mbedtls in
@@ -28,6 +33,10 @@ let () =
          ~dst_dir:"crypto";
        Pkg.clib ~cond:mbedtls "src/crypto/libbytesrw_crypto_stubs.clib"
          ~lib_dst_dir:"crypto";
+       Pkg.mllib ~cond:mbedtls "src/tls/bytesrw_tls.mllib"
+         ~dst_dir:"tls";
+       Pkg.clib ~cond:mbedtls "src/tls/libbytesrw_tls_stubs.clib"
+         ~lib_dst_dir:"tls";
        Pkg.mllib ~cond:libmd "src/md/bytesrw_md.mllib"
          ~dst_dir:"md";
        Pkg.clib ~cond:libmd "src/md/libbytesrw_md_stubs.clib"
@@ -46,6 +55,7 @@ let () =
        Pkg.mllib ~cond:zstd "src/zstd/bytesrw_zstd.mllib" ~dst_dir:"zstd";
        Pkg.clib ~cond:zstd "src/zstd/libbytesrw_zstd_stubs.clib"
          ~lib_dst_dir:"zstd";
+       Pkg.bin ~cond:(b0 && cmdliner && mbedtls) "test/certown";
        Pkg.doc "doc/index.mld" ~dst:"odoc-pages/index.mld";
        Pkg.doc "doc/cookbook.mld" ~dst:"odoc-pages/cookbook.mld";
        Pkg.doc "doc/notes.mld" ~dst:"odoc-pages/notes.mld";

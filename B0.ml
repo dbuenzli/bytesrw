@@ -7,6 +7,7 @@ let bytesrw_blake3 = B0_ocaml.libname "bytesrw.blake3"
 let bytesrw_crypto = B0_ocaml.libname "bytesrw.crypto"
 let bytesrw_md = B0_ocaml.libname "bytesrw.md"
 let bytesrw_sysrandom = B0_ocaml.libname "bytesrw.sysrandom"
+let bytesrw_tls = B0_ocaml.libname "bytesrw.tls"
 let bytesrw_unix = B0_ocaml.libname "bytesrw.unix"
 let bytesrw_xxhash = B0_ocaml.libname "bytesrw.xxhash"
 let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
@@ -14,6 +15,7 @@ let bytesrw_zstd = B0_ocaml.libname "bytesrw.zstd"
 
 let b0_std = B0_ocaml.libname "b0.std"
 let unix = B0_ocaml.libname "unix"
+let threads = B0_ocaml.libname "threads"
 let cmdliner = B0_ocaml.libname "cmdliner"
 
 (* Libraries *)
@@ -32,9 +34,21 @@ let bytesrw_blake3_lib =
 let bytesrw_crypto_lib =
   let doc = "Cryptographic primitives" in
   let srcs = [ `Dir ~/"src/crypto" ] in
-  let c_requires = Cmd.arg "-lmbedcrypto" in
+  let c_requires = Cmd.arg "-ltfpsacrypto" in
   let requires = [bytesrw] and exports = [bytesrw] in
   B0_ocaml.lib bytesrw_crypto ~srcs ~requires ~exports ~c_requires ~doc
+
+let bytesrw_tls_lib =
+  let doc = "TLS streams" in
+  let srcs = [ `Dir ~/"src/tls" ] in
+  let c_requires =
+    Cmd.(arg "-lmbedx509" % "-lmbedtls" %
+         (* FIXME only on macOS *)
+         "-framework" % "Security" % "-framework" % "CoreFoundation")
+  in
+  let requires = [bytesrw; bytesrw_crypto; unix] in
+  let exports = [bytesrw; bytesrw_crypto; unix] in
+  B0_ocaml.lib bytesrw_tls ~srcs ~requires ~exports ~c_requires ~doc
 
 let bytesrw_md_lib =
   let doc = "SHA{1,2} hashes" in
@@ -101,6 +115,7 @@ let test_sysrandom =
 let test_xxhash = test ~/"test/test_xxhash.ml" ~requires:[bytesrw_xxhash]
 let test_zlib = test ~/"test/test_zlib.ml" ~requires:[bytesrw_zlib]
 let test_zstd = test ~/"test/test_zstd.ml" ~requires:[bytesrw_zstd]
+let test_tls = test ~/"test/test_tls.ml" ~requires:[bytesrw_tls; threads]
 
 let tool_requires = [cmdliner; unix; bytesrw_unix]
 
@@ -124,10 +139,26 @@ let zstdtrip =
   let requires = bytesrw_zstd :: tool_requires in
   test ~/"test/zstdtrip.ml" ~run:false ~requires ~doc
 
-let webget =
-  let doc = "http and https requests" in
-  let requires = b0_std :: tool_requires in
-  test ~/"test/webget.ml" ~run:false ~requires ~doc
+let webfetch =
+  let doc = "Fetch HTTP(S) URLs" in
+  let requires = bytesrw_tls :: b0_std :: tool_requires in
+  test ~/"test/webfetch.ml" ~run:false ~requires ~doc
+
+let webserve =
+  let doc = "Echo HTTPS requests" in
+  let requires = bytesrw_tls :: threads :: b0_std :: tool_requires in
+  test ~/"test/webserve.ml" ~run:false ~requires ~doc
+
+let min_tls =
+  let doc = "Minimal TLS example" in
+  let requires = bytesrw_tls :: b0_std :: tool_requires in
+  test ~/"test/min_tls.ml" ~run:false ~requires ~doc
+
+let certown =
+  let doc = "Basic X509 certificate munging for dev" in
+  let requires = bytesrw_tls :: b0_std :: tool_requires in
+  let srcs = [ `File ~/"test/certown.ml" ] in
+  B0_ocaml.exe "certown" ~srcs ~requires ~doc
 
 (* Packs *)
 
@@ -144,30 +175,43 @@ let default =
    |> ~~ B0_meta.description_tags
      ["bytes"; "entropy"; "streaming"; "zstd"; "zlib"; "gzip"; "deflate";
       "random"; "csprng"; "sha1"; "sha2"; "compression"; "hashing";
-      "utf"; "xxhash"; "blake3";
+      "utf"; "xxhash"; "blake3"; "psa"; "tls";
       "cryptography"; "sha3"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"
+                 "--with-cmdliner" "%{cmdliner:installed}%"
+                 "--with-b0" "%{b0:installed}%"
                  "--with-conf-libblake3" "%{conf-libblake3:installed}%"
                  "--with-conf-mbedtls" "%{conf-mbedtls:installed}%"
                  "--with-conf-libmd" "%{conf-libmd:installed}%"
                  "--with-conf-xxhash" "%{conf-xxhash:installed}%"
                  "--with-conf-zlib" "%{conf-zlib:installed}%"
-                 "--with-conf-zstd" "%{conf-zstd:installed}%"]]|}
+                 "--with-conf-zstd" "%{conf-zstd:installed}%"]
+          ["cmdliner" "install" "tool-support"
+          "--update-opam-install=%{_:name}%.install"
+          "_build/test/certown.native:certown" {ocaml:native}
+          "_build/test/certown.byte:certown" {!ocaml:native}
+          "_build/cmdliner-install"] {cmdliner:installed &
+                                      b0:installed &
+                                      conf-mbedtls:installed} ]|}
    |> ~~ B0_opam.depopts ["conf-mbedtls", "";
                           "conf-xxhash", "";
                           "conf-zlib", "";
                           "conf-zstd", "";
                           "conf-libmd", "";
-                          "conf-libblake3", ""; ]
-   |> ~~ B0_opam.conflicts [ "conf-zstd", {|< "1.3.8"|}] (* should be 1.4 *)
+                          "conf-libblake3", "";
+                          "cmdliner", "";
+                          "b0", "";
+                         ]
+   |> ~~ B0_opam.conflicts [ "conf-zstd", {|< "1.3.8"|}; (* should be 1.4 *)
+                             "cmdliner", {|< "2.0.0"|};
+                             "b0", {|< "0.0.6"|};
+                           ]
    |> ~~ B0_opam.depends
      [ "ocaml", {|>= "4.14.0"|};
        "ocamlfind", {|build|};
        "ocamlbuild", {|build|};
-       "topkg", {|build & >= "1.1.0"|};
-       "cmdliner", {|test & >= 2.0.0"|};
-     ]
+       "topkg", {|build & >= "1.1.0"|};]
    |> B0_meta.tag B0_opam.tag
  in
  B0_pack.make "default" ~doc:"The bytesrw package" ~meta ~locked:true @@

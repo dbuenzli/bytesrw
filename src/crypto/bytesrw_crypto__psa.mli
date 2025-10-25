@@ -38,7 +38,11 @@
     implementation of the specification (a few entry points are missing).
     {ul
     {- {{:https://arm-software.github.io/psa-api/crypto/1.2/}
-       PSA Certified Crypto API 1.2}}} *)
+       PSA Certified Crypto API 1.2}}}
+
+    {b Sample code.} The
+    {{:https://github.com/dbuenzli/bytesrw/blob/main/test/test_psa.ml}test
+    suite} can double up as (not the best) sample code. *)
 
 open Bytesrw
 
@@ -86,14 +90,14 @@ module Status : sig
 
       This allows to inject bare status function results into
       the [('a, t) result] error monad. It binds on
-      {!Bytes_crpyto__psa.success} and otherwise [Error ] with
+      {!Bytesrw_crypto__psa.success} and otherwise [Error ] with
       the error code. *)
   module Syntax : sig
     val ( let* ) : ('a, 'e) result -> ('a -> ('b, 'e) result) -> ('b, 'e) result
     (** This is the usual {!Result.bind} *)
 
     val ( let+ ) : t -> (unit -> ('b, t) result) -> ('b, t) result
-    (** This binds on {!Bytes_crpyto__psa.success} and otherwise
+    (** This binds on {!Bytesrw_crypto__psa.success} and otherwise
         [Error _] with the error code. *)
   end
 
@@ -1787,7 +1791,7 @@ end
 
 (** Key agreement.
 
-    See also {!Alg.key_agreement} in [Alg]. *)
+    See also {!Alg.section-key_agreement} in [Alg]. *)
 module Key_agreement : sig
 
   (** {1:functions Functions}

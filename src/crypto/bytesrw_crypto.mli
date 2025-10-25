@@ -39,7 +39,7 @@ exception Panic of string
        {!Hash.value} twice on a state. These errors
        are the moral equivalent of raising [Invalid_argument] but
        not converted as such because {!Psa.Error.bad_state} is not one-to-one
-       with such conditions.}} *)
+       with such conditions (example?).}} *)
 
 type Bytes.Stream.error +=
 | Error of string (** *)
@@ -153,8 +153,8 @@ end
 (** Generic and dedicated message digests (hashes).
 
     {b Warning.} Before using a hash algorithm, check it is
-    {!Hash.Algorithm.is_supported} otherwise {{!Bytesrw_crypto.Panic}panics}
-    are raised on usage.
+    {!Bytesrw_crypto.Hash.Algorithm.is_supported} otherwise
+    {{!Bytesrw_crypto.Panic}panics} are raised on usage.
 
     {b Dedicated modules.} If you need to manipulate hash values of a
     specific algorithm beyond a simple check it's better to use a
@@ -260,8 +260,7 @@ module Hash : sig
 
     val copy : t -> t
     (** [copy state] is a copy of [state], operations on [state] do
-        not affect the copy and vice-versa. {b Warning.} Trying
-        to copy a {!state} whose {!value} has been *)
+        not affect the copy and vice-versa. *)
 
     (* Once we have tfpsasupport for Hash.{suspend,resume}
 
@@ -365,7 +364,7 @@ module Hash : sig
 
     val id : string
     (** [id] identifies the algorithm. This is
-        {!Algorithm.to_string}[ algorithm]. *)
+        {!Bytesrw_crypto.Hash.Algorithm.to_string}[ algorithm]. *)
 
     val length : int
     (** [length] is the byte length of hashes produced by the

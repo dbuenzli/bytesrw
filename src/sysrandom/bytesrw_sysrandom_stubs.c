@@ -44,7 +44,7 @@ CAMLprim value ocaml_bytesrw_sysrandom_getrandom
   int n = Long_val (length);
   if (getrandom (sub, n, 0) == n) return Val_none;
   /* Note normally this should not happen */
-  else return caml_alloc_some (caml_copy_string "getrandom error");
+  else return caml_alloc_some (caml_copy_string ("getrandom error"));
 }
 
 #elif (defined (OCAML_BYTESRW_DARWIN) || defined (OCAML_BYTESRW_POSIX))

@@ -106,6 +106,9 @@ end
 val success : Status.t
 (** {{:https://arm-software.github.io/psa-api/status-code/1.0/api/status-codes.html#c.PSA_SUCCESS}[PSA_SUCCESS]} *)
 
+val is_success : Status.t -> bool
+(** [is_success st] is [Status.equal success st]. *)
+
 val operation_incomplete : Status.t
 (** {{:https://arm-software.github.io/psa-api/status-code/1.0/api/status-codes.html#c.PSA_OPERATION_INCOMPLETE}[PSA_OPERATION_INCOMPLETE]} *)
 

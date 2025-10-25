@@ -23,6 +23,7 @@ let clear_bytes b = Bytes.fill b 0 (Bytes.length b) '\x00'
 (* Status codes *)
 
 let success = 0
+let is_success st = Int.equal success st
 module Error = struct
   let programmer_error = -129
   let connection_refused = -130

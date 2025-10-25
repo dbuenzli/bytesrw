@@ -128,7 +128,7 @@ let ca_install ~data_dir ~dry_run ~force =
   | "Linux" ->
       (* This will likely not work on all distributions :-( *)
       let root_ca_dir = Fpath.v "/usr/local/share/ca-certificates" in
-      let dst = Fpath.(root_ca_dir / "certown-cert.pem") in
+      let dst = Fpath.(root_ca_dir / "certown-cert.crt") in
       let cmd = Cmd.(tool "update-ca-certificates") in
       if dry_run then begin
         Fmt.pr "cp %a %a@." Fpath.pp ca_certfile Fpath.pp dst;

@@ -3,7 +3,7 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** [BLAKE3] hashes.
+(** [BLAKE3] hashes (via [conf-libblake3])
 
     This module provides support for the {{:https://blake3.io/}BLAKE3}
     hash with the [libblake3] C library. *)

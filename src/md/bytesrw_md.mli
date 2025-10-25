@@ -3,7 +3,7 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** [SHA-1] and [SHA-2] hashes.
+(** [SHA-1] and [SHA-2] hashes (via [conf-libmd])
 
     This module provides support for the SHA-1 and SHA-2
     hashes with the {{:https://www.hadrons.org/software/libmd/}

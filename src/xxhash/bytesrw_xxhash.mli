@@ -3,7 +3,7 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** [XXH3-64] and [XXH3-128] hashes.
+(** [XXH3-64] and [XXH3-128] hashes (via [conf-xxhash])
 
     This module provides support for the {{:https://xxhash.com/}XXH3}
     hash family with the [libxxhash] C library. *)

@@ -3,7 +3,7 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** [deflate], [zlib] and [gzip] streams.
+(** [deflate], [zlib] and [gzip] streams (via [conf-zlib])
 
     This module provides support for reading and writing
     {{:https://www.rfc-editor.org/rfc/rfc1951}[deflate]},

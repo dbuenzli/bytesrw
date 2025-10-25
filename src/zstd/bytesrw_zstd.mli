@@ -3,7 +3,7 @@
    SPDX-License-Identifier: ISC
   ---------------------------------------------------------------------------*)
 
-(** [zstd] streams.
+(** [zstd] streams (via [conf-zstd])
 
     This module provides support for reading and writing
     {{:https://www.rfc-editor.org/rfc/rfc8878.html}[zstd]} compressed

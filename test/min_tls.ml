@@ -5,7 +5,7 @@
 
 (* GET https://Sys.argv.(1)/
 
-   ocamlfind ocamlopt -package unix,bytesrw.tls min_tls
+   ocamlfind ocamlopt -package unix,bytesrw.tls -linkpkg min_tls.ml
    ./a.out
 
    See also webfetch.ml for a more realistic example. *)

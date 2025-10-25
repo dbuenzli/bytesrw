@@ -5,7 +5,7 @@
 
 (* GET an HTTP(S) URL via HTTP/1.1
 
-   ocamlfind ocamlopt -package unix,b0.std,bytesrw.tls \
+   ocamlfind ocamlopt -package unix,b0.std,bytesrw.unix,bytesrw.tls \
      -linkpkg webfetch.ml -o webfetch
    ./webfetch http://example.org
    ./webfetch https://example.org

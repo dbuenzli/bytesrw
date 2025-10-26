@@ -7,7 +7,11 @@
 
     This module provides support for the SHA-1 and SHA-2
     hashes with the {{:https://www.hadrons.org/software/libmd/}
-    [libmd]} C library. *)
+    [libmd]} C library.
+
+    {b Note.} If you are already using {!Bytesrw_crypto} rather use
+    the hashes provided {{!Bytesrw_crypto.hashes}there}. The selection
+    of hashes is larger and the interface is largely compatible. *)
 
 open Bytesrw
 
@@ -81,10 +85,16 @@ module type Sha = sig
   (** {1:preds Predicates and comparisons} *)
 
   val equal : t -> t -> bool
-  (** [equal h0 h1] is [true] iff [h0] and [h1] are equal. *)
+  (** [equal h0 h1] is [true] iff [h0] and [h1] are equal.
+
+      {b Warning.} This uses {!String.equal} which does not test
+      in constant time. *)
 
   val compare : t -> t -> int
-  (** [comapre] is a total order on hashes compatible with {!equal}. *)
+  (** [compare] is a total order on hashes compatible with {!equal}.
+
+      {b Warning.} This is uses {!String.compare} which does not
+      order the strings in constant time. *)
 
   (** {1:converting Converting} *)
 

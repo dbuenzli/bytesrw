@@ -158,9 +158,9 @@ end
 
     {b Dedicated modules.} If you need to manipulate hash values of a
     specific algorithm beyond a simple check it's better to use a
-    {{!Hash.dedicated_modules} dedicated module}.  By giving you a
-    proper type for its hash values it will make it for clearer and
-    avoid possible mixups; For example here is a dedicated module
+    {{!Hash.dedicated_modules} dedicated module}. By giving a
+    proper type for its hash values it makes it for clearer code and
+    avoid possible mixups. For example here is a dedicated module
     for algorithm [Sha_384]:
 {[
 module Sha_384 = Bytesrw_crypto.Hash.Make
@@ -199,12 +199,15 @@ module Hash : sig
     | Sm3 (** {{:https://www.iso.org/standard/67116.html}[SM3]} *)
     (** The type for hash algorithm identifiers.
 
-        Use {!is_supported} to see which ones are supported by the
-        current implementation. *)
+        Not all algorithm may be supported by the current implementation,
+        use {!supported} and {!is_supported} to find out. *)
 
     val is_supported : t -> bool
     (** [is_supported a] is [true] iff the current implementation
         supports the hash algorithm [a]. *)
+
+    val supported : unit -> t list
+    (** [supported ()] is the list of supported algorithms. *)
 
     val length : t -> int
     (** [length a] is the length in bytes of hashes of algorithm [a].
@@ -305,7 +308,9 @@ module Hash : sig
   (** [reader alg r] is the [alg] hash of stream [r]. This consumes the reader.
       See also {!reads}. *)
 
-  (** {1:streaming Hashing streams} *)
+  (** {1:streaming Hashing streams}
+
+      See also {{!page-cookbook.checksumming}this cookbook entry}. *)
 
   val reads : State.t -> Bytes.Reader.t -> Bytes.Reader.t
   (** [reads state r] is [hr] with:
@@ -324,30 +329,46 @@ module Hash : sig
 
   (** {1:predicates Predicates and comparisons} *)
 
-  val equal : t -> t -> bool
-  (** [equal h0 h1] uses {!Verify.equal_strings} to assert the equality
+  val verify_equal : t -> t -> bool
+  (** [verify_equal h0 h1] uses {!Verify.equal_strings} to assert the equality
       of [h0] and [h1]. Raises [Invalid_argument] if the hashes length
       is not positive and equal. *)
+
+  val equal : t -> t -> bool
+  (** [equal h0 h1] is [true] iff [h0] and [h1] are equal.
+
+      {b Warning.} This uses {!String.equal} which does not order
+      the strings in constant time. If you know the hashes are
+      of the same length use {!verify_equal}. Note that
+      {{!dedicated_modules}dedicated hash modules} use
+      {!Verify.equal_string} for their {!T.equal} function. *)
+
+  val compare : t -> t -> int
+  (** [equal] is a total order on hashes compatible with {!equal}.
+
+      {b Warning.} This uses {!String.compare} which does not order
+      the strings in constant time. *)
+
 
   (** {1:converting Converting} *)
 
   val to_binary_string : t -> string
-  (** [to_binary_string h] is a binary representation
+  (** [to_binary_string h] is a big-endian binary representation
       of [h] of length {!length}. *)
 
-  val of_binary_string : ?length:int -> string -> (t, string) result
-  (** [of_binary_string s] is a hash from binary representation stored
-      in [s]. If [length] is specified, errors if the hash is not
-      [length] bytes. *)
+  val of_binary_string : ?check_length:int -> string -> (t, string) result
+  (** [of_binary_string s] is a hash from the big-endian binary
+      representation stored in [s]. If [check_length] is specified, errors
+      if the hash is not [length] bytes. *)
 
   val to_hex : t -> string
   (** [to_hex h] is the binary representation of [h] using lowercase
       US-ASCII hex digits. *)
 
-  val of_hex : ?length:int -> string -> (t, string) result
-  (** [of_hex s] parses a sequence of hex digits into a hash.
-      If [length] is specified, errors if the resulting hash has not [length]
-      bytes. *)
+  val of_hex : ?check_length:int -> string -> (t, string) result
+  (** [of_hex s] parses a sequence of hex digits into a hash. If
+      [check_length] is specified, errors if the resulting hash has
+      not [check_length] bytes. *)
 
   val pp : Format.formatter -> t -> unit
   (** [pp] formats hashes for inspection. *)
@@ -366,10 +387,16 @@ module Hash : sig
     (** [id] identifies the algorithm. This is
         {!Bytesrw_crypto.Hash.Algorithm.to_string}[ algorithm]. *)
 
+    val is_supported : bool
+    (** [is_supported] is [true] iff the algorithm is supported.
+        If not most of the functions of the module will raise {!Panic}. *)
+
     val length : int
     (** [length] is the byte length of hashes produced by the
-        function. Note that this can be [0] if the algorithm is
-        {{!Bytesrw_crypto.Hash.Algorithm.is_supported}unsupported}. *)
+        function.
+
+        {b Warning.} This may be [0] if the algorithm is not
+        {{!is_supported}supported}. *)
 
     (** {1:hashes Hashes} *)
 
@@ -431,7 +458,9 @@ module Hash : sig
     (** [reader r] is the hash of stream [r]. This consumes the reader.
         See also {!reads}. *)
 
-    (** {1:streaming Hashing streams} *)
+    (** {1:streaming Hashing streams}
+
+        See also {{!page-cookbook.checksumming}this cookbook entry}. *)
 
     val reads : ?state:State.t -> Bytes.Reader.t -> Bytes.Reader.t * State.t
     (** [reads r] is [hr, hstate] with:
@@ -458,15 +487,21 @@ module Hash : sig
     (** [equal h0 h1] uses {!Verify.equal_strings} to assert the
         equality of [h0] and [h1]. *)
 
+    val compare : t -> t -> int
+    (** [equal] is a total order on hashes compatible with {!equal}.
+
+        {b Warning.} This uses {!String.compare} which does not order
+        the strings in constant time. *)
+
     (** {1:converting Converting} *)
 
     val to_binary_string : t -> string
-    (** [to_binary_string h] is a binary representation of [h] of
-        length {!length}. *)
+    (** [to_binary_string h] is a big-endian binary representation of
+        [h] of length {!length}. *)
 
     val of_binary_string : string -> (t, string) result
-    (** [of_binary_string s] is a hash from the binary representation
-        stored in [s]. *)
+    (** [of_binary_string s] is a hash from the big-endian binary
+        representation stored in [s]. *)
 
     val to_hex : t -> string
     (** [to_hex h] is the binary representation of [h] using lowercase
@@ -720,9 +755,8 @@ module Random : sig
 
       Raises {!Panic} if {!Psa.generate_random} errors. If this
       happens do not try to handle the exception, log it at the
-      toplevel of your program and abort the program or the server
-      request. It likely indicates a serious error condition in the
-      system. *)
+      toplevel of your program and abort the program. It likely
+      indicates a serious error condition in the system. *)
 end
 
 (** {1:low Low-level cryptography}

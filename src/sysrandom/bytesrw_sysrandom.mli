@@ -8,7 +8,10 @@
     This module provides cryptographically secure pseudorandom bytes
     and an entropy primitive using operating system sources.  See the
     documentation of the {{!primitives}primitives} for details on the
-    sources. *)
+    sources.
+
+    {b Note.} If you are already using {!Bytesrw_crypto} rather use
+    the randomness provided {{!Bytesrw_crypto.section-random}there}. *)
 
 open Bytesrw
 

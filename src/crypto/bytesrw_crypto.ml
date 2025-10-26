@@ -132,76 +132,67 @@ module Verify = struct
 end
 
 module Hash = struct
-
   module Algorithm = struct
-    type t =
-    | Aes_mmo_zigbee
-    | Md2 | Md4 | Md5
-    | Ripemd_160
-    | Sha3_224 | Sha3_256 | Sha3_384 | Sha3_512
-    | Sha_1
-    | Sha_224 | Sha_256 | Sha_384 | Sha_512 | Sha_512_224 | Sha_512_256
-    | Shake256_512
-    | Sm3
+    type t = (* If you add an enumerant add it to [list]. *)
+    | Aes_mmo_zigbee | Md2 | Md4 | Md5 | Ripemd_160 | Sha3_224 | Sha3_256
+    | Sha3_384 | Sha3_512 | Sha_1 | Sha_224 | Sha_256 | Sha_384 | Sha_512
+    | Sha_512_224 | Sha_512_256 | Shake256_512 | Sm3
+
+    let list =
+      [ Aes_mmo_zigbee; Md2; Md4; Md5; Ripemd_160; Sha3_224; Sha3_256;
+        Sha3_384; Sha3_512; Sha_1; Sha_224; Sha_256; Sha_384; Sha_512;
+        Sha_512_224; Sha_512_256; Shake256_512; Sm3 ]
 
     let equal = ( = )
     let compare = Stdlib.compare
+    module Map = Map.Make (struct type nonrec t = t let compare = compare end)
+
     let of_string s = match String.lowercase_ascii s with
-    | "aes-mmo-zigbee" -> Ok Aes_mmo_zigbee
-    | "md2" -> Ok Md2 | "md4" -> Ok Md4 | "md5" -> Ok Md5
-    | "ripemd-160" -> Ok Ripemd_160
-    | "sha-1" -> Ok Sha_1
-    | "sha-224" -> Ok Sha_224 | "sha-256" -> Ok Sha_256
+    | "aes-mmo-zigbee" -> Ok Aes_mmo_zigbee | "md2" -> Ok Md2
+    | "md4" -> Ok Md4 | "md5" -> Ok Md5 | "ripemd-160" -> Ok Ripemd_160
+    | "sha-1" -> Ok Sha_1 | "sha-224" -> Ok Sha_224 | "sha-256" -> Ok Sha_256
     | "sha-384" -> Ok Sha_384 | "sha-512" -> Ok Sha_512
     | "sha-512-224" -> Ok Sha_512_224 | "sha-512-256" -> Ok Sha_512_256
     | "sha3-224" -> Ok Sha3_224 | "sha3-256" -> Ok Sha3_256
     | "sha3-384" -> Ok Sha3_384 | "sha3-512" -> Ok Sha3_512
-    | "shake256-512" -> Ok Shake256_512
-    | "sm3" -> Ok Sm3
+    | "shake256-512" -> Ok Shake256_512 | "sm3" -> Ok Sm3
     | s -> Error (strf "Unknown hash algorithm: %S" s)
 
     let to_string = function
-    | Aes_mmo_zigbee -> "aes-mmo-zigbee"
-    | Md2 -> "md2" | Md4 -> "md4" | Md5 -> "md5"
-    | Ripemd_160 -> "ripemd-160"
-    | Sha3_224 -> "sha3-224" | Sha3_256 -> "sha3-256"
-    | Sha3_384 -> "sha3-384" | Sha3_512 -> "sha3-512"
-    | Sha_1 -> "sha-1"
-    | Sha_224 -> "sha-224" | Sha_256 -> "sha-256"
+    | Aes_mmo_zigbee -> "aes-mmo-zigbee" | Md2 -> "md2" | Md4 -> "md4"
+    | Md5 -> "md5" | Ripemd_160 -> "ripemd-160" | Sha3_224 -> "sha3-224"
+    | Sha3_256 -> "sha3-256" | Sha3_384 -> "sha3-384" | Sha3_512 -> "sha3-512"
+    | Sha_1 -> "sha-1" | Sha_224 -> "sha-224" | Sha_256 -> "sha-256"
     | Sha_384 -> "sha-384" | Sha_512 -> "sha-512"
     | Sha_512_224 -> "sha-512-224" | Sha_512_256 -> "sha-512-256"
-    | Shake256_512 -> "shake256-512"
-    | Sm3 -> "sm3"
+    | Shake256_512 -> "shake256-512" | Sm3 -> "sm3"
 
     let pp ppf a = Format.pp_print_string ppf (to_string a)
 
     let to_psa_alg = function
     | Aes_mmo_zigbee -> Some Psa.Alg.aes_mmo_zigbee
     | Md2 -> Some Psa.Alg.md2 | Md4 -> Some Psa.Alg.md4
-    | Md5 -> Some Psa.Alg.md5
-    | Ripemd_160 -> Some Psa.Alg.ripemd160
+    | Md5 -> Some Psa.Alg.md5 | Ripemd_160 -> Some Psa.Alg.ripemd160
     | Sha3_224 -> Some Psa.Alg.sha3_224 | Sha3_256 -> Some Psa.Alg.sha3_256
     | Sha3_384 -> Some Psa.Alg.sha3_384 | Sha3_512 -> Some Psa.Alg.sha3_512
-    | Sha_1 -> Some Psa.Alg.sha_1
-    | Sha_224 -> Some Psa.Alg.sha_224 | Sha_256 -> Some Psa.Alg.sha_256
-    | Sha_384 -> Some Psa.Alg.sha_384 | Sha_512 -> Some Psa.Alg.sha_512
-    | Sha_512_224 -> Some Psa.Alg.sha_512_224
+    | Sha_1 -> Some Psa.Alg.sha_1 | Sha_224 -> Some Psa.Alg.sha_224
+    | Sha_256 -> Some Psa.Alg.sha_256 | Sha_384 -> Some Psa.Alg.sha_384
+    | Sha_512 -> Some Psa.Alg.sha_512 | Sha_512_224 -> Some Psa.Alg.sha_512_224
     | Sha_512_256 -> Some Psa.Alg.sha_512_256
-    | Shake256_512 -> Some Psa.Alg.shake256_512
-    | Sm3 -> Some Psa.Alg.sm3
-
-    module Map = Map.Make (struct type nonrec t = t let compare = compare end)
+    | Shake256_512 -> Some Psa.Alg.shake256_512 | Sm3 -> Some Psa.Alg.sm3
 
     let psa_algs =
       (* maps t to Psa.Alg.t. Unsupported algorithms are Psa.Alg.none *)
-      ref Map.empty
+      Atomic.make Map.empty
 
-    let psa_alg a = match Map.find_opt a !psa_algs with
+    let psa_alg a = match Map.find_opt a (Atomic.get psa_algs) with
     | Some psa_alg -> psa_alg
     | None ->
         let psa_alg = match to_psa_alg a with
         | None -> Psa.Alg.none
         | Some alg ->
+            (* The PSA API has no way to query which algos are supported
+               until you actually try to setup the algo *)
             let op = Psa.Hash.Operation.init () in
             match Psa.Hash.setup op alg with
             | 0 -> alg
@@ -210,10 +201,11 @@ module Hash = struct
                 then Psa.Alg.none
                 else panic_status "psa_hash_setup" st
         in
-        psa_algs := Map.add a psa_alg !psa_algs;
+        Atomic.set psa_algs (Map.add a psa_alg (Atomic.get psa_algs));
         psa_alg
 
     let is_supported a = not (Psa.Alg.equal Psa.Alg.none (psa_alg a))
+    let supported () = List.filter is_supported list
 
     let get_psa_alg alg =
       let psa_alg = psa_alg alg in
@@ -222,8 +214,7 @@ module Hash = struct
       else psa_alg
 
     let length a = match to_psa_alg a with
-    | None -> assert false (* For now *)
-    | Some a -> Psa.Hash.length a
+    | None -> assert false | Some a -> Psa.Hash.length a
   end
 
   type t = string
@@ -233,12 +224,12 @@ module Hash = struct
     type t = Psa.Hash.Operation.t * int (* the hash len *)
     let make alg =
       let palg = Algorithm.get_psa_alg alg in
-      let hlen = Psa.Hash.length palg (* supported, should be non zero *) in
+      let hlen = Psa.Hash.length palg (* is supported, should be non zero *) in
       let state = Psa.Hash.Operation.init () in
       match Psa.Hash.setup state palg with
       | 0 -> state, hlen | status -> panic_status "psa_hash_setup" status
 
-    let update (state, _) slice = match Psa.Hash.update state slice with
+    let update (state, _hlen) slice = match Psa.Hash.update state slice with
     | 0 ->  () | status -> panic_status "psa_hash_update" status
 
     let copy (state, hlen) =
@@ -256,7 +247,7 @@ module Hash = struct
         then Bytes.unsafe_to_string (Bytes.Slice.bytes hash)
         else panicf "Hash length is %d but expected %d" len hlen
 
-  let verify_value (state, hlen) hash =
+  let verify_value (state, _hlen) hash =
     let hash = Bytes.Slice.of_string_or_eod hash in
     match Psa.Hash.verify state ~hash with
     | 0 -> true
@@ -266,17 +257,19 @@ module Hash = struct
   let slice alg input =
     (* We use the single part function psa_hash_compute *)
     let palg = Algorithm.get_psa_alg alg in
-    let hlen = Psa.Hash.length palg (* supported, should be non zero *) in
+    let hlen = Psa.Hash.length palg (* is supported, should be non zero *) in
     let hash = Bytes.Slice.of_bytes (Bytes.create hlen) in
     match Psa.Hash.compute palg ~input ~hash with
     | Error st -> panic_status "psa_hash_compute" st
     | Ok len ->
         if hlen = len
         then Bytes.unsafe_to_string (Bytes.Slice.bytes hash)
-        else panicf "%a hash length is %d but expected %d"
-            Algorithm.pp alg len hlen
+        else (panicf "%a hash length is %d but expected %d"
+                Algorithm.pp alg len hlen)
 
-  let string alg s = slice alg (Bytes.Slice.of_string_or_eod s)
+  let string alg s = (* Unsafe is ok the slice is only read by [slice] *)
+    slice alg (Bytes.Slice.of_bytes_or_eod (Bytes.unsafe_of_string s))
+
   let bytes alg b = slice alg (Bytes.Slice.of_bytes_or_eod b)
   let reader alg r =
     let rec loop state r = match Bytes.Reader.read r with
@@ -288,21 +281,23 @@ module Hash = struct
   let reads state r = Bytes.Reader.tap (State.update state) r
   let writes state w = Bytes.Writer.tap (State.update state) w
 
-  let equal = Verify.equal_strings
+  let verify_equal = Verify.equal_strings
+  let equal = String.equal
+  let compare = String.compare
   let to_binary_string = Fun.id
-  let of_binary_string ?length s = match length with
+  let of_binary_string ?check_length s = match check_length with
   | None -> Ok s
   | Some length -> Bytesrw_hex.check_binary_string_length ~length s
 
   let to_hex = Bytesrw_hex.of_binary_string
-  let of_hex = Bytesrw_hex.to_binary_string
+  let of_hex ?check_length:length s = Bytesrw_hex.to_binary_string ?length s
   let pp ppf h = Format.pp_print_string ppf (to_hex h)
 
   module type T = sig
     val algorithm : Algorithm.t
     val id : string
+    val is_supported : bool
     val length : int
-
     type t
     module State : sig
       type t
@@ -315,7 +310,6 @@ module Hash = struct
        val of_binary_string : string -> t
       *)
     end
-
     val value : State.t -> t
     val verify_value : State.t -> t -> bool
     val string : string -> t
@@ -325,6 +319,7 @@ module Hash = struct
     val reads : ?state:State.t -> Bytes.Reader.t -> Bytes.Reader.t * State.t
     val writes : ?state:State.t -> Bytes.Writer.t -> Bytes.Writer.t * State.t
     val equal : t -> t -> bool
+    val compare : t -> t -> int
     val to_binary_string : t -> string
     val of_binary_string : string -> (t, string) result
     val to_hex : t -> string
@@ -340,6 +335,7 @@ module Hash = struct
     let algorithm = A.algorithm
     let psa_alg = Algorithm.get_psa_alg algorithm
     let id = Algorithm.to_string algorithm
+    let is_supported = Algorithm.is_supported A.algorithm
     let length = Algorithm.length algorithm
     type t = string
 
@@ -385,7 +381,9 @@ module Hash = struct
           then Bytes.unsafe_to_string (Bytes.Slice.bytes hash)
           else panicf "%s hash length is %d but expected %d" id len length
 
-    let string s = slice (Bytes.Slice.of_string_or_eod s)
+    let string s = (* Unsafe is ok the slice is only read by [slice] *)
+      slice (Bytes.Slice.of_bytes_or_eod (Bytes.unsafe_of_string s))
+
     let bytes b = slice (Bytes.Slice.of_bytes_or_eod b)
     let reader r =
       let rec loop state r = match Bytes.Reader.read r with
@@ -401,6 +399,7 @@ module Hash = struct
       Bytes.Writer.tap (State.update state) w, state
 
     let equal = Verify.equal_strings
+    let compare = String.compare
     let to_binary_string = Fun.id
     let of_binary_string s = Bytesrw_hex.check_binary_string_length ~length s
     let to_hex = Bytesrw_hex.of_binary_string

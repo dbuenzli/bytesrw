@@ -115,7 +115,7 @@ module Server = struct
       Fun.protect ~finally (fun () -> serve_loop accept_count listen)
     in
     let tid = Thread.create serve () in
-    let ep = Os.Socket.Endpoint.with_port_of_sockaddr addr ep in
+    let ep = Net.Endpoint.with_port_of_sockaddr addr ep in
     Ok ((ep, fst server_own), tid)
 end
 

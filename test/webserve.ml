@@ -108,12 +108,12 @@ let serve ~endpoint:ep ~own_cert ~own_key =
   in
   Result.join @@ Os.Socket.with_listening_endpoint ep SOCK_STREAM @@
   fun listen addr ->
-  let ep = Os.Socket.Endpoint.with_port_of_sockaddr addr ep in
-  Log.stderr (fun m -> m "Listening on https://%a" Os.Socket.Endpoint.pp ep);
+  let ep = Net.Endpoint.with_port_of_sockaddr addr ep in
+  Log.stderr (fun m -> m "Listening on https://%a" Net.Endpoint.pp ep);
   let rec serve_loop listen = match Os.Socket.accept ~cloexec:true listen with
   | Error _ as e -> e
   | Ok (peer, peer_addr) ->
-      Log.info (fun m -> m ~header:"" "connect: %a" Os.Socket.pp_sockaddr addr);
+      Log.info (fun m -> m ~header:"" "connect: %a" Fmt.sockaddr addr);
       (* Don't do that at home, throttle and/or use a thread pool *)
       ignore (Thread.create (serve_peer ~conf ~peer ~peer_addr) ());
       serve_loop listen
@@ -129,7 +129,7 @@ let cmd =
   let doc = "Echo HTTP requests" in
   Cmd.make (Cmd.info "webserve" ~version:"%%VERSION%%" ~doc) @@
   let+ () = B0_std_cli.set_log_level ()
-  and+ endpoint = B0_std_cli.socket_endpoint_listener ~default_port:4443 ()
+  and+ endpoint = B0_std_cli.net_endpoint_listener ~default_port:4443 ()
   and+ own_cert =
     let doc = "$(docv) a PEM file with the certificate chain of your server" in
     let docv = "CERT.pem" in

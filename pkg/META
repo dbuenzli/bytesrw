@@ -33,19 +33,6 @@ package "crypto" (
   exists_if = "bytesrw_crypto.cma bytesrw_crypto.cmxa"
 )
 
-package "tls" (
-  directory = "tls"
-  description = "TLS streams"
-  version = "%%VERSION_NUM%%"
-  requires = "bytesrw bytesrw.crypto"
-  exports = "bytesrw bytesrw.crypto"
-  archive(byte) = "bytesrw_tls.cma"
-  archive(native) = "bytesrw_tls.cmxa"
-  plugin(byte) = "bytesrw_tls.cma"
-  plugin(native) = "bytesrw_tls.cmxs"
-  exists_if = "bytesrw_tls.cma bytesrw_tls.cmxa"
-)
-
 package "md" (
   directory = "md"
   description = "SHA{1,2} hashes"
@@ -70,6 +57,19 @@ package "sysrandom" (
   plugin(byte) = "bytesrw_sysrandom.cma"
   plugin(native) = "bytesrw_sysrandom.cmxs"
   exists_if = "bytesrw_sysrandom.cma bytesrw_sysrandom.cmxa"
+)
+
+package "tls" (
+  directory = "tls"
+  description = "TLS streams"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw bytesrw.crypto unix"
+  exports = "bytesrw bytesrw.crypto unix"
+  archive(byte) = "bytesrw_tls.cma"
+  archive(native) = "bytesrw_tls.cmxa"
+  plugin(byte) = "bytesrw_tls.cma"
+  plugin(native) = "bytesrw_tls.cmxs"
+  exists_if = "bytesrw_tls.cma bytesrw_tls.cmxa"
 )
 
 package "unix" (

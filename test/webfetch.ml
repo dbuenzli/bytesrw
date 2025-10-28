@@ -20,20 +20,20 @@ open Bytesrw
 
 let http_prepare_get_request url =
   Result.map_error (Fmt.str "%s: %s" url) @@
-  let* tls = match B0_url.scheme url with
+  let* tls = match Net.Url.scheme url with
   | None | Some "https" -> Ok true
   | Some "http" -> Ok false
   | Some other -> Fmt.error "URL scheme %s unknown" other
   in
-  let* authority = match B0_url.authority url with
+  let* authority = match Net.Url.authority url with
   | Some authority -> Ok authority | None -> Error "No authority found"
   in
-  let host = B0_url.Authority.host authority in
-  let port = match B0_url.Authority.port authority with
+  let host = Net.Url.Authority.host authority in
+  let port = match Net.Url.Authority.port authority with
   | Some port -> port | None -> if tls then 443 else 80
   in
-  let target = Option.value ~default:"/" (B0_url.target url) in
-  let target = B0_url.Percent.encode `Uri target in
+  let target = Option.value ~default:"/" (Net.Url.target url) in
+  let target = Net.Url.Percent.encode `Uri target in
   let request = Fmt.str
       "GET %s HTTP/1.1\r\nhost: %s\r\nconnection: close\r\n\r\n" target host
   in

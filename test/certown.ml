@@ -6,8 +6,6 @@
 open B0_std
 open Result.Syntax
 
-let os () = Os.Cmd.run_out ~trim:true Cmd.(tool "uname" % "-s")
-
 let appdir = "certown"
 let get_data_dir ~data_dir = match data_dir with
 | Some dir -> Ok dir
@@ -112,9 +110,8 @@ let ca_install ~data_dir ~dry_run ~force =
   in
   let* data_dir = get_data_dir ~data_dir in
   let* ca_certfile, ca_keyfile = get_ca ~data_dir in
-  let* os = os () in
-  let* () = match os with
-  | "Darwin" ->
+  let* () = match Os.name () with
+  | Darwin _ ->
       (* Note we tried to add it to the login keychain but it seems
          browsers do not see the addition. *)
       let keychain = Fpath.v "/Library/Keychains/System.keychain" in
@@ -125,7 +122,7 @@ let ca_install ~data_dir ~dry_run ~force =
       if dry_run
       then (Fmt.pr "%a@." Cmd.pp_shell cmd; Ok ())
       else Result.map_error err_did_you_sudo (Os.Cmd.run cmd)
-  | "Linux" ->
+  | Linux _ ->
       (* This will likely not work on all distributions :-( *)
       let root_ca_dir = Fpath.v "/usr/local/share/ca-certificates" in
       let dst = Fpath.(root_ca_dir / "certown-cert.crt") in
@@ -139,7 +136,9 @@ let ca_install ~data_dir ~dry_run ~force =
         let* () = Os.File.copy ~force ~make_path:false ca_certfile ~dst in
         Os.Cmd.run cmd
       end
-  | _ -> Fmt.error "%s: don't know how to install CA certificates yet" os
+  | os ->
+      Fmt.error "%a: don't know how to install CA certificates yet"
+        Os.Name.pp_id os
   in
   Ok 0
 

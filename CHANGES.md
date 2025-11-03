@@ -1,9 +1,26 @@
-- Add `Bytesrw_unix.bytes_writer_of_socket_fd` which shutdowns the
-  fd in the send direction when the end of stream is written.
+v0.3.0 2025-11-04 Zagreb
+------------------------
 
 - Add the `Bytesrw_sysrandom` module for operating system provided
   cryptographically secure pseudorandom byte streams and an entropy
   primitive.
+  
+- Add the optional `Bytesrw_crypto.Psa` module for low-level
+  cryptographic operations on byte slices. These are thin and safe
+  bindings to the PSA Crypto API specification currently provided by
+  the TF-PSA-Crypto C library distributed with Mbed TLS.
+  
+- Add the optional `Bytesrw_crypto` module for higher-level
+  cryptographic operations implemented over `Bytesrw_crypto.Psa`.
+  Mostly hashing for now. Use this if you need SHA-3 hashes.
+
+- Add the optional `Bytesrw_tls` a module for TLS encrypted streams
+  and the needed X.509 certificate management (including system
+  lookups for trusted CAs). The backend is provided by the Mbed TLS C
+  library.
+
+- Add `Bytesrw_unix.bytes_writer_of_socket_fd` which shutdowns the
+  fd in the send direction when the end of stream is written.
 
 - Add `Bytes.Slice.last`.
 

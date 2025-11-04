@@ -1,3 +1,6 @@
+
+- `Bytesrw_sysrandom`: fix headers for musl libc (alpine.) (#7)
+
 v0.3.0 2025-11-04 Zagreb
 ------------------------
 

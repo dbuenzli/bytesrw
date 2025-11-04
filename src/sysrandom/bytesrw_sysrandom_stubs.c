@@ -19,6 +19,7 @@
 #elif defined(__linux__)
   #define OCAML_BYTESRW_LINUX
   #include <sys/random.h>
+  #include <unistd.h>
 
 #elif defined(__unix__) || defined(__unix) /* This should catch the BSDs */
  #include <unistd.h>

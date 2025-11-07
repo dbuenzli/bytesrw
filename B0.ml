@@ -205,13 +205,14 @@ let default =
                          ]
    |> ~~ B0_opam.conflicts [ "conf-zstd", {|< "1.3.8"|}; (* should be 1.4 *)
                              "cmdliner", {|< "2.0.0"|};
-                             "b0", {|< "0.0.6"|};
+                             "b0", {|< "0.0.7"|};
                            ]
    |> ~~ B0_opam.depends
      [ "ocaml", {|>= "4.14.0"|};
        "ocamlfind", {|build|};
        "ocamlbuild", {|build|};
-       "topkg", {|build & >= "1.1.0"|};]
+       "topkg", {|build & >= "1.1.1"|};
+       "conf-pkg-config", {|build|}; ]
    |> B0_meta.tag B0_opam.tag
  in
  B0_pack.make "default" ~doc:"The bytesrw package" ~meta ~locked:true @@

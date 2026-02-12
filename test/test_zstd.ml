@@ -125,7 +125,7 @@ let test_dictionary_support =
 
 let main () =
   Test.main @@ fun () ->
-  Test.log "Using libsztd %s" (Bytesrw_zstd.version ());
+  Test.Log.msg "Using libsztd %s" (Bytesrw_zstd.version ());
   Test.autorun ();
   Gc.full_major ()
 

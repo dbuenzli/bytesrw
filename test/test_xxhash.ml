@@ -79,7 +79,7 @@ let test_xxh3_128 =
 
 let main () =
   Test.main @@ fun () ->
-  Test.log "Using libxxhash %s" (Bytesrw_xxhash.version ());
+  Test.Log.msg "Using libxxhash %s" (Bytesrw_xxhash.version ());
   Test.autorun ();
   Gc.full_major ()
 

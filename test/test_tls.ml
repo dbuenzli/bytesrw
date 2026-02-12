@@ -12,7 +12,7 @@ open B0_testing
 open Bytesrw
 
 let pp_entity = Fmt.st [`Fg `Yellow]
-let log ~name fmt = Test.log ("[%a] @[" ^^ fmt ^^ "@]") pp_entity name
+let log ~name fmt = Test.Log.msg ("[%a] @[" ^^ fmt ^^ "@]") pp_entity name
 
 module Client = struct
   type t =
@@ -121,7 +121,7 @@ end
 
 let test =
   Test.test "Mutual TLS" @@ fun () ->
-  Test.log "%s" (Bytesrw_tls.backend_info ());
+  Test.Log.msg "%s" (Bytesrw_tls.backend_info ());
   Result.error_to_failure @@
   let* alice = Client.make ~name:"alice" () in
   let* bob = Client.make ~name:"bob" () in

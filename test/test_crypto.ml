@@ -170,7 +170,7 @@ let test_hash_alg = (* Nothing tested here, just show supported hashes *)
   Test.test "Bytesrw_crypto.Hash.Algorithm.supported" @@ fun () ->
   let supported = Bytesrw_crypto.Hash.Algorithm.supported () in
   let pp_list = Fmt.(list ~sep:sp Bytesrw_crypto.Hash.Algorithm.pp) in
-  Test.log "@[%a@]" pp_list supported;
+  Test.Log.msg "@[%a@]" pp_list supported;
   ()
 
 let test_hash =

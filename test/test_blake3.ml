@@ -64,7 +64,7 @@ let test_blake3 =
 
 let main () =
   Test.main @@ fun () ->
-  Test.log "Using libblake3 %s" (Bytesrw_blake3.version ());
+  Test.Log.msg "Using libblake3 %s" (Bytesrw_blake3.version ());
   Test.autorun ();
   Gc.full_major ()
 

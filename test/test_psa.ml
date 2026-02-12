@@ -43,7 +43,7 @@ let test_ires = test_res ~ok:Test.T.int
 let test_psa_crypto_api_version =
   Test.test "Psa.crypto_api_version" @@ fun () ->
   let maj, min = Psa.crypto_api_version () in
-  Test.log "PSA Crypto API: %d.%d" maj min;
+  Test.Log.msg "PSA Crypto API: %d.%d" maj min;
   ()
 
 let test_psa_alg =

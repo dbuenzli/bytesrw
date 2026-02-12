@@ -255,7 +255,7 @@ let test_gzip_compress_writes =
 
 let main () =
   Test.main @@ fun () ->
-  Test.log "Using zlib %s" (Bytesrw_zlib.version ());
+  Test.Log.msg "Using zlib %s" (Bytesrw_zlib.version ());
   Test.autorun ();
   Gc.full_major ()
 

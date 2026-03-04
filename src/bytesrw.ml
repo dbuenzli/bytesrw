@@ -150,7 +150,7 @@ module Bytes = struct
       in
       let first = if first < 0 then 0 else first in
       let length = last - first + 1 in
-      let init i = Char.unsafe_chr (Bigarray.Array1.get bigbytes (first + i)) in
+      let init i = Bigarray.Array1.get bigbytes (first + i) in
       let bytes = Bytes.init length init in
       if first <= last then { bytes; first = 0; length } else
       if allow_eod then eod else err_empty_range ~first ~last ~len:(max + 1)
@@ -173,8 +173,8 @@ module Bytes = struct
     let to_string s = Bytes.sub_string s.bytes s.first s.length
     let to_bigbytes s =
       (* This should use blits. *)
-      Bigarray.Array1.init Bigarray.Int8_unsigned Bigarray.c_layout
-        s.length (fun i -> Bytes.get_uint8 s.bytes (s.first + i))
+      Bigarray.Array1.init Bigarray.Char Bigarray.c_layout
+        s.length (fun i -> Bytes.get s.bytes (s.first + i))
 
     let add_to_buffer b s = Buffer.add_subbytes b s.bytes s.first s.length
     let output_to_out_channel oc s =

@@ -182,13 +182,13 @@ module Bytes : sig
 
     val of_bigbytes :
       ?first:int -> ?last:int ->
-      (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t ->
+      (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t ->
       t
     (** [of_bigbytes] is like {!of_bytes} but {b copies} data from a bigbytes
         value. *)
 
     val of_bigbytes_or_eod : ?first:int -> ?last:int ->
-      (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t ->
+      (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t ->
       t
     (** [of_bytes_or_eod] is like {!of_bytes_or_eod} but {b copies} data from
         a bigbytes value. *)
@@ -203,7 +203,7 @@ module Bytes : sig
     (** [to_bytes t] copies the range of [s] to a new [bytes] value. *)
 
     val to_bigbytes : t ->
-      (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+      (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
     (** [to_bigbytes t] copies the range of [s] to a new bigbytes value. *)
 
     val to_string : t -> string

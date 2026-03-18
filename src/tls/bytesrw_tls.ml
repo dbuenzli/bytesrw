@@ -172,6 +172,7 @@ module X509_certchain = struct
       | Some _ as chain -> Ok chain
       | None ->
           match List.filter Sys.file_exists root_cert_files with
+          | exception Sys_error e -> Error e
           | [] -> Ok None
           | (file :: _) -> Result.map Option.some (read_pem_file file)
 

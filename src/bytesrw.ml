@@ -674,6 +674,12 @@ module Bytes = struct
       let write s = if Slice.is_eod s then () else Slice.add_to_buffer b s in
       make ?pos ?slice_length write
 
+    let writes_to_string ?buffer ?pos ?slice_length f =
+      let b = match buffer with None -> Buffer.create 1024 | Some b -> b in
+      let w = of_buffer ?pos ?slice_length b in
+      f w;
+      Buffer.contents b
+
     (* Filters *)
 
     type filter =

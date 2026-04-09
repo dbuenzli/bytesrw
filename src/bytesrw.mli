@@ -742,6 +742,13 @@ module Bytes : sig
         may ajust their own buffers on writers adjust nicely for
         themselves. *)
 
+    val writes_to_string :
+      ?buffer:Buffer.t -> ?pos:Stream.pos -> ?slice_length:Slice.length ->
+      (t -> unit) -> string
+    (** [writes_to_string f] creates a writer [w] with {!of_buffer} and given
+        parameters calls [f w] and returns the contents of the buffer.
+        If [buffer] is unspecified a buffer of size 1024 is created. *)
+
     (** {1:fmt Formatting and inspecting} *)
 
     val pp : Format.formatter -> t -> unit

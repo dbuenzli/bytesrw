@@ -33,7 +33,7 @@ let http_prepare_get_request url =
   | Some port -> port | None -> if tls then 443 else 80
   in
   let target = Option.value ~default:"/" (Net.Url.target url) in
-  let target = Net.Url.Percent.encode `Uri target in
+  let target = Net.Url.Percent.encode Uri target in
   let request = Fmt.str
       "GET %s HTTP/1.1\r\nhost: %s\r\nconnection: close\r\n\r\n" target host
   in

@@ -110,7 +110,7 @@ let ca_install ~data_dir ~dry_run ~force =
   in
   let* data_dir = get_data_dir ~data_dir in
   let* ca_certfile, ca_keyfile = get_ca ~data_dir in
-  let* () = match Os.name () with
+  let* () = match Os.Name.get () with
   | Darwin _ ->
       (* Note we tried to add it to the login keychain but it seems
          browsers do not see the addition. *)

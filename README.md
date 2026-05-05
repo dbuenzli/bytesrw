@@ -6,7 +6,7 @@ efficient, byte stream readers and writers compatible with effect
 based concurrency.
 
 Except for byte slice life-times, these abstractions intentionally
-separate away ressource management and the specifics of reading and
+separate away resource management and the specifics of reading and
 writing bytes.
 
 Bytesrw distributed under the ISC license. It has no dependencies.

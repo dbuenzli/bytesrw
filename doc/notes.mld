@@ -128,7 +128,7 @@ a strong rationale.
 {- System errors. When readers and writers use system calls it's
    a bit unclear whether the errors ([Sys_error] and [Unix_error]) should be
    transformed into stream errors. For now we decided not to. That is we
-   consider that to be an error of the ressource rather than an error of
+   consider that to be an error of the resource rather than an error of
    the stream.}}
 
 {1:upstream Upstreaming}

@@ -1,4 +1,4 @@
-  {0 Bytesrw {%html: <span class="version">%%VERSION%%</span>%}}
+{0 Bytesrw {%html: <span class="version">%%VERSION%%</span>%}}
 
 Bytesrw extends the OCaml {!Bytes} module with composable, memory
 efficient, byte stream {{!Bytesrw.Bytes.Reader}readers} and
@@ -6,7 +6,7 @@ efficient, byte stream {{!Bytesrw.Bytes.Reader}readers} and
 concurrency.
 
 Except for byte slice {{!Bytesrw.Bytes.Slice.validity}life-times},
-these abstractions intentionally separate away ressource management
+these abstractions intentionally separate away resource management
 and the specifics of reading and writing bytes.
 
 {1:manuals Manuals}

@@ -1,4 +1,7 @@
 
+- Fix `Bytes.Reader.of_slice` when the given slice does not start at 0.
+  Thanks to Thomas Gazagnaire for report (#13).
+
 - Add `Bytes.Writer.writes_to_string`
 - `Bytesrw_sysrandom`: fix headers for musl libc (alpine.) (#7)
 

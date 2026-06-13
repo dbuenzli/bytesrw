@@ -480,12 +480,12 @@ module Bytes = struct
     (* Converting *)
 
     let read_bytes ~first ~length ~slice_length bytes =
-      let first = ref 0 in
+      let i = ref 0 in
       let read () =
-        if !first >= length then Slice.eod else
-        let length = Int.min slice_length (length - !first) in
-        let s = Slice.make bytes ~first:!first ~length in
-        first := !first + length; s
+        if !i >= length then Slice.eod else
+        let length = Int.min slice_length (length - !i) in
+        let s = Slice.make bytes ~first:(first + !i) ~length in
+        i := !i + length; s
       in
       read
 

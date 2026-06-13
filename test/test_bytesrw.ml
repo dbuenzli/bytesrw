@@ -297,13 +297,18 @@ let test_reader_sniff =
 
 let test_reader_of_slice =
   Test.test "Bytes.Reader.of_slice" @@ fun () ->
-  let r ~slice_length () =
-    Bytes.Reader.of_slice ?slice_length (Bytes.Slice.of_string "bla")
+  let r ?first ~slice_length () =
+    Bytes.Reader.of_slice ?slice_length (Bytes.Slice.of_string ?first "bla")
   in
   eq_slices (r ~slice_length:None ()) ["bla"];
   eq_slices (r ~slice_length:(Some 1) ()) ["b"; "l"; "a"];
   eq_slices (r ~slice_length:(Some 2) ()) ["bl"; "a"];
   eq_slices (r ~slice_length:(Some 5) ()) ["bla"];
+  eq_slices (r ~first:1 ~slice_length:None ()) ["la"] ~__POS__;
+  eq_slices (r ~first:1 ~slice_length:(Some 1) ()) ["l"; "a"];
+  eq_slices (r ~first:1 ~slice_length:(Some 2) ()) ["la"] ~__POS__;
+  eq_slices (r ~first:1 ~slice_length:(Some 5) ()) ["la"] ~__POS__;
+
   ()
 
 let test_writer_limit =

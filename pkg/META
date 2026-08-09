@@ -77,12 +77,25 @@ package "unix" (
   description = "The bytesrw.unix library"
   version = "%%VERSION_NUM%%"
   requires = "bytesrw unix"
-  exports = "bytesrw"
+  exports = "bytesrw unix"
   archive(byte) = "bytesrw_unix.cma"
   archive(native) = "bytesrw_unix.cmxa"
   plugin(byte) = "bytesrw_unix.cma"
   plugin(native) = "bytesrw_unix.cmxs"
   exists_if = "bytesrw_unix.cma bytesrw_unix.cmxa"
+)
+
+package "websocket" (
+  directory = "websocket"
+  description = "The bytesrw.websocket library"
+  version = "%%VERSION_NUM%%"
+  requires = "bytesrw bytesrw.sysrandom"
+  exports = "bytesrw"
+  archive(byte) = "bytesrw_websocket.cma"
+  archive(native) = "bytesrw_websocket.cmxa"
+  plugin(byte) = "bytesrw_websocket.cma"
+  plugin(native) = "bytesrw_websocket.cmxs"
+  exists_if = "bytesrw_websocket.cma bytesrw_websocket.cmxa"
 )
 
 package "xxhash" (

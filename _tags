@@ -35,6 +35,7 @@ true : bin_annot, safe_string
 
 <test/certown*> : package(unix,cmdliner,b0.std), use_bytesrw_crypto, use_bytesrw_tls
 
+<src/websocket> : include
 
 <src/xxhash> : include
 <src/xxhash/bytesrw_xxhash_stubs.c> : use_libxxhash

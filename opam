@@ -46,6 +46,7 @@ tags: [
   "blake3"
   "psa"
   "tls"
+  "websocket"
   "cryptography"
   "sha3"
   "org:erratique"

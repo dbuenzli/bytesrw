@@ -9,6 +9,7 @@ let bytesrw_md = B0_ocaml.libname "bytesrw.md"
 let bytesrw_sysrandom = B0_ocaml.libname "bytesrw.sysrandom"
 let bytesrw_tls = B0_ocaml.libname "bytesrw.tls"
 let bytesrw_unix = B0_ocaml.libname "bytesrw.unix"
+let bytesrw_websocket = B0_ocaml.libname "bytesrw.websocket"
 let bytesrw_xxhash = B0_ocaml.libname "bytesrw.xxhash"
 let bytesrw_zlib = B0_ocaml.libname "bytesrw.zlib"
 let bytesrw_zstd = B0_ocaml.libname "bytesrw.zstd"
@@ -65,8 +66,13 @@ let bytesrw_sysrandom_lib =
 
 let bytesrw_unix_lib =
   let srcs = [ `Dir ~/"src/unix" ] in
-  let requires = [bytesrw; unix] and exports = [bytesrw] in
+  let requires = [bytesrw; unix] and exports = [bytesrw; unix] in
   B0_ocaml.lib bytesrw_unix ~srcs ~requires ~exports
+
+let bytesrw_websocket =
+  let srcs = [ `Dir ~/"src/websocket" ] in
+  let requires = [bytesrw; bytesrw_sysrandom] and exports = [bytesrw] in
+  B0_ocaml.lib bytesrw_websocket ~srcs ~requires ~exports
 
 let bytesrw_xxhash_lib =
   let doc = "XXH hashes" in
@@ -175,7 +181,7 @@ let default =
    |> ~~ B0_meta.description_tags
      ["bytes"; "entropy"; "streaming"; "zstd"; "zlib"; "gzip"; "deflate";
       "random"; "csprng"; "sha1"; "sha2"; "compression"; "hashing";
-      "utf"; "xxhash"; "blake3"; "psa"; "tls";
+      "utf"; "xxhash"; "blake3"; "psa"; "tls"; "websocket";
       "cryptography"; "sha3"; "org:erratique"; ]
    |> ~~ B0_opam.build
      {|[["ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{dev}%"

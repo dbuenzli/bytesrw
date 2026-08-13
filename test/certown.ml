@@ -11,11 +11,11 @@ let get_data_dir ~data_dir = match data_dir with
 | Some dir -> Ok dir
 | None ->
     let* data_dir = Os.Dir.data () in
-    Ok (Fpath.(data_dir / appdir))
+    Ok (Filepath.(data_dir / appdir))
 
-let data_dir_ca_cert_prefix ~data_dir = Fpath.(data_dir / "ca")
+let data_dir_ca_cert_prefix ~data_dir = Filepath.(data_dir / "ca")
 let cert_files_of_prefix ~prefix =
-  Fpath.(prefix + ".cert.pem"), Fpath.(prefix + ".key.pem")
+  Filepath.(prefix + ".cert.pem"), Filepath.(prefix + ".key.pem")
 
 let write_cert (cert, private_key) ~force ~prefix =
   let certfile, keyfile = cert_files_of_prefix ~prefix in
@@ -30,7 +30,7 @@ let write_cert (cert, private_key) ~force ~prefix =
     let add_if b v vs = if b then v :: vs else vs in
     let exists = add_if cexists certfile @@ add_if kexists keyfile [] in
     if exists = [] then Ok () else
-    let files = Fmt.(list Fpath.pp ~sep:sp) in
+    let files = Fmt.(list Filepath.pp ~sep:sp) in
     Fmt.error "@[<v>@[Certificate already exists: %a@]@,Use %a to overwrite.@]"
       files exists Fmt.code "--force"
   in
@@ -42,7 +42,7 @@ let write_cert (cert, private_key) ~force ~prefix =
       | Unix.Unix_error (e, _, _) -> Error (Unix.error_message e)
   in
   let* () =
-    let keyfile = Fpath.to_string keyfile in
+    let keyfile = Filepath.to_string keyfile in
     Bytesrw_tls.X509_certchain.Private_key.write_pem_file keyfile private_key
   in
   Ok ()
@@ -57,7 +57,7 @@ let self_signed ~is_ca ~name ~force ~prefix =
 
 let get_ca ~data_dir =
   let err_miss p =
-    Fmt.error "@[<v>%a: No such file@,Did you run %a?@]" Fpath.pp p
+    Fmt.error "@[<v>%a: No such file@,Did you run %a?@]" Filepath.pp p
       Fmt.code "certown ca create"
   in
   let ca_prefix = data_dir_ca_cert_prefix ~data_dir in
@@ -91,7 +91,7 @@ let ca_cert_file ~data_dir =
   Log.if_error ~use:Cmdliner.Cmd.Exit.some_error @@
   let* data_dir = get_data_dir ~data_dir in
   let* ca_certfile, _ca_keyfile = get_ca ~data_dir in
-  Fmt.pr "%a@." Fpath.pp ca_certfile;
+  Fmt.pr "%a@." Filepath.pp ca_certfile;
   Ok 0
 
 let ca_delete ~data_dir =
@@ -114,7 +114,7 @@ let ca_install ~data_dir ~dry_run ~force =
   | Darwin _ ->
       (* Note we tried to add it to the login keychain but it seems
          browsers do not see the addition. *)
-      let keychain = Fpath.v "/Library/Keychains/System.keychain" in
+      let keychain = Filepath.v "/Library/Keychains/System.keychain" in
       let cmd =
         Cmd.(tool "security" % "add-trusted-cert" % "-d" % "-r" %
              "trustRoot" % "-k" %% path keychain %% path ca_certfile)
@@ -124,11 +124,11 @@ let ca_install ~data_dir ~dry_run ~force =
       else Result.map_error err_did_you_sudo (Os.Cmd.run cmd)
   | Linux _ ->
       (* This will likely not work on all distributions :-( *)
-      let root_ca_dir = Fpath.v "/usr/local/share/ca-certificates" in
-      let dst = Fpath.(root_ca_dir / "certown-cert.crt") in
+      let root_ca_dir = Filepath.v "/usr/local/share/ca-certificates" in
+      let dst = Filepath.(root_ca_dir / "certown-cert.crt") in
       let cmd = Cmd.(tool "update-ca-certificates") in
       if dry_run then begin
-        Fmt.pr "cp %a %a@." Fpath.pp ca_certfile Fpath.pp dst;
+        Fmt.pr "cp %a %a@." Filepath.pp ca_certfile Filepath.pp dst;
         Fmt.pr "%a@." Cmd.pp_shell cmd;
         Ok ()
       end else begin
@@ -147,11 +147,11 @@ let ca_signed ~data_dir ~name ~prefix ~only_cert ~force =
   let* data_dir = get_data_dir ~data_dir in
   let* ca_certfile, ca_keyfile = get_ca ~data_dir in
   let* ca_cert =
-    Bytesrw_tls.X509_certchain.read_pem_file (Fpath.to_string ca_certfile)
+    Bytesrw_tls.X509_certchain.read_pem_file (Filepath.to_string ca_certfile)
   in
   let* ca_key =
     Bytesrw_tls.X509_certchain.Private_key.read_pem_file
-      (Fpath.to_string ca_keyfile)
+      (Filepath.to_string ca_keyfile)
   in
   let ca = ca_cert, ca_key in
   let* own = Bytesrw_tls.X509_certchain.ca_signed ~ca ~name () in
@@ -163,7 +163,7 @@ let ca_info ~data_dir ~pem =
   let* data_dir = get_data_dir ~data_dir in
   let* () = match get_ca ~data_dir with
   | Ok (ca_certfile, _ca_keyfile) ->
-      let file = Fpath.to_string ca_certfile in
+      let file = Filepath.to_string ca_certfile in
       let* cert = Bytesrw_tls.X509_certchain.read_pem_file file in
       let pp =
         if pem
@@ -174,7 +174,7 @@ let ca_info ~data_dir ~pem =
   | Error _ ->
       Fmt.error
         "@[<v>The CA was not found in %a@,Run %a to create it."
-        Fpath.pp data_dir Fmt.code "certown ca create"
+        Filepath.pp data_dir Fmt.code "certown ca create"
   in
   Ok 0
 
@@ -185,7 +185,7 @@ let info ~data_dir ~certs ~ca ~system_ca ~pem =
     if not ca then certs else
     let ca_prefix = data_dir_ca_cert_prefix ~data_dir in
     let ca_certfile, _ = cert_files_of_prefix ~prefix:ca_prefix in
-    (Fpath.to_string ca_certfile) :: certs
+    (Filepath.to_string ca_certfile) :: certs
   in
   let output_cert cert =
     let pp =
@@ -214,7 +214,7 @@ let info ~data_dir ~certs ~ca ~system_ca ~pem =
 let output_data_dir ~data_dir =
   Log.if_error ~use:Cmdliner.Cmd.Exit.some_error @@
   let* data_dir = get_data_dir ~data_dir in
-  Fmt.pr "%a@." Fpath.pp data_dir;
+  Fmt.pr "%a@." Filepath.pp data_dir;
   Ok 0
 
 open Cmdliner
@@ -226,7 +226,7 @@ let data_dir =
    let docs = Manpage.s_common_options in
    let doc = "$(docv) is the data directory." in
    let absent = "$(b,XDG_DATA_HOME)/$(tool) directory" in
-   Arg.(value & opt (some B0_std_cli.dirpath) None &
+   Arg.(value & opt (some B0_std_cli.dir) None &
         info ["data-dir"] ~absent ~doc ~docs)
 
 let dry_run =

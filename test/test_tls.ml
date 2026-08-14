@@ -57,8 +57,8 @@ module Client = struct
       in
       handle_run_result ~name ~success @@
       let* conf = tls_conf c ~server_cert in
-      Result.join @@ Os.Socket.with_connected_endpoint server_ep SOCK_STREAM @@
-      fun peer addr ->
+      Result.join @@ Net.with_connection ~peer:server_ep @@ fun conn ->
+      let peer = Net.Connection.fd conn in
       Result.join @@ Bytesrw_tls.for_client_socket conf ~peer_hostname ~peer @@
       fun info ~peer:(send, recv) ->
       try
@@ -100,23 +100,24 @@ module Server = struct
       Bytesrw_tls.Conf.make ~trusted_certs ~own_certs ~verify_peer Server
     in
     let ep = `Host ("localhost", 0 (* allocate a port *)) in
-    let* listen, close, addr = Os.Socket.listen_endpoint ep SOCK_STREAM in
+    let* l = Net.Listener.open' ~endpoint:ep () in
     let () = Sys.set_signal Sys.sigpipe Signal_ignore in
     let serve () =
       let rec serve_loop accept_count listen =
         if accept_count = 0 then () else
-        match Os.Socket.accept ~cloexec:true listen with
+        match Net.Listener.accept l with
         | Error _ as e -> Log.if_error ~use:() e
-        | Ok (peer, peer_addr) ->
+        | Ok c ->
+            let peer = Net.Connection.fd c in
+            let peer_addr = Net.Connection.peer_addr c in
             ignore (Thread.create (serve_peer ~conf ~peer ~peer_addr) ());
             serve_loop (accept_count - 1) listen
       in
-      let finally () = if close then Os.Fd.close_noerr listen in
-      Fun.protect ~finally (fun () -> serve_loop accept_count listen)
+      let finally () = Net.Listener.close_noerr l in
+      Fun.protect ~finally (fun () -> serve_loop accept_count l)
     in
     let tid = Thread.create serve () in
-    let ep = Net.Endpoint.with_port_of_sockaddr addr ep in
-    Ok ((ep, fst server_own), tid)
+    Ok ((Net.Listener.endpoint l, fst server_own), tid)
 end
 
 let test =

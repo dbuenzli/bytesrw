@@ -91,7 +91,8 @@ let fetch ~url ~cacert ~insecure ~pem_log =
   Log.debug (fun m -> m "%s" (Bytesrw_tls.backend_info ()));
   Result.map_error (fun e -> Fmt.str "%a %s" Fmt.puterr () e) @@ Result.join @@
   let* `Host (host, _) as ep, tls, request = http_prepare_get_request url in
-  Os.Socket.with_connected_endpoint ep SOCK_STREAM @@ fun peer _addr ->
+  Net.with_connection ~peer:ep @@ fun c ->
+  let peer = Net.Connection.fd c in
   let* net_io =
     if not tls then Ok (with_unencrypted_net_io ~peer) else
     let* conf = http_tls_conf ~cacert ~insecure in

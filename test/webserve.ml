@@ -106,19 +106,20 @@ let serve ~endpoint:ep ~own_cert ~own_key =
     let alpn_protocols = ["http/1.1"] in
     Bytesrw_tls.Conf.make ~own_certs ~alpn_protocols Server
   in
-  Result.join @@ Os.Socket.with_listening_endpoint ep SOCK_STREAM @@
-  fun listen addr ->
-  let ep = Net.Endpoint.with_port_of_sockaddr addr ep in
+  Result.join @@ Net.with_listener ~on:ep @@ fun l ->
+  let ep = Net.Listener.endpoint l in
   Log.stderr (fun m -> m "Listening on https://%a" Net.Endpoint.pp ep);
-  let rec serve_loop listen = match Os.Socket.accept ~cloexec:true listen with
+  let rec serve_loop l = match Net.Listener.accept l with
   | Error _ as e -> e
-  | Ok (peer, peer_addr) ->
-      Log.info (fun m -> m ~header:"" "connect: %a" Fmt.sockaddr addr);
+  | Ok c ->
+      let peer = Net.Connection.fd c in
+      let peer_addr = Net.Connection.peer_addr c in
+      Log.info (fun m -> m ~header:"" "connect: %a" Net.Connection.pp c);
       (* Don't do that at home, throttle and/or use a thread pool *)
       ignore (Thread.create (serve_peer ~conf ~peer ~peer_addr) ());
-      serve_loop listen
+      serve_loop l
   in
-  serve_loop listen
+  serve_loop l
 
 (* Command line interface *)
 

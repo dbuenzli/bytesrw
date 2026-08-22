@@ -87,17 +87,21 @@ module Bytes = struct
 
     (* Breaking slices *)
 
-    let take n s =
+    let take_first n s =
       if n <= 0 || is_eod s then None else
       if n >= s.length then Some s else
       Some { s with length = n }
 
-    let drop n s =
+    let drop_first n s =
       if n >= s.length || is_eod s then None else
       if n <= 0 then Some s else
       Some { s with first = s.first + n; length = s.length - n }
 
-    let break n s = take n s, drop n s
+    let cut_first n s = take_first n s, drop_first n s
+
+    let take = take_first (* deprecated *)
+    let drop = drop_first (* deprecated *)
+    let break = cut_first (* deprecated *)
 
     let sub' ~allow_eod s ~first ~length =
       let len = s.length in

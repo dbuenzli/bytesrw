@@ -35,7 +35,7 @@ let bytes_writer_of_fd
       let first = Bytes.Slice.first s and length = Bytes.Slice.length s in
       match Unix.single_write fd b first length with
       | count when count = length -> ()
-      | count -> write (Option.get (Bytes.Slice.drop count s))
+      | count -> write (Option.get (Bytes.Slice.drop_first count s))
       | exception Unix.Unix_error (Unix.EINTR, _, _) -> write s
   in
   Bytes.Writer.make ~pos ~slice_length write
@@ -55,7 +55,7 @@ let bytes_writer_of_socket_fd
       let first = Bytes.Slice.first s and length = Bytes.Slice.length s in
       match Unix.single_write fd b first length with
       | count when count = length -> ()
-      | count -> write (Option.get (Bytes.Slice.drop count s))
+      | count -> write (Option.get (Bytes.Slice.drop_first count s))
       | exception Unix.Unix_error (Unix.EINTR, _, _) -> write s
   in
   Bytes.Writer.make ?pos ~slice_length write

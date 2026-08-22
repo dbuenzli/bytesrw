@@ -281,7 +281,7 @@ let read_exactly c ~into:buf ~need =
       let take = Int.min need length in
       Bytes.blit bytes first buf i take;
       let () =
-        c.recv_rem <- match Bytes.Slice.drop take c.recv_rem with
+        c.recv_rem <- match Bytes.Slice.drop_first take c.recv_rem with
         | None -> Bytes.Slice.eod
         | Some rem -> rem
       in

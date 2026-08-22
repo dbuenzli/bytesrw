@@ -123,19 +123,27 @@ module Bytes : sig
         slice space} which starts at 0 at the slice's {!first}
         byte. *)
 
-    val take : int -> t -> t option
-    (** [take n s] is the slice made of the first [n] bytes starting
+    val take_first : int -> t -> t option
+    (** [take_first n s] is the slice made of the first [n] bytes starting
         at {!first}. This is [None] if the operation results in
         {!eod}, including if [s] is {!eod} or if [n < 0]. *)
 
-    val drop : int -> t -> t option
-    (** [drop n s] is the slice made of the bytes in the range of [s]
+    val take_first_or_eod : int -> t -> t
+    (** [take_first_or_eod] is like {!take_first} but returns {!eod}
+        instead of [None]. *)
+
+    val drop_first : int -> t -> t option
+    (** [drop_first n s] is the slice made of the bytes in the range of [s]
         without the first [n] bytes starting at {!first}. This is
         [None] if the operation results in {!eod}, including if [s] is
         {!eod} or if [n < 0]. *)
 
-    val break : int -> t -> t option * t option
-    (** [break n s] is [(take n s, drop n s)]. *)
+    val drop_first_or_eod : int -> t -> t
+    (** [drop_first_or_eod] is like {!drop_first} but returns {!eod}
+        instead of [None]. *)
+
+    val cut_first : int -> t -> t option * t option
+    (** [cut_first n s] is [(cut_first n s, drop_first n s)]. *)
 
     val sub : t -> first:int -> length:int -> t
     (** [sub s ~first ~length] is the slice made of the consecutive bytes
@@ -237,6 +245,17 @@ module Bytes : sig
         [ppf] (defaults to {!Format.err_formatter}) with [pp]
         (defaults to {!pp}) and the identifier [id]. Use with
         {!Reader.tap} or {!Writer.tap}. *)
+
+    (** {1:deprecated Deprecated} *)
+
+    val take : int -> t -> t option
+    [@@ocaml.deprecated "use Bytes.Slice.take_first instead."]
+
+    val drop : int -> t -> t option
+    [@@ocaml.deprecated "use Bytes.Slice.drop_first instead."]
+
+    val break : int -> t -> t option * t option
+    [@@ocaml.deprecated "use Bytes.Slice.cut_first instead."]
   end
 
   (** Byte streams.

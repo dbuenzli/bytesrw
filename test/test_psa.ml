@@ -180,7 +180,7 @@ let test_psa_cipher =
     begin match Psa.Cipher.encrypt ~key alg ~plain ~cipher:enc with
     | Error e -> Test.fail "Couldn't encrypt: %a" Psa.Status.pp e
     | Ok len ->
-        let cipher = Bytes.Slice.take len enc |> Option.get in
+        let cipher = Bytes.Slice.take_first len enc |> Option.get in
         let dec =
           let n =
             Psa.Cipher.decrypt_output_size key_type alg ~cipher_length:len
@@ -190,7 +190,7 @@ let test_psa_cipher =
         begin match Psa.Cipher.decrypt ~key alg ~cipher ~plain:dec with
         | Error e -> Test.fail "Couldn't decrypt: %a" Psa.Status.pp e
         | Ok len ->
-            let plain' = Bytes.Slice.take len dec |> Option.get in
+            let plain' = Bytes.Slice.take_first len dec |> Option.get in
             Test.(neq T.string) ~__POS__
               (Bytes.Slice.to_string plain)
               (Bytes.Slice.to_string cipher);
@@ -229,7 +229,7 @@ let test_psa_cipher =
     begin match Psa.Cipher.update op ~input ~output:dec with
     | Error e -> Test.fail "Couldn't update: %a" Psa.Status.pp e
     | Ok len ->
-        let p0 = Bytes.Slice.take len dec in
+        let p0 = Bytes.Slice.take_first len dec in
         let p0 = Option.fold ~none:"" ~some:Bytes.Slice.to_string p0 in
         let dec =
           let n = Psa.Cipher.finish_output_size key_type alg in
@@ -238,7 +238,7 @@ let test_psa_cipher =
         match Psa.Cipher.finish op ~output:dec with
         | Error e -> Test.fail "Couldn't finish: %a" Psa.Status.pp e
         | Ok len ->
-            let p1 = Bytes.Slice.take len dec in
+            let p1 = Bytes.Slice.take_first len dec in
             let p1 = Option.fold ~none:"" ~some:Bytes.Slice.to_string p1 in
             let plain' = p0 ^ p1 in
             Test.binary_string ~__POS__ plain' tplain;
@@ -296,7 +296,7 @@ let test_psa_aead_single =
   begin match Psa.Aead.decrypt ~key alg ~nonce ~ad ~cipher ~plain:dec with
   | Error e -> Test.fail "Couldn't decrypt: %a" Psa.Status.pp e
   | Ok len ->
-      let plain' = Bytes.Slice.take len dec |> Option.get in
+      let plain' = Bytes.Slice.take_first len dec |> Option.get in
       Test.string
         (Bytes.Slice.to_string plain') (Bytes.Slice.to_string plain) ~__POS__
   end;
@@ -308,7 +308,7 @@ let test_psa_aead_single =
   begin match Psa.Aead.encrypt ~key alg ~nonce ~ad ~plain ~cipher:enc with
   | Error e -> Test.fail "Couldn't encrypt: %a" Psa.Status.pp e
   | Ok len ->
-      let cipher' = Bytes.Slice.take len enc |> Option.get in
+      let cipher' = Bytes.Slice.take_first len enc |> Option.get in
       Test.string
         (Bytes.Slice.to_string cipher') (Bytes.Slice.to_string cipher) ~__POS__
   end;

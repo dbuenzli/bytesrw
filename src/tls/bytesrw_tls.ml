@@ -511,7 +511,8 @@ let bytes_writer_of_info
         let first = Bytes.Slice.first s and length = Bytes.Slice.length s in
         match Mbedtls.ssl_write (Info.ssl_ctx info) b first length with
         | count when count = length -> ()
-        | count when count >= 0 -> write (Option.get (Bytes.Slice.drop count s))
+        | count when count >= 0 ->
+            write (Option.get (Bytes.Slice.drop_first count s))
         | st -> stream_error (Mbedtls.Status.message st)
   in
   Bytes.Writer.make ~slice_length write

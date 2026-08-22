@@ -1,4 +1,5 @@
-
+v0.4.0 2026-08-22 Zagreb
+------------------------
 
 - Add `Bytes.Writer.writes_to_string`
 

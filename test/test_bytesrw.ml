@@ -107,7 +107,9 @@ let test_slice_compare =
   in
   let snil = Bytes.Slice.make_or_eod (bos "1234") ~first:2 ~length:0 in
   let s1 = Bytes.Slice.make (bos "1234") ~first:0 ~length:1 in
+  let s2 = Bytes.Slice.make (bos "1234") ~first:1 ~length:1 in
   let s12 = Bytes.Slice.make (bos "1234") ~first:0 ~length:2 in
+  let s13 = Bytes.Slice.make (bos "0134") ~first:1 ~length:2 in
   let s23 = Bytes.Slice.make (bos "1234") ~first:1 ~length:2 in
   let s234 = Bytes.Slice.make (bos "1234") ~first:1 ~length:3 in
   let s1234 = Bytes.Slice.make (bos "1234") ~first:0 ~length:4 in
@@ -116,10 +118,12 @@ let test_slice_compare =
   test_cmp snil s12 (-1) ~__POS__; test_cmp snil s23 (-1) ~__POS__;
   test_cmp snil s234 (-1) ~__POS__; test_cmp snil s1234 (-1) ~__POS__;
   (* s1 *)
+  test_cmp s1 s2 (-1) ~__POS__;
   test_cmp s1 s1 0 ~__POS__; test_cmp s1 s12 (-1) ~__POS__;
   test_cmp s1 s23 (-1) ~__POS__; test_cmp s1 s234 (-1) ~__POS__;
   test_cmp s1 s1234 (-1) ~__POS__;
   (* s12 *)
+  test_cmp s12 s13 (-1) ~__POS__;
   test_cmp s12 s12 0 ~__POS__; test_cmp s12 s23 (-1) ~__POS__;
   test_cmp s12 s234 (-1) ~__POS__; test_cmp s12 s1234 (-1) ~__POS__;
   (* s23 *)

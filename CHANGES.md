@@ -1,17 +1,20 @@
 
+
+- Add `Bytes.Writer.writes_to_string`
+
+- Add `Bytes.Slice.{take,drop}_first_or_eod` (#11).
+
+- Deprecate `Bytes.Slice.{take,drop,break}` in favor of 
+  `Bytes.Slice.{take_first,drop_first,cut_first}` to align on the stdlib's 
+  new `String` terminology (#11).
+
 - Fix `Bytes.Slice.compare`. The last byte of equal length slices was
   not compared (#14). Thanks to Anil Madhavapeddy for the report.
 
 - Fix `Bytes.Reader.of_slice` when the given slice does not start at 0.
   Thanks to Thomas Gazagnaire for report (#13).
 
-- Add `Bytes.Writer.writes_to_string`
-
 - `Bytesrw_sysrandom`: fix headers for musl libc (alpine.) (#7)
-
-- Deprecate `Bytes.Slice.{take,drop,break}` in favor of 
-  `Bytes.Slice.{take_first,drop_first,cut_first}` to align on the stdlib's 
-  new `String` terminology (#11).
 
 v0.3.0 2025-11-04 Zagreb
 ------------------------

@@ -87,15 +87,19 @@ module Bytes = struct
 
     (* Breaking slices *)
 
-    let take_first n s =
-      if n <= 0 || is_eod s then None else
-      if n >= s.length then Some s else
-      Some { s with length = n }
+    let take_first_or_eod n s =
+      if n <= 0 || is_eod s then eod else
+      if n >= s.length then s else { s with length = n }
 
-    let drop_first n s =
-      if n >= s.length || is_eod s then None else
-      if n <= 0 then Some s else
-      Some { s with first = s.first + n; length = s.length - n }
+    let take_first n s = match take_first_or_eod n s with
+    | s when is_eod s -> None | s -> Some s
+
+    let drop_first_or_eod n s =
+      if n >= s.length || is_eod s then eod else
+      if n <= 0 then s else { s with first = s.first + n; length = s.length - n}
+
+    let drop_first n s = match drop_first_or_eod n s with
+    | s when is_eod s -> None | s -> Some s
 
     let cut_first n s = take_first n s, drop_first n s
 

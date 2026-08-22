@@ -58,6 +58,7 @@ Bytesrw_sysrandom
 Bytesrw_tls
 Bytesrw_unix
 Bytesrw_xxhash
+Bytesrw_websocket
 Bytesrw_zlib
 Bytesrw_zstd
 }

@@ -45,7 +45,7 @@ let () =
          ~dst_dir:"sysrandom";
        Pkg.clib "src/sysrandom/libbytesrw_sysrandom_stubs.clib"
          ~lib_dst_dir:"sysrandom";
-       (* Pkg.mllib "src/websocket/bytesrw_websocket.mllib" ~dst_dir:"websocket"; *)
+       Pkg.mllib "src/websocket/bytesrw_websocket.mllib" ~dst_dir:"websocket";
        Pkg.mllib ~cond:xxhash "src/xxhash/bytesrw_xxhash.mllib"
          ~dst_dir:"xxhash";
        Pkg.clib ~cond:xxhash "src/xxhash/libbytesrw_xxhash_stubs.clib"

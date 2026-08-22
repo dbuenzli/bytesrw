@@ -76,7 +76,7 @@ module Bytes = struct
       let cmp = ref 0 in
       let b0 = s0.bytes and b1 = s1.bytes in
       (* XXX it would be nice to have something faster based on memcmp *)
-      while (!cmp = 0 && !i < max) do
+      while (!cmp = 0 && !i <= max) do
         let c0 = Bytes.get b0 (first0 + !i) in
         let c1 = Bytes.get b1 (first1 + !i) in
         cmp := Char.compare c0 c1; incr i;

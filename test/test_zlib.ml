@@ -276,6 +276,27 @@ let test_gzip_compress_writes =
     assert (Buffer.contents b = data)
   end
 
+let test_error_messages =
+  Test.test "Bytesrw_zlib error messages" @@ fun () ->
+  let error_msg f = match f () with
+  | _ -> "no error"
+  | exception Bytes.Stream.Error e -> Bytes.Stream.error_message e
+  in
+  let dict = (* zlib stream header with the FDICT flag set *)
+    error_msg @@ fun () ->
+    let c = Bytes.Reader.of_string "\x78\xbb\x00\x00\x00\x01" in
+    Bytes.Reader.to_string (Bytesrw_zlib.Zlib.decompress_reads () c)
+  in
+  Test.string dict "zlib reader:6: Preset dictionary needed" ~__POS__;
+  let level =
+    error_msg @@ fun () ->
+    let d = Bytes.Reader.of_string (snd a30_zlib) in
+    Bytes.Reader.to_string (Bytesrw_zlib.Zlib.compress_reads ~level:42 () d)
+  in
+  let exp = "zlib: invalid compression level: 42 is not in [-1;9]" in
+  Test.string level exp ~__POS__;
+  ()
+
 let main () =
   Test.main @@ fun () ->
   Test.Log.msg "Using zlib %s" (Bytesrw_zlib.version ());

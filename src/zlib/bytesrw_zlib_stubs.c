@@ -93,7 +93,9 @@ CAMLprim value ocaml_bytesrw_inflate
 
   int rc = inflate (s, Z_NO_FLUSH);
   if (rc != Z_OK && rc != Z_STREAM_END && rc != Z_BUF_ERROR)
-  { caml_failwith ((s->msg) ? s->msg : "Unknown inflate error"); }
+  {
+    caml_failwith ((rc == Z_NEED_DICT) ? "Preset dictionary needed" :
+                   (s->msg) ? s->msg : "Unknown inflate error"); }
 
   size_t in_consumed = in_size - in_pos - s->avail_in;
   size_t out_consumed = out_size - out_pos - s->avail_out;

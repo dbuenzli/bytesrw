@@ -7,6 +7,9 @@
   The reported positions were in the decompressed stream rather
   than in the compressed stream.
 
+- Improve `Bytesrw_zlib` error reporting. Thanks to Anil Madhavapeddy for
+  the fix.
+
 - Fix `Bytesrw_zlib.{Deflate,Zlib,Ggzip}.decompress_writes` position error
   reporting. The reported positions were in the decompressed stream rather
   than in the compressed stream. Thanks to Anil Madhavapeddy for the report.

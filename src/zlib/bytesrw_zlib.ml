@@ -224,8 +224,12 @@ external deflate_reset : z_stream_deflate -> unit =
 
 type compress_state = Await | Flush | Flush_eod | Eod
 
+let err_level error l =
+  error (Printf.sprintf "invalid compression level: %d is not in [-1;9]" l)
+
 let make_z_stream_deflate ~error ~window_bits ?(level = default_compression) ()
   =
+  if level < -1 || level > 9 then err_level error level else
   match create_deflate_z_stream ~level ~window_bits with
   | exception Failure e -> error e | zs -> zs
 

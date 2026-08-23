@@ -45,6 +45,10 @@
   limit but the next one blows it (#15). Thanks to Vladimir N. Silyaev
   and Anil Madhavapeddy for the report and the fix.
 
+- Fix `Bytes.Writer.limit` resulting's writer `Writer.pos` final value.
+  Cap it at what is supposed to be seen by the limit.
+  Thanks to Anil Madhavapeddy for the report and the fix.
+
 - Fix `Bytesrw_zlib.Gzip.decompress_writes` accepting a truncated last 
   member intead of erroring. Thanks to Anil Madhavapeddy for the report 
   and the fix.

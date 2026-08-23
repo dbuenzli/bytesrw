@@ -400,6 +400,15 @@ let test_writer_limit =
   Test.string (Buffer.contents b) "12";
   Test.invalid_arg @@ (fun () -> Bytes.Writer.write_string w "1234");
   Test.string (Buffer.contents b) "12";
+  let () =
+    let pb = Buffer.create 255 in
+    let pw = Bytes.Writer.of_buffer pb in
+    let plw = Bytes.Writer.limit 2 ~action:(fun _ _ -> ()) ~eod:false pw in
+    Bytes.Writer.write_string plw "1234";
+    Test.string (Buffer.contents pb) "12";
+    Test.int (Bytes.Writer.pos plw) 2;
+    Test.int (Bytes.Writer.written_length plw) 2;
+  in
   let w = Bytes.Writer.of_buffer b in
   let lw = Bytes.Writer.limit 2 ~eod:false w in
   Bytes.Writer.write_string lw "12";

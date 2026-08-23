@@ -176,8 +176,8 @@ let inflate_writes
   let rec decompress ~error zs ~src ~dst = match inflate zs ~src ~dst with
   | exception Failure e -> (* Cannot free zs here *) error ?pos:None e
   | is_eos ->
+      eos := is_eos;
       if is_eos then begin
-        eos := is_eos;
         if is_gzip then
           (match inflate_reset zs with
           | () -> () | exception Failure e -> error ?pos:None e)

@@ -1,5 +1,8 @@
 
 
+- Fix `Bytesrw_zlib.Gzip.decompress_writes` accepting a truncated last 
+  member intead of erroring. Thanks to Anil Madhavapeddy for the report 
+  and the fix.
 - Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
   stub. Thanks to Anil Madhavapeddy for the report and the fix.
 - Fix `Bytesrw_tls` reader and writer, reading and writing beyond slice

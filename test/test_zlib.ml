@@ -225,7 +225,18 @@ let test_gzip_decompress_writes =
     let c = Bytes.Reader.of_string ~slice_length:n data in
     let () = Bytes.Writer.write_reader ~eod:true d c in
     assert (Buffer.contents b = res);
-  end
+  end;
+  begin repeat 5 @@ fun n ->
+    (* Check errors on truncated last member. *)
+    let m = fst b_gz in
+    let data = (fst a_gz) ^ (String.sub m 0 (String.length m - 4)) in
+    let b = Buffer.create 255 in
+    let w = Bytes.Writer.of_buffer ~slice_length:n b in
+    let d = Bytesrw_zlib.Gzip.decompress_writes () ~eod:true w in
+    let c = Bytes.Reader.of_string ~slice_length:n data in
+    test_stream_error @@ fun () -> Bytes.Writer.write_reader ~eod:true d c
+  end;
+  ()
 
 let test_gzip_compress_reads =
   Test.test "Bytesrw_zlib.Gzip.compress_reads" @@ fun () ->

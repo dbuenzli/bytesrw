@@ -45,6 +45,19 @@
   as `is_assymetric`. Thanks to Anil Madhavapeddy for the report and
   the fix.
 
+- Fix `Psa.Status.message` have a user friendly message for
+  `Error.{insufficient_entropy,invalid_padding}`. Thanks to Anil
+  Madhavapeddy for the report and the fix.
+
+- Fix `Psa.Alg.pp`, `SHA3-512` was printed as `SHA3-256`. to Anil
+  Madhavapeddy for the report and the fix.
+
+- Fix `Psa.Key_type.pp` DH key-pairs where printed as an unknown key type.
+  Thanks to Anil Madhavapeddy for the report and the fix.
+
+- Rename inexisting name `Psa.Alg.cbc` to `Psa.Alg.cmac`. Thanks to Anil
+  Madhavapeddy for the report and the fix.
+
 - Fix `Bytes.Slice.of_bigbytes_or_eod` on empty ranges. It raised
   `Invalid_argument` instead of returning `eod`. Thanks to Anil
   Madhavapeddy for the report and the fix.

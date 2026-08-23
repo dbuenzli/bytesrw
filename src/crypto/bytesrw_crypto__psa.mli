@@ -318,8 +318,8 @@ module Alg : sig
   val cbc_mac : t
   (** {{:https://arm-software.github.io/psa-api/crypto/1.2/api/ops/macs.html#c.PSA_ALG_CBC_MAC}[PSA_ALG_CBC_MAC]} {b WARNING} Not recommended. *)
 
-  val cbc : t
-  (** {{:https://arm-software.github.io/psa-api/crypto/1.2/api/ops/macs.html#c.PSA_ALG_CBC}[PSA_ALG_CBC]} *)
+  val cmac : t
+  (** {{:https://arm-software.github.io/psa-api/crypto/1.2/api/ops/macs.html#c.PSA_ALG_CMAC}[PSA_ALG_CMAC]} *)
 
   val truncated_mac : t -> length:int -> t
   (** {{:https://arm-software.github.io/psa-api/crypto/1.2/api/ops/macs.html#c.PSA_ALG_TRUNCATED_MAC}[PSA_ALG_TRUNCATED_MAC]} *)

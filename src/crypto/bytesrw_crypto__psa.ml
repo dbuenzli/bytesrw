@@ -79,7 +79,9 @@ module Status = struct
       strf "Communication failure (%d)" c
   | c when c = Error.storage_failure -> strf "Storage failure (%d)" c
   | c when c = Error.hardware_failure -> strf "Hardware failure (%d)" c
+  | c when c = Error.insufficient_entropy -> strf "Insufficient entropy (%d)" c
   | c when c = Error.invalid_signature -> strf "Invalid signature (%d)" c
+  | c when c = Error.invalid_padding -> strf "Invalid padding (%d)" c
   | c when c = Error.corruption_detected -> strf "Corruption detected (%d)" c
   | c when c = Error.data_corrupt -> strf "Data corruption (%d)" c
   | c when c = Error.data_invalid -> strf "Data invalid (%d)" c
@@ -175,7 +177,7 @@ module Alg = struct
     "ocaml_bytesrw_psa_alg_hmac"
 
   let cbc_mac = 0x03c00100l
-  let cbc = 0x03c00200l
+  let cmac = 0x03c00200l
 
   external truncated_mac : t -> length:int -> t =
     "ocaml_bytesrw_psa_alg_truncated_mac"
@@ -400,11 +402,11 @@ module Alg = struct
   | a when equal a sha3_224 -> "SHA3-224"
   | a when equal a sha3_256 -> "SHA3-256"
   | a when equal a sha3_384 -> "SHA3-384"
-  | a when equal a sha3_512 -> "SHA3-256"
+  | a when equal a sha3_512 -> "SHA3-512"
   | a when equal a shake256_512 -> "SHAKE256/512"
   | a when equal a sm3 -> "SM3"
   | a when equal a cbc_mac -> "CBC-MAC"
-  | a when equal a cbc -> "CBC"
+  | a when equal a cmac -> "CMAC"
   | a when equal a ccm -> "CCM"
   | a when equal a gcm -> "GCM"
   | a when equal a chacha20_poly1305 -> "ChaCha20-Poly1305"
@@ -693,7 +695,7 @@ module Key_type = struct
       strf "ecc-public-key-pair-%s" (Ecc_family.to_string (ecc_get_family t))
   | t when is_dh_public_key t ->
       strf "dh-public-key-%s" (Dh_family.to_string (dh_get_family t))
-  | t when is_ecc_key_pair t ->
+  | t when is_dh_key_pair t ->
       strf "dh-public-key-pair-%s" (Dh_family.to_string (dh_get_family t))
   | t when is_unstructured t -> strf "unstructured(%x)" t
   | t when is_asymmetric t -> strf "asymmetric(%x)" t

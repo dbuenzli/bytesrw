@@ -333,23 +333,25 @@ CAMLprim value ocaml_bytesrw_x509_crt_generate
   mbedtls_x509write_cert w;
   uint8_t serial[8]; /* random 64 bits */
 
-  psa_generate_random (serial, sizeof(serial));
+  if (psa_generate_random (serial, sizeof(serial)) != PSA_SUCCESS)
+    caml_failwith ("Could not generate a random certificate serial");
+
   mbedtls_x509write_crt_init (&w);
   mbedtls_x509write_crt_set_md_alg (&w, MBEDTLS_MD_SHA256);
   mbedtls_x509write_crt_set_issuer_key (&w, cikey);
   mbedtls_x509write_crt_set_subject_key (&w, cskey);
   if ((rc = mbedtls_x509write_crt_set_issuer_name (&w, String_val (issuer))))
-    return C_mbedtls_rc_to_val (rc);;
+    goto done;
   if ((rc = mbedtls_x509write_crt_set_subject_name (&w, String_val (subject))))
-    return C_mbedtls_rc_to_val (rc);;
+    goto done;
   if ((rc = mbedtls_x509write_crt_set_serial_raw (&w, serial, sizeof(serial))))
-    return C_mbedtls_rc_to_val (rc);;
+    goto done;
   if ((rc = mbedtls_x509write_crt_set_validity
        (&w, String_val (invalid_before), String_val (invalid_after))))
-    return C_mbedtls_rc_to_val (rc);
+    goto done;
   if (Bool_val (is_ca))
     if ((rc = mbedtls_x509write_crt_set_basic_constraints (&w, 1, -1)))
-      return C_mbedtls_rc_to_val (rc);;
+      goto done;
 
   if (caml_string_length (subject_alt_dns) > 0) {
       mbedtls_x509_buf buf;
@@ -363,17 +365,20 @@ CAMLprim value ocaml_bytesrw_x509_crt_generate
       san_list.next = NULL;
       if ((rc = mbedtls_x509write_crt_set_subject_alternative_name
            (&w, &san_list)))
-        return C_mbedtls_rc_to_val (rc);;
+        goto done;
   }
 
   unsigned char der[4096]; /* Should be enough */
   size_t der_len = sizeof (der);
   rc = mbedtls_x509write_crt_der (&w, der, der_len);
-  if (rc < 0) return C_mbedtls_rc_to_val (rc);
+  if (rc < 0) goto done;
 
   /* Data is written at the end of the buffer */
   const unsigned char *der_start = der + der_len - rc;
   rc = mbedtls_x509_crt_parse_der (cc, der_start, rc);
+
+ done:
+  mbedtls_x509write_crt_free (&w);
   return C_mbedtls_rc_to_val (rc);
 }
 

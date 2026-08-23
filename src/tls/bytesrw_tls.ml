@@ -255,10 +255,12 @@ module X509_certchain = struct
         let issuer_name = "CN=" ^ name in
         let subject_alt_dns = if is_ca then "" else name in
         let subject_name = issuer_name and subject_key = issuer_key in
-        let st =
-          Mbedtls.x509_crt_generate
-            cert ~invalid_before ~invalid_after ~is_ca ~issuer_name
-            ~issuer_key ~subject_name ~subject_key ~subject_alt_dns
+        let* st =
+          try
+            Ok (Mbedtls.x509_crt_generate
+                  cert ~invalid_before ~invalid_after ~is_ca ~issuer_name
+                  ~issuer_key ~subject_name ~subject_key ~subject_alt_dns)
+          with Failure msg -> Error msg
         in
         if Mbedtls.Status.is_ok st then Ok (cert, issuer_key) else
         Error (msg_of_status op st)
@@ -286,10 +288,13 @@ module X509_certchain = struct
         let issuer_name = Mbedtls.x509_crt_get_subject_name ca_cert in
         let subject_alt_dns = name in
         let subject_name = "CN=" ^ name in
-        let st =
-          Mbedtls.x509_crt_generate
-            cert ~invalid_before ~invalid_after ~is_ca:false ~issuer_name
-            ~issuer_key ~subject_name ~subject_key ~subject_alt_dns
+        let* st =
+          try
+            Ok (Mbedtls.x509_crt_generate
+                  cert ~invalid_before ~invalid_after ~is_ca:false ~issuer_name
+                  ~issuer_key ~subject_name ~subject_key ~subject_alt_dns)
+          with
+          | Failure msg -> Error msg
         in
         if not (Mbedtls.Status.is_ok st) then Error (msg_of_status op st) else
         (* Add the CA to the chain *)

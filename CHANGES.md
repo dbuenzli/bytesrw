@@ -48,6 +48,9 @@
 - Fix `Bytesrw_tls` reader and writer, reading and writing beyond slice
   lengths. Thanks to Anil Madhavapeddy for the report and the fix.
 
+- Fix `Bytesrw_tls.X509_certchain.{self_signed,ca_signed}` memory leak.
+  Thanks to Anil Madhavapeddy for the report and the fix.
+
 v0.4.0 2026-08-22 Zagreb
 ------------------------
 

@@ -132,7 +132,10 @@ val x509_crt_generate :
   is_ca:bool -> issuer_name:string -> issuer_key:pk_context ->
   subject_name:string -> subject_key:pk_context ->
   subject_alt_dns:string -> Status.t
-(** [x509_crt_generate c pk …] generates in [c] a certificate. *)
+(** [x509_crt_generate c pk …] generates in [c] a certificate.
+
+    @raise Failure if a random serial number fails to be generated.
+*)
 
 (** {1:config SSL config} *)
 

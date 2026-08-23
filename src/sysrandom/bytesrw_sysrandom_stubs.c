@@ -20,6 +20,7 @@
   #define OCAML_BYTESRW_LINUX
   #include <sys/random.h>
   #include <unistd.h>
+  #include <errno.h>
 
 #elif defined(__unix__) || defined(__unix) /* This should catch the BSDs */
  #include <unistd.h>
@@ -42,10 +43,16 @@ CAMLprim value ocaml_bytesrw_sysrandom_getrandom
 (value b, value first, value length)
 {
   uint8_t *sub = ((uint8_t *)(Bytes_val (b))) + Long_val (first);
-  int n = Long_val (length);
-  if (getrandom (sub, n, 0) == n) return Val_none;
-  /* Note normally this should not happen */
-  else return caml_alloc_some (caml_copy_string ("getrandom error"));
+  size_t rem = (size_t) Long_val (length);
+  while (rem > 0)
+  {
+    ssize_t r = getrandom (sub, rem, 0);
+    if (r >= 0) { sub += r; rem -= (size_t) r; }
+    else if (errno == EINTR || errno == EAGAIN) continue;
+    /* Note normally this should not happen */
+    else return caml_alloc_some (caml_copy_string ("getrandom error"));
+  }
+  return Val_none;
 }
 
 #elif (defined (OCAML_BYTESRW_DARWIN) || defined (OCAML_BYTESRW_POSIX))

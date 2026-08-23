@@ -1,5 +1,9 @@
 
 
+- Fix `Bytesrw_sysrandom` potential unwarranted panics on Linux due to short
+  `getrandom` results or `EINTR`. Thanks to Anil Madhavapeddy for the
+  report and the fix.
+
 - Fix C binding to `Psa.Alg.is_rsa_oaep` and `Psa.Mac.max_size`, they
   were returning garbage. Thanks to Anil Madhavapeddy for the report
   and the fix.

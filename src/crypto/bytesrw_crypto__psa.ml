@@ -1052,7 +1052,7 @@ module Aead = struct
   external decrypt :
     key:Key_id.t -> Alg.t -> nonce:Bytes.Slice.t -> ad:Bytes.Slice.t ->
     cipher:Bytes.Slice.t -> plain:Bytes.Slice.t -> (int, Status.t) result =
-    "ocaml_bytesrw_psa_aead_encrypt_bc" "ocaml_bytesrw_psa_aead_decrypt"
+    "ocaml_bytesrw_psa_aead_decrypt_bc" "ocaml_bytesrw_psa_aead_decrypt"
 
   module Operation = struct
     type t

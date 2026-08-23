@@ -100,6 +100,18 @@ let test_psa_key_lifetime =
   Test.bool (Psa.Key_lifetime.is_volatile l) false ~__POS__;
   ()
 
+let test_psa_key_type =
+  Test.test "Psa.Key_type" @@ fun () ->
+  let pub = Psa.Key_type.ecc_public_key Psa.Ecc_family.secp_r1 in
+  let pair = Psa.Key_type.ecc_key_pair Psa.Ecc_family.secp_r1 in
+  Test.bool (Psa.Key_type.is_public_key pub) true ~__POS__;
+  Test.bool (Psa.Key_type.is_key_pair pub) false ~__POS__;
+  Test.bool (Psa.Key_type.is_public_key pair) false ~__POS__;
+  Test.bool (Psa.Key_type.is_key_pair pair) true ~__POS__;
+  Test.bool (Psa.Key_type.is_asymmetric pub) true ~__POS__;
+  Test.bool (Psa.Key_type.is_asymmetric pair) true ~__POS__;
+  ()
+
 (* Test hashes *)
 
 let test_psa_hash_single =

@@ -19,6 +19,10 @@
   `Val_long` used instead of `Long_val`. Thanks to Anil Madhavapeddy
   for the report and the fix.
 
+- Fix `Psa.Key_type.is_{public_key,key_pair}`. They were implemented
+  as `is_assymetric`. Thanks to Anil Madhavapeddy for the report and
+  the fix.
+
 - Fix `Bytes.Slice.of_bigbytes_or_eod` on empty ranges. It raised
   `Invalid_argument` instead of returning `eod`. Thanks to Anil
   Madhavapeddy for the report and the fix.

@@ -108,11 +108,11 @@ CAMLprim value ocaml_bytesrw_psa_key_type_is_asymmetric (value t)
                    (C_psa_key_type_t_of_val (t))); }
 
 CAMLprim value ocaml_bytesrw_psa_key_type_is_public_key (value t)
-{ return Val_bool (PSA_KEY_TYPE_IS_ASYMMETRIC
+{ return Val_bool (PSA_KEY_TYPE_IS_PUBLIC_KEY
                    (C_psa_key_type_t_of_val (t))); }
 
 CAMLprim value ocaml_bytesrw_psa_key_type_is_key_pair (value t)
-{ return Val_bool (PSA_KEY_TYPE_IS_ASYMMETRIC
+{ return Val_bool (PSA_KEY_TYPE_IS_KEY_PAIR
                    (C_psa_key_type_t_of_val (t))); }
 
 CAMLprim value ocaml_bytesrw_psa_key_type_is_rsa (value t)

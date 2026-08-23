@@ -1,3 +1,7 @@
+
+- Fix `Bytesrw_tls` reader and writer, reading and writing beyond slice
+  lengths. Thanks to Anil Madhavapeddy.
+
 v0.4.0 2026-08-22 Zagreb
 ------------------------
 

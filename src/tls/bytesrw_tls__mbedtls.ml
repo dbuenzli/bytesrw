@@ -213,10 +213,10 @@ let ssl_read fd b first length =
   let len = Bytes.length b in
   if first < 0 || length < 0 || first + length > len
   then invalid_range "Mbedtls.ssl_read" ~first ~length ~len
-  else unsafe_ssl_read fd b first len
+  else unsafe_ssl_read fd b first length
 
 let ssl_write fd b first length =
   let len = Bytes.length b in
   if first < 0 || length < 0 || first + length > len
   then invalid_range "Mbedtls.ssl_write" ~first ~length ~len
-  else unsafe_ssl_write fd b first len
+  else unsafe_ssl_write fd b first length

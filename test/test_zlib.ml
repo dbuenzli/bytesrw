@@ -82,6 +82,18 @@ let test_deflate_decompress_writes =
     test_stream_error @@ fun () ->
     Bytes.Writer.write_reader ~eod:true d c
   end;
+  begin repeat 5 @@ fun n -> (* Leftover error position is in the writes *)
+    let b = Buffer.create 255 in
+    let w = Bytes.Writer.of_buffer ~slice_length:n b in
+    let d = Bytesrw_zlib.Deflate.decompress_writes ~eod:true () w in
+    let c = fst a30_deflate in
+    let c = Bytes.Reader.of_string ~slice_length:n (c ^ c) in
+    match Bytes.Writer.write_reader ~eod:true d c with
+    | exception Bytes.Stream.Error e ->
+        let msg = Bytes.Stream.error_message e in
+        Snap.string msg @> __POS_OF__ "deflate writer:4: Expected end of data";
+    | _ -> Test.fail "Unexpected result"
+  end;
   ()
 
 let test_deflate_compress_reads =

@@ -99,8 +99,7 @@ type decompress_state =
 | Await | Eod | Eos of { leftover : Bytes.Slice.t } | Flush
 
 let err_unexp_eod error = error ?pos:None "Unexpected end of compressed data"
-let err_exp_eod ~leftover error =
-  error ?pos:(Some (-(Bytes.Slice.length leftover))) "Expected end of data"
+let err_exp_eod ~pos error = error ?pos:(Some pos) "Expected end of data"
 
 let inflate_reads
     ~error ~reader_error ~eos_action ~window_bits ()
@@ -143,9 +142,10 @@ let inflate_reads
   and eos_parse_eod ~error ~leftover r zs =
     state := Eod; free_inflate_z_stream zs;
     if not (Bytes.Slice.is_eod leftover)
-    then err_exp_eod ~leftover error else
+    then err_exp_eod ~pos:(-(Bytes.Slice.length leftover)) error else
     let s = Bytes.Reader.read r in
-    if Bytes.Slice.is_eod s then s else err_exp_eod ~leftover:s error
+    if Bytes.Slice.is_eod s then s else
+    err_exp_eod ~pos:(-(Bytes.Slice.length s)) error
   and eos_stop ~leftover r zs =
     state := Eod; free_inflate_z_stream zs;
     Bytes.Reader.push_back r leftover;
@@ -170,20 +170,20 @@ let inflate_writes
   let is_gzip = window_bits = window_bits_gzip in
   let zs = make_z_stream_inflate ~error ~window_bits in
   let src = Zbuf.make_empty () in
+  let error w ?pos = writer_error w ?pos in
   let dst = Zbuf.make (Bytes.Writer.slice_length w) in
-  let error ?pos = writer_error w ?pos in
   let eos = ref false in (* true on end of compressed streams *)
-  let rec decompress ~error zs ~src ~dst = match inflate zs ~src ~dst with
-  | exception Failure e -> (* Cannot free zs here *) error ?pos:None e
+  let rec decompress wf zs ~src ~dst = match inflate zs ~src ~dst with
+  | exception Failure e -> (* Cannot free zs here *) error wf ?pos:None e
   | is_eos ->
       eos := is_eos;
       if is_eos then begin
         if is_gzip then
           (match inflate_reset zs with
-          | () -> () | exception Failure e -> error ?pos:None e)
+          | () -> () | exception Failure e -> error wf ?pos:None e)
         else
         if not (Zbuf.src_is_consumed src)
-        then err_exp_eod ~leftover:(Zbuf.src_to_slice_or_eod src) error
+        then err_exp_eod ~pos:(-Zbuf.src_rem src) (error wf)
       end;
       let flush_dst = Zbuf.dst_is_full dst && not is_eos in
       if not (Zbuf.dst_is_empty dst) then begin
@@ -191,16 +191,16 @@ let inflate_writes
         Zbuf.dst_clear dst; Bytes.Writer.write w slice;
       end;
       if not (Zbuf.src_is_consumed src) || flush_dst
-      then decompress ~error zs ~src ~dst else () (* await *)
+      then decompress wf zs ~src ~dst else () (* await *)
   in
-  let write = function
+  let write wf = function
   | slice when Bytes.Slice.is_eod slice ->
       free_inflate_z_stream zs; (* Note: [write] is never called again *)
       if !eos then (if eod then Bytes.Writer.write_eod w) else
-      err_unexp_eod error
-  | slice -> Zbuf.src_set_slice src slice; decompress ~error zs ~src ~dst
+      err_unexp_eod (error wf)
+  | slice -> Zbuf.src_set_slice src slice; decompress wf zs ~src ~dst
   in
-  Bytes.Writer.make ?pos ~slice_length write
+  Bytes.Writer.make' ?pos ~slice_length write
 
 (* Compression *)
 

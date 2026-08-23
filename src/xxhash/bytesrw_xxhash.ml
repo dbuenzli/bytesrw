@@ -197,7 +197,7 @@ module Xxh3_128 = struct
     let update state s =
       let b = Bytes.Slice.bytes s in
       let first = Bytes.Slice.first s and last = Bytes.Slice.length s in
-      Xxh3_state.h64bits_update state b first last
+      Xxh3_state.h128bits_update state b first last
 
     let copy src =
       let dst = Xxh3_state.create () in

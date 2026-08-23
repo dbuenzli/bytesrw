@@ -49,6 +49,11 @@
   `Error.{insufficient_entropy,invalid_padding}`. Thanks to Anil
   Madhavapeddy for the report and the fix.
 
+- Fix `Bytesrw_xxhash.Xxhash_128.update` using `Xxhash_64.update`.
+  This doesn't change previously generated hashes as libxxahsh 0.8.x
+  use the same implementation for both. Thanks to Anil Madhavapeddy
+  for the report and the fix.
+
 - Fix `Psa.Alg.pp`, `SHA3-512` was printed as `SHA3-256`. to Anil
   Madhavapeddy for the report and the fix.
 

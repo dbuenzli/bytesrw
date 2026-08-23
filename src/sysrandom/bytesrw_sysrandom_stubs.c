@@ -76,7 +76,7 @@ CAMLprim value ocaml_bytesrw_sysrandom_getrandom
 }
 
 
-#elif /* Unsupported */
+#else /* Unsupported */
 
 #warning ocaml_bytesrw_sysrandom_getrandom: unsupported platform
 
@@ -110,7 +110,7 @@ CAMLprim value ocaml_bytesrw_sysrandom_getentropy
   return ocaml_bytesrw_sysrandom_getrandom (b, first, length);
 }
 
-#elif /* Unsupported */
+#else /* Unsupported */
 
 #warning ocaml_bytesrw_sysrandom_getentropy: unsupported platform
 

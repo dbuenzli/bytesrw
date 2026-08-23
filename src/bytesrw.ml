@@ -290,7 +290,7 @@ module Bytes = struct
       { pos; read; slice_length = Slice.check_length slice_length }
 
     let read_eod = Fun.const Slice.eod
-    let empty ?pos ?slice_length () = make read_eod
+    let empty ?pos ?slice_length () = make ?pos ?slice_length read_eod
     let pos r = r.pos
     let read_length = pos
     let slice_length r = r.slice_length
@@ -365,10 +365,10 @@ module Bytes = struct
     type filter = ?pos:Stream.pos -> ?slice_length:Slice.length -> t -> t
 
     let sub n ?pos ?slice_length r =
-      if n <= 0 then empty () else
       let slice_length = Option.value ~default:r.slice_length slice_length in
       let slice_length = Slice.check_length slice_length in
       let pos = Option.value ~default:r.pos pos in
+      if n <= 0 then empty ~pos ~slice_length () else
       let sr = make ~pos ~slice_length read_eod in
       let count = ref n in
       let read () = match read r with

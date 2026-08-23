@@ -1,5 +1,11 @@
 
 
+
+- Fix `Bytes.Reader.empty` ignoring its `pos` and `slice_length`
+  optional argument. Indirectly affected `Bytes.Reader.{of_bytes,of_string,
+  of_slice,sub}` the result when those would return an empty stream
+  reader. Thanks to Anil Madhavapeddy for the report and the fix.
+
 - Fix `Bytes.Writer.limit` filter raising `Invalid_argument` instead
   of a `Stream.Limit` error if the last write is exactly in the
   limit but the next one blows it (#15). Thanks to Vladimir N. Silyaev

@@ -245,6 +245,23 @@ let test_reader_push_backs =
   Test.string (Bytes.Reader.to_string r1) "bbccc";
   ()
 
+let test_reader_empty =
+  Test.test "Bytes.Reader.empty" @@ fun () ->
+  let r = Bytes.Reader.empty () in
+  Test.int (Bytes.Reader.pos r) 0 ~__POS__;
+  Test.int (Bytes.Reader.slice_length r) Bytes.Slice.default_length ~__POS__;
+  eq_eod (Bytes.Reader.read r) ~__POS__;
+  let r = Bytes.Reader.empty ~pos:42 ~slice_length:7 () in
+  Test.int (Bytes.Reader.pos r) 42 ~__POS__;
+  Test.int (Bytes.Reader.slice_length r) 7 ~__POS__;
+  let r = Bytes.Reader.of_bytes ~pos:42 ~slice_length:7 Bytes.empty in
+  Test.int (Bytes.Reader.pos r) 42 ~__POS__;
+  Test.int (Bytes.Reader.slice_length r) 7 ~__POS__;
+  let r = Bytes.Reader.of_slice ~pos:42 ~slice_length:7 Bytes.Slice.eod in
+  Test.int (Bytes.Reader.pos r) 42 ~__POS__;
+  Test.int (Bytes.Reader.slice_length r) 7 ~__POS__;
+  ()
+
 let test_reader_skip_sub_limit =
   Test.test "Bytes.Reader.{skip,sub,limit}" @@ fun () ->
   let r () = reader_of_list ["a"; "bb"; "ccc"] in
@@ -267,6 +284,16 @@ let test_reader_skip_sub_limit =
   let r0 = r () in
   let () = Bytes.Reader.skip 128 r0 in
   Test.string (Bytes.Reader.to_string r0) "";
+  (* sub with a non-positive count still honours the filter conventions *)
+  let r0 = Bytes.Reader.of_string ~pos:100 ~slice_length:7 "abbcccdddd" in
+  let sr0 = Bytes.Reader.sub 0 r0 in
+  Test.int (Bytes.Reader.pos sr0) 100 ~__POS__;
+  Test.int (Bytes.Reader.slice_length sr0) 7 ~__POS__;
+  eq_eod (Bytes.Reader.read sr0) ~__POS__;
+  let sr0 = Bytes.Reader.sub (-1) ~pos:5 ~slice_length:3 r0 in
+  Test.int (Bytes.Reader.pos sr0) 5 ~__POS__;
+  Test.int (Bytes.Reader.slice_length sr0) 3 ~__POS__;
+  Test.string (Bytes.Reader.to_string r0) "abbcccdddd" ~__POS__;
   ()
 
 let test_reader_append =

@@ -15,6 +15,10 @@
 - Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
   stub. Thanks to Anil Madhavapeddy for the report and the fix.
 
+- Fix `Psa.Key_agreement.raw_output_size` returning garbage due to a
+  `Val_long` used instead of `Long_val`. Thanks to Anil Madhavapeddy
+  for the report and the fix.
+
 - Fix `Bytes.Slice.of_bigbytes_or_eod` on empty ranges. It raised
   `Invalid_argument` instead of returning `eod`. Thanks to Anil
   Madhavapeddy for the report and the fix.

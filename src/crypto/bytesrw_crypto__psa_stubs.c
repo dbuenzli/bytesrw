@@ -1844,7 +1844,7 @@ CAMLprim value ocaml_bytesrw_psa_raw_key_agreement_output_size
 {
   return Val_long
     (PSA_RAW_KEY_AGREEMENT_OUTPUT_SIZE (C_psa_key_type_t_of_val(kt),
-                                        Val_long (bits)));
+                                        Long_val (bits)));
 }
 
 CAMLprim value ocaml_bytesrw_psa_raw_key_agreement_output_max_size (value unit)

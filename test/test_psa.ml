@@ -551,6 +551,8 @@ let test_key_agreement =
   let key_type = Psa.Key_type.ecc_key_pair key_family in
   let key_type_pub = Psa.Key_type.ecc_public_key key_family in
   let key_bits = 255 in (* Curve25519 *)
+  Test.int (Psa.Key_agreement.raw_output_size key_type ~bits:key_bits) 32
+    ~__POS__;
   let peer_key_pair () =
     (* Create a private key and gets its public key. *)
     let private_key =

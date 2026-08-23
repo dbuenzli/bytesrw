@@ -1,3 +1,7 @@
+- Fix `Bytes.Writer.limit` raising `Invalid_argument` instead of
+  `Stream.Error` when the remaining budget lands on exactly 0 at a slice
+  boundary.
+
 v0.4.0 2026-08-22 Zagreb
 ------------------------
 

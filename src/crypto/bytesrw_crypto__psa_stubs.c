@@ -1366,10 +1366,10 @@ CAMLprim value ocaml_bytesrw_psa_is_sp800_108_counter_hmac (value a)
 CAMLprim value ocaml_bytesrw_psa_is_tls12_prf (value a)
 { return Val_bool (PSA_ALG_IS_TLS12_PRF (C_psa_algorithm_t_of_val (a))); }
 
-/* Not in TF-PSA-Crypto 1.0.0
 CAMLprim value ocaml_bytesrw_psa_is_tls12_psk_to_ms (value a)
-{ return Val_bool (PSA_ALG_IS_TLS12_SK_TO_MS (C_psa_algorithm_t_of_val (a))); }
-*/
+{
+  return Val_bool (PSA_ALG_IS_TLS12_PSK_TO_MS (C_psa_algorithm_t_of_val (a)));
+}
 
 CAMLprim value ocaml_bytesrw_psa_is_pbkdf2_hmac (value a)
 { return Val_bool (PSA_ALG_IS_PBKDF2_HMAC (C_psa_algorithm_t_of_val (a))); }

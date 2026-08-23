@@ -12,6 +12,10 @@
   were combined with `logand` instead of `logor`. Thanks to Anil
   Madhavapeddy for the report and the fix.
 
+- Add `Psa.Alg.is_tls12_psk_to_ms` wrongly assumed not to be in
+  TF-PSA-Crypto due to a typo. Thanks to Anil Madhavapeddy for the
+  report and the fix.
+
 - Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
   stub. Thanks to Anil Madhavapeddy for the report and the fix.
 

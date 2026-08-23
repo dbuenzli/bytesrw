@@ -110,6 +110,9 @@ let test_psa_key_type =
   Test.bool (Psa.Key_type.is_key_pair pair) true ~__POS__;
   Test.bool (Psa.Key_type.is_asymmetric pub) true ~__POS__;
   Test.bool (Psa.Key_type.is_asymmetric pair) true ~__POS__;
+  Test.bool Psa.Alg.(is_tls12_psk_to_ms (tls12_prf sha_256)) false ~__POS__;
+  Test.bool Psa.Alg.(is_tls12_psk_to_ms (tls12_psk_to_ms sha_256)) true
+    ~__POS__;
   ()
 
 (* Test hashes *)

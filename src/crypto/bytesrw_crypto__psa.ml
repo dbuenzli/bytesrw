@@ -282,9 +282,8 @@ module Alg = struct
   external is_tls12_prf : t -> bool =
     "ocaml_bytesrw_psa_is_tls12_prf"
 
-  (* Not in TF-PSA-Crypto 1.0.0
   external is_tls12_psk_to_ms : t -> bool =
-    "ocaml_bytesrw_psa_is_tls12_psk_to_ms" *)
+    "ocaml_bytesrw_psa_is_tls12_psk_to_ms"
 
   external is_pbkdf2_hmac : t -> bool =
     "ocaml_bytesrw_psa_is_pbkdf2_hmac"

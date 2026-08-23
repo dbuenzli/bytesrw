@@ -455,9 +455,8 @@ module Alg : sig
   val is_tls12_prf : t -> bool
   (** {{:https://arm-software.github.io/psa-api/crypto/1.2/api/ops/kdf.html#c.PSA_ALG_IS_TLS12_PRF}[PSA_ALG_IS_TLS12_PRF]} *)
 
-  (* Not in TF-PSA-Crypto 1.0.0
   val is_tls12_psk_to_ms : t -> bool
-  (** {{:https://arm-software.github.io/psa-api/crypto/1.2/api/ops/kdf.html#c.PSA_ALG_IS_TLS12_PSK_TO_MS}[PSA_ALG_IS_TLS12_SK_TO_MS] *) *)
+  (** {{:https://arm-software.github.io/psa-api/crypto/1.2/api/ops/kdf.html#c.PSA_ALG_IS_TLS12_PSK_TO_MS}[PSA_ALG_IS_TLS12_PSK_TO_MS]} *)
 
   val is_pbkdf2_hmac : t -> bool
   (** {{:https://arm-software.github.io/psa-api/crypto/1.2/api/ops/kdf.html#c.PSA_ALG_IS_PBKDF2_HMAC}[PSA_ALG_IS_PBKDF2_HMAC]} *)

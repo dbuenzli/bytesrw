@@ -134,16 +134,16 @@ module Bytes : sig
 
     val drop_first : int -> t -> t option
     (** [drop_first n s] is the slice made of the bytes in the range of [s]
-        without the first [n] bytes starting at {!first}. This is
-        [None] if the operation results in {!eod}, including if [s] is
-        {!eod} or if [n < 0]. *)
+        without the first [n] bytes starting at {!first}. If [n <= 0]
+        nothing is dropped. This is [None] if the operation results in
+        {!eod}, including if [s] is {!eod}. *)
 
     val drop_first_or_eod : int -> t -> t
     (** [drop_first_or_eod] is like {!drop_first} but returns {!eod}
         instead of [None]. *)
 
     val cut_first : int -> t -> t option * t option
-    (** [cut_first n s] is [(cut_first n s, drop_first n s)]. *)
+    (** [cut_first n s] is [(take_first n s, drop_first n s)]. *)
 
     val sub : t -> first:int -> length:int -> t
     (** [sub s ~first ~length] is the slice made of the consecutive bytes

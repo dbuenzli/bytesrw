@@ -90,6 +90,30 @@ let test_slice_sub =
    fun () -> eq_slice (Bytes.Slice.sub_or_eod s234 ~first:4 ~length:1));
   ()
 
+let test_slice_breaking =
+  Test.test "Bytes.Slice.{take,drop,cut}_first" @@ fun () ->
+  let none ?__POS__ o = Test.holds ?__POS__ (Option.is_none o) in
+  let some ?__POS__ o v = match o with
+  | None -> Test.fail ?__POS__ "None <> Some %S" v
+  | Some sl -> eq_slice ?__POS__ sl v
+  in
+  let s = Bytes.Slice.of_string "1234" in
+  (* take_first *)
+  none ~__POS__ (Bytes.Slice.take_first (-1) s);
+  none ~__POS__ (Bytes.Slice.take_first 0 s);
+  some ~__POS__ (Bytes.Slice.take_first 2 s) "12";
+  eq_eod ~__POS__ (Bytes.Slice.take_first_or_eod (-1) s);
+  (* drop_first *)
+  some ~__POS__ (Bytes.Slice.drop_first (-1) s) "1234";
+  some ~__POS__ (Bytes.Slice.drop_first 0 s) "1234";
+  some ~__POS__ (Bytes.Slice.drop_first 2 s) "34";
+  none ~__POS__ (Bytes.Slice.drop_first 4 s);
+  none ~__POS__ (Bytes.Slice.drop_first (-1) Bytes.Slice.eod);
+  eq_slice ~__POS__ (Bytes.Slice.drop_first_or_eod (-1) s) "1234";
+  let t, d = Bytes.Slice.cut_first 2 s in
+  some ~__POS__ t "12"; some ~__POS__ d "34";
+  ()
+
 let test_slice_of_bytes =
   Test.test "Bytes.Slices.of_bytes[_or_eod]" @@ fun () ->
   let err = Test.invalid_arg in

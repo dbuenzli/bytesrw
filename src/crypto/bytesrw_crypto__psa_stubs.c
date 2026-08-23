@@ -636,7 +636,7 @@ CAMLprim value ocaml_bytesrw_psa_mac_length (value kt, value bits, value alg)
 }
 
 CAMLprim value ocaml_bytesrw_psa_mac_max_size (value unit)
-{ return Long_val (PSA_MAC_MAX_SIZE); }
+{ return Val_long (PSA_MAC_MAX_SIZE); }
 
 CAMLprim value ocaml_bytesrw_psa_mac_compute
 (value kid, value alg, value i, value m)
@@ -1720,7 +1720,7 @@ CAMLprim value ocaml_bytesrw_psa_alg_rsa_oaep (value a)
 }
 
 CAMLprim value ocaml_bytesrw_psa_alg_is_rsa_oaep (value a)
-{ return Bool_val (PSA_ALG_IS_RSA_OAEP (C_psa_algorithm_t_of_val (a))); }
+{ return Val_bool (PSA_ALG_IS_RSA_OAEP (C_psa_algorithm_t_of_val (a))); }
 
 CAMLprim value ocaml_bytesrw_psa_asymmetric_encrypt_output_size
 (value key_type, value bits, value a)

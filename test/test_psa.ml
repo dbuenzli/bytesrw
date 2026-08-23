@@ -69,6 +69,8 @@ let test_psa_alg =
   Test.bool Psa.Alg.(is_asymmetric_encryption rsa_pkcs1v15_crypt) true ~__POS__;
   Test.bool Psa.Alg.(is_key_agreement rsa_pkcs1v15_crypt) false ~__POS__;
   Test.bool Psa.Alg.(is_key_agreement none) false ~__POS__;
+  Test.bool Psa.Alg.(is_rsa_oaep sha_256) false ~__POS__;
+  Test.bool Psa.Alg.(is_rsa_oaep (rsa_oaep sha_256)) true ~__POS__;
   ()
 
 (* Test hashes *)
@@ -122,6 +124,7 @@ let test_psa_mac_single =
     | Error e -> Test.failstop ~__POS__ "Cannot make key: %a" Psa.Status.pp e
   in
   let mac_len = Psa.Mac.length Psa.Key_type.hmac ~bits:key_bits alg in
+  Test.holds (Psa.Mac.max_size () >= mac_len) ~__POS__;
   let mac = Bytes.Slice.of_bytes (Bytes.make mac_len '\x00') in
   test_ires (Psa.Mac.compute ~key alg ~input ~mac) (Ok mac_len) ~__POS__;
   Test.holds (Bytesrw_crypto.Verify.equal_slices mac tvec) ~__POS__;

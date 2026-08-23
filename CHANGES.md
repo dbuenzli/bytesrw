@@ -1,5 +1,12 @@
 
 
+- Fix C binding to `Psa.Alg.is_rsa_oaep` and `Psa.Mac.max_size`, they
+  were returning garbage. Thanks to Anil Madhavapeddy for the report
+  and the fix.
+
+- Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
+  stub. Thanks to Anil Madhavapeddy for the report and the fix.
+
 - Fix `Bytes.Slice.of_bigbytes_or_eod` on empty ranges. It raised
   `Invalid_argument` instead of returning `eod`. Thanks to Anil
   Madhavapeddy for the report and the fix.
@@ -17,9 +24,6 @@
 - Fix `Bytesrw_zlib.Gzip.decompress_writes` accepting a truncated last 
   member intead of erroring. Thanks to Anil Madhavapeddy for the report 
   and the fix.
-
-- Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
-  stub. Thanks to Anil Madhavapeddy for the report and the fix.
 
 - Fix `Bytesrw_tls` reader and writer, reading and writing beyond slice
   lengths. Thanks to Anil Madhavapeddy for the report and the fix.

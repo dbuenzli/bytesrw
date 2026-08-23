@@ -1,10 +1,17 @@
 
 
+- Fix `Bytes.Writer.limit` filter raising `Invalid_argument` instead
+  of a `Stream.Limit` error if the last write is exactly in the
+  limit but the next one blows it (#15). Thanks to Vladimir N. Silyaev
+  and Anil Madhavapeddy for the report and the fix.
+
 - Fix `Bytesrw_zlib.Gzip.decompress_writes` accepting a truncated last 
   member intead of erroring. Thanks to Anil Madhavapeddy for the report 
   and the fix.
+
 - Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
   stub. Thanks to Anil Madhavapeddy for the report and the fix.
+
 - Fix `Bytesrw_tls` reader and writer, reading and writing beyond slice
   lengths. Thanks to Anil Madhavapeddy for the report and the fix.
 

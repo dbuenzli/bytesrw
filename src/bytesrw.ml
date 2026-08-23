@@ -708,7 +708,8 @@ module Bytes = struct
           left := !left - slen;
           if !left >= 0 then write w slice else
           begin
-            write w (Option.get (Slice.take (slen + !left) slice));
+            (match Slice.take_first (slen + !left) slice with
+            | None -> () | Some s -> write w s);
             if eod then write_eod w;
             lw.write <- write_only_eod;
             action w n

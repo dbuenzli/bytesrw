@@ -340,6 +340,16 @@ let test_writer_limit =
   Bytes.Writer.write_eod lw;
   Test.string (Buffer.contents b) "121212";
   Test.invalid_arg @@ (fun () -> Bytes.Writer.write_string w "1234");
+  let b = Buffer.create 255 in
+  let w = Bytes.Writer.of_buffer b in
+  let lw = Bytes.Writer.limit 0 ~eod:false w in
+  test_stream_error @@ (fun () -> Bytes.Writer.write_string lw "1");
+  Test.string (Buffer.contents b) "";
+  let lw = Bytes.Writer.limit 2 ~eod:false w in
+  Bytes.Writer.write_string lw "12";
+  Test.string (Buffer.contents b) "12";
+  test_stream_error @@ (fun () -> Bytes.Writer.write_string lw "3");
+  Test.string (Buffer.contents b) "12";
   ()
 
 let main () = Test.main @@ fun () -> Test.autorun ()

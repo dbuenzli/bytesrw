@@ -151,16 +151,19 @@ module Bytes = struct
     let of_bytes_or_eod ?first ?last bytes =
       of_bytes' ~allow_eod:true ?first ?last bytes
 
-    let of_bigbytes' ~allow_eod ?(first = 0) ? last bigbytes =
+    let of_bigbytes' ~allow_eod ?(first = 0) ?last bigbytes =
       let max = Bigarray.Array1.dim bigbytes - 1 in
       let last = match last with
       | None -> max | Some last -> if last > max then max else last
       in
       let first = if first < 0 then 0 else first in
-      let length = last - first + 1 in
-      let init i = Char.unsafe_chr (Bigarray.Array1.get bigbytes (first + i)) in
-      let bytes = Bytes.init length init in
-      if first <= last then { bytes; first = 0; length } else
+      if first <= last then
+        let length = last - first + 1 in
+        let init i =
+          Char.unsafe_chr (Bigarray.Array1.get bigbytes (first + i))
+        in
+        { bytes = Bytes.init length init; first = 0; length }
+      else
       if allow_eod then eod else err_empty_range ~first ~last ~len:(max + 1)
 
     let of_bigbytes ?first ?last bytes =

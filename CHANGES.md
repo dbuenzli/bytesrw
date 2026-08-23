@@ -1,5 +1,8 @@
 
 
+- Fix `Bytes.Slice.of_bigbytes_or_eod` on empty ranges. It raised
+  `Invalid_argument` instead of returning `eod`. Thanks to Anil
+  Madhavapeddy for the report and the fix.
 
 - Fix `Bytes.Reader.empty` ignoring its `pos` and `slice_length`
   optional argument. Indirectly affected `Bytes.Reader.{of_bytes,of_string,

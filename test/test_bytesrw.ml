@@ -98,6 +98,27 @@ let test_slice_of_bytes =
   eq_eod (Bytes.Slice.of_bytes_or_eod ~first:4 (bos "1234"));
   ()
 
+let test_slice_of_bigbytes =
+  Test.test "Bytes.Slices.of_bigbytes[_or_eod]" @@ fun () ->
+  let err = Test.invalid_arg in
+  let bigbytes s =
+    let get i = Char.code (String.get s i) in
+    Bigarray.Array1.init Bigarray.Int8_unsigned Bigarray.c_layout
+      (String.length s) get
+  in
+  let b1234 = bigbytes "1234" and b = bigbytes "" in
+  eq_slice (Bytes.Slice.of_bigbytes ~first:1 b1234) "234";
+  eq_slice (Bytes.Slice.of_bigbytes ~first:1 ~last:2 b1234) "23";
+  (err ~__POS__ @@ fun () -> Bytes.Slice.of_bigbytes ~first:4 b1234);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.of_bigbytes ~first:2 ~last:1 b1234);
+  (err ~__POS__ @@ fun () -> Bytes.Slice.of_bigbytes b);
+  (* or_eod *)
+  eq_eod (Bytes.Slice.of_bigbytes_or_eod ~first:4 b1234);
+  eq_eod (Bytes.Slice.of_bigbytes_or_eod ~first:2 ~last:1 b1234);
+  eq_eod (Bytes.Slice.of_bigbytes_or_eod b);
+  eq_eod (Bytes.Slice.of_bigbytes_or_eod ~first:1 b);
+  ()
+
 
 let test_slice_compare =
   Test.test "Bytes.Slice.compare" @@ fun () ->

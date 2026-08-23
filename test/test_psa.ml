@@ -73,6 +73,33 @@ let test_psa_alg =
   Test.bool Psa.Alg.(is_rsa_oaep (rsa_oaep sha_256)) true ~__POS__;
   ()
 
+let test_psa_key_lifetime =
+  Test.test "Psa.Key_lifetime" @@ fun () ->
+  let lifetime p l =
+    Psa.Key_lifetime.to_uint32
+      (Psa.Key_lifetime.from_persistence_and_location p l)
+  in
+  Test.(eq T.int32)
+    (lifetime Psa.Key_persistence.volatile Psa.Key_location.local_storage)
+    (Psa.Key_lifetime.to_uint32 Psa.Key_lifetime.volatile) ~__POS__;
+  Test.(eq T.int32)
+    (lifetime Psa.Key_persistence.default Psa.Key_location.local_storage)
+    (Psa.Key_lifetime.to_uint32 Psa.Key_lifetime.persistent) ~__POS__;
+  Test.(eq T.int32)
+    (lifetime Psa.Key_persistence.default
+       Psa.Key_location.primary_secure_element) 0x101l ~__POS__;
+  let l =
+    Psa.Key_lifetime.from_persistence_and_location Psa.Key_persistence.read_only
+      Psa.Key_location.primary_secure_element
+  in
+  Test.(eq T.int32) (Psa.Key_lifetime.to_uint32 l) 0x1ffl ~__POS__;
+  Test.holds (Psa.Key_persistence.equal (Psa.Key_lifetime.get_persistence l)
+                Psa.Key_persistence.read_only) ~__POS__;
+  Test.holds (Psa.Key_location.equal (Psa.Key_lifetime.get_location l)
+                Psa.Key_location.primary_secure_element) ~__POS__;
+  Test.bool (Psa.Key_lifetime.is_volatile l) false ~__POS__;
+  ()
+
 (* Test hashes *)
 
 let test_psa_hash_single =

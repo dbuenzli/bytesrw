@@ -531,7 +531,7 @@ module Key_lifetime = struct
   let persistent = 0x00000001l
 
   let from_persistence_and_location p l =
-    Int32.(logand (shift_left l 8) (of_int p))
+    Int32.(logor (shift_left l 8) (of_int p))
 
   let get_persistence l = Int32.to_int (Int32.logand l 0xFFl)
   let get_location l = Int32.shift_right_logical l 8

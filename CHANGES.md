@@ -8,6 +8,10 @@
   were returning garbage. Thanks to Anil Madhavapeddy for the report
   and the fix.
 
+- Fix `Psa.Key_liftime.from_persistaence_and_location`, the components
+  were combined with `logand` instead of `logor`. Thanks to Anil
+  Madhavapeddy for the report and the fix.
+
 - Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
   stub. Thanks to Anil Madhavapeddy for the report and the fix.
 

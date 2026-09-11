@@ -1,76 +1,22 @@
+v0.4.1 2026-09-12 Zagreb
+------------------------
 
+- Add `Bytes.Writer.make'` which allows to access the writer in the
+  write function.
 
-- Add `Bytes.Writer.make'` which allows to access the writer in the write
-  function.
-
-- Fix `Bytesrw_zstd.decompress_writes` position error reporting. 
-  The reported positions were in the decompressed stream rather
-  than in the compressed stream.
-
-- Improve `Bytesrw_zlib` error reporting. Thanks to Anil Madhavapeddy for
-  the fix.
-
-- Fix `Bytesrw_zlib.{Deflate,Zlib,Ggzip}.decompress_writes` position error
-  reporting. The reported positions were in the decompressed stream rather
-  than in the compressed stream. Thanks to Anil Madhavapeddy for the report.
-
-- Fix `Bytesrw_fmt.Slice.pp' ~head:true`, the ellipsis could be missing
-  on truncated output. Thanks to Anil Madhavapeddy for the
+- Fix `Bytesrw_fmt.Slice.pp' ~head:true`, the ellipsis could be
+  missing on truncated output. Thanks to Anil Madhavapeddy for the
   report.
-
-- Fix `Bytesrw_sysrandom` potential unwarranted panics on Linux due to short
-  `getrandom` results or `EINTR`. Thanks to Anil Madhavapeddy for the
-  report and the fix.
-
-- Fix C binding to `Psa.Alg.is_rsa_oaep` and `Psa.Mac.max_size`, they
-  were returning garbage. Thanks to Anil Madhavapeddy for the report
-  and the fix.
-
-- Fix `Psa.Key_liftime.from_persistaence_and_location`, the components
-  were combined with `logand` instead of `logor`. Thanks to Anil
-  Madhavapeddy for the report and the fix.
-
-- Add `Psa.Alg.is_tls12_psk_to_ms` wrongly assumed not to be in
-  TF-PSA-Crypto due to a typo. Thanks to Anil Madhavapeddy for the
-  report and the fix.
-
-- Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
-  stub. Thanks to Anil Madhavapeddy for the report and the fix.
-
-- Fix `Psa.Key_agreement.raw_output_size` returning garbage due to a
-  `Val_long` used instead of `Long_val`. Thanks to Anil Madhavapeddy
-  for the report and the fix.
-
-- Fix `Psa.Key_type.is_{public_key,key_pair}`. They were implemented
-  as `is_assymetric`. Thanks to Anil Madhavapeddy for the report and
-  the fix.
-
-- Fix `Psa.Status.message` have a user friendly message for
-  `Error.{insufficient_entropy,invalid_padding}`. Thanks to Anil
-  Madhavapeddy for the report and the fix.
-
-- Fix `Bytesrw_xxhash.Xxhash_128.update` using `Xxhash_64.update`.
-  This doesn't change previously generated hashes as libxxahsh 0.8.x
-  use the same implementation for both. Thanks to Anil Madhavapeddy
-  for the report and the fix.
-
-- Fix `Psa.Alg.pp`, `SHA3-512` was printed as `SHA3-256`. to Anil
-  Madhavapeddy for the report and the fix.
-
-- Fix `Psa.Key_type.pp` DH key-pairs where printed as an unknown key type.
-  Thanks to Anil Madhavapeddy for the report and the fix.
-
-- Rename inexisting name `Psa.Alg.cbc` to `Psa.Alg.cmac`. Thanks to Anil
-  Madhavapeddy for the report and the fix.
 
 - Fix `Bytes.Slice.of_bigbytes_or_eod` on empty ranges. It raised
   `Invalid_argument` instead of returning `eod`. Thanks to Anil
   Madhavapeddy for the report and the fix.
 
 - Fix `Bytes.Reader.empty` ignoring its `pos` and `slice_length`
-  optional argument. Indirectly affected `Bytes.Reader.{of_bytes,of_string,
-  of_slice,sub}` the result when those would return an empty stream
-  reader. Thanks to Anil Madhavapeddy for the report and the fix.
+  optional argument. Indirectly affected the result of
+  `Bytes.Reader.{of_bytes,of_string,of_slice,sub}` when those would
+  return an empty stream reader. Thanks to Anil Madhavapeddy for the
+  report and the fix.
 
 - Fix `Bytes.Writer.limit` filter raising `Invalid_argument` instead
   of a `Stream.Limit` error if the last write is exactly in the
@@ -81,9 +27,58 @@
   Cap it at what is supposed to be seen by the limit.
   Thanks to Anil Madhavapeddy for the report and the fix.
 
-- Fix `Bytesrw_zlib.Gzip.decompress_writes` accepting a truncated last 
-  member intead of erroring. Thanks to Anil Madhavapeddy for the report 
+- Fix `Bytesrw_zstd.decompress_writes` position error reporting. 
+  The reported positions were in the decompressed stream rather
+  than in the compressed stream.
+
+- Fix `Bytesrw_sysrandom` potential unwarranted panics on Linux due to short
+  `getrandom` results or `EINTR`. Thanks to Anil Madhavapeddy for the
+  report and the fix.
+
+- Fix `Bytesrw_xxhash.Xxhash_128.update` using `Xxhash_64.update`.
+  This doesn't change previously generated hashes as libxxahsh 0.8.x
+  use the same implementation for both. Thanks to Anil Madhavapeddy
+  for the report and the fix.
+
+### `Bytesrw_crypto` 
+
+- Add `Psa.Alg.is_tls12_psk_to_ms` wrongly assumed not to be in
+  TF-PSA-Crypto due to a typo. Thanks to Anil Madhavapeddy for the
+  report and the fix.
+
+- Fix C binding to `Psa.Alg.is_rsa_oaep` and `Psa.Mac.max_size`, they
+  were returning garbage. Thanks to Anil Madhavapeddy for the report
   and the fix.
+
+- Fix `Psa.Key_agreement.raw_output_size` returning garbage due to a
+  `Val_long` used instead of `Long_val`. Thanks to Anil Madhavapeddy
+  for the report and the fix.
+
+- Fix `Psa.Key_lifetime.from_persistaence_and_location`, the components
+  were combined with `logand` instead of `logor`. Thanks to Anil
+  Madhavapeddy for the report and the fix.
+
+- Fix `Psa.Aead.decrypt` stub in bytecode, it was calling the `encrypt`
+  stub. Thanks to Anil Madhavapeddy for the report and the fix.
+
+- Fix `Psa.Key_type.is_{public_key,key_pair}`. They were implemented
+  as `is_assymetric`. Thanks to Anil Madhavapeddy for the report and
+  the fix.
+
+- Fix `Psa.Status.message` have a user friendly message for
+  `Error.{insufficient_entropy,invalid_padding}`. Thanks to Anil
+  Madhavapeddy for the report and the fix.
+
+- Fix `Psa.Alg.pp`, `SHA3-512` was printed as `SHA3-256`. to Anil
+  Madhavapeddy for the report and the fix.
+
+- Fix `Psa.Key_type.pp` DH key-pairs where printed as an unknown key type.
+  Thanks to Anil Madhavapeddy for the report and the fix.
+
+- Rename inexisting name `Psa.Alg.cbc` to `Psa.Alg.cmac`. Thanks to Anil
+  Madhavapeddy for the report and the fix.
+
+### `Bytesrw_tls`
 
 - Fix `Bytesrw_tls` reader and writer, reading and writing beyond slice
   lengths. Thanks to Anil Madhavapeddy for the report and the fix.
@@ -95,6 +90,19 @@
   function handling the write was not zeroing a temporary stack
   allocated buffer holding the private key. Thanks to Anil
   Madhavapeddy for the report.
+
+### `Bytesrw_zlib`
+
+- Improve `Bytesrw_zlib` error reporting. Thanks to Anil Madhavapeddy for
+  the fix.
+
+- Fix `Bytesrw_zlib.{Deflate,Zlib,Ggzip}.decompress_writes` position error
+  reporting. The reported positions were in the decompressed stream rather
+  than in the compressed stream. Thanks to Anil Madhavapeddy for the report.
+
+- Fix `Bytesrw_zlib.Gzip.decompress_writes` accepting a truncated last 
+  member intead of erroring. Thanks to Anil Madhavapeddy for the report 
+  and the fix.
 
 
 v0.4.0 2026-08-22 Zagreb

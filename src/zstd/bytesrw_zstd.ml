@@ -197,11 +197,11 @@ let decompress_writes
   let ctx = make_dctx ?dict ?params () in
   let src = Zbuf.make_empty () in
   let dst = Zbuf.make (Bytes.Writer.slice_length w) in
-  let error = writer_error w in
+  let error w = writer_error w in
   let eof = ref false (* true on end of frames *) in
-  let rec decompress ~error ctx ~src ~dst =
+  let rec decompress wf ctx ~src ~dst =
     match decompress_stream ctx ~src ~dst with
-    | exception Failure e -> (* cannot free ctx here *) error e
+    | exception Failure e -> (* cannot free ctx here *) error wf e
     | is_eof ->
         eof := is_eof;
         let flush_dst = Zbuf.dst_is_full dst && not is_eof in
@@ -210,17 +210,17 @@ let decompress_writes
           Zbuf.dst_clear dst; Bytes.Writer.write w slice;
         end;
         if not (Zbuf.src_is_consumed src) || flush_dst
-        then decompress ~error ctx ~src ~dst else () (* await *)
+        then decompress wf ctx ~src ~dst else () (* await *)
   in
-  let write = function
+  let write wf = function
   | slice when Bytes.Slice.is_eod slice ->
       free_dctx ctx; (* Note: [write] is never called again *)
       if !eof then (if eod then Bytes.Writer.write_eod w) else
-      error err_unexp_eod
+      error wf err_unexp_eod
   | slice ->
-      Zbuf.src_set_slice src slice; decompress ~error ctx ~src ~dst
+      Zbuf.src_set_slice src slice; decompress wf ctx ~src ~dst
   in
-  Bytes.Writer.make ?pos ~slice_length write
+  Bytes.Writer.make' ?pos ~slice_length write
 
 (* Compression *)
 

@@ -3,6 +3,10 @@
 - Add `Bytes.Writer.make'` which allows to access the writer in the write
   function.
 
+- Fix `Bytesrw_zstd.decompress_writes` position error reporting. 
+  The reported positions were in the decompressed stream rather
+  than in the compressed stream.
+
 - Fix `Bytesrw_zlib.{Deflate,Zlib,Ggzip}.decompress_writes` position error
   reporting. The reported positions were in the decompressed stream rather
   than in the compressed stream. Thanks to Anil Madhavapeddy for the report.

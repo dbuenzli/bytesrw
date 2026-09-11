@@ -49,6 +49,7 @@
 #include <mbedtls/error.h>
 #include <mbedtls/base64.h>
 #include <mbedtls/pk.h>
+#include <mbedtls/platform_util.h>
 #include <mbedtls/ssl.h>
 
 #if MBEDTLS_VERSION_NUMBER < 0x04000000
@@ -175,18 +176,24 @@ CAMLprim value ocaml_bytesrw_mbedtls_pk_write_keyfile (value pk, value file)
 {
   unsigned char pem[4096]; /* Should be enough */
   size_t len = sizeof (pem);
+  char* err = NULL;
   int rc =
     mbedtls_pk_write_key_pem (C_mbedtls_pk_context_ptr_of_val (pk), pem, len);
 
   if (rc == 0)
     {
-      int pem_len = strlen ((const char *)pem); /* a null byte was written */
+      size_t pem_len = strlen ((const char *)pem); /* a null byte was written */
       FILE *f = fopen (String_val (file), "wb");
-      if (!f) caml_failwith ("Could not open file");
-      size_t c = fwrite (pem, 1, pem_len, f);
-      fclose (f);
-      if (c != pem_len) caml_failwith ("Failed to write all bytes");
+      if (!f) { err = "Could not open file"; }
+      else {
+        size_t c = fwrite (pem, 1, pem_len, f);
+        fclose (f);
+        if (c != pem_len) err = "Failed to write all bytes";
+      }
     }
+
+  mbedtls_platform_zeroize (pem, sizeof (pem));
+  if (err) caml_failwith (err);
   return C_mbedtls_rc_to_val (rc);
 }
 

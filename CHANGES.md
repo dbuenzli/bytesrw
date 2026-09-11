@@ -73,6 +73,12 @@
 - Fix `Bytesrw_tls.X509_certchain.{self_signed,ca_signed}` memory leak.
   Thanks to Anil Madhavapeddy for the report and the fix.
 
+- Fix `Bytesrw_tls.X509_certchain.Private_key.write_pem_file`. The C
+  function handling the write was not zeroing a temporary stack
+  allocated buffer holding the private key. Thanks to Anil
+  Madhavapeddy for the report.
+
+
 v0.4.0 2026-08-22 Zagreb
 ------------------------
 

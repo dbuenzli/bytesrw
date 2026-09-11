@@ -599,6 +599,11 @@ module Bytes = struct
     let make ?(pos = 0) ?(slice_length = Slice.default_length) write =
       { pos; slice_length = Slice.check_length slice_length; write }
 
+    let make' ?pos ?slice_length write =
+      let w = make ?pos ?slice_length (fun _ -> ()) in
+      let write slice = write w slice in
+      w.write <- write; w
+
     let pos w = w.pos
     let slice_length w = w.slice_length
     let written_length w = w.pos

@@ -120,7 +120,13 @@ a strong rationale.
    in the definition of the [read] function, this is not possible with the API.
    In filters for reporting read error positions those are generally reported
    by the reader that filters so the underlying reader is available for using
-   with {!Bytesrw.Bytes.Reader.error}. It's a bit less clear for writers.}
+   with {!Bytesrw.Bytes.Reader.error}. It's a bit less clear for writers.
+
+   {b Update 2026-09.} Well now it's clear, for example if you have a
+   decompression write filter you want to report decompression error positions
+   in the compressed stream, that is in the resulting writer.
+   So we added {!Bytesrw.Bytes.Writer.make'} which allows to access the
+   writer you define in the write function.}
 {- {!Bytesrw.Bytes.Reader.tap} and {!Bytesrw.Bytes.Writer.tap} are
    just {!Fun.id} filters with a side effect, they could be
    removed. We choose to keep them for now, it's doesn't seem to hurt

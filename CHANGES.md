@@ -1,4 +1,6 @@
 
+- Add `Bytes.Writer.make'` which allows to access the writer in the write
+  function.
 
 - Fix `Bytesrw_fmt.Slice.pp' ~head:true`, the ellipsis could be missing
   on truncated output. Thanks to Anil Madhavapeddy for the

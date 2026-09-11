@@ -617,6 +617,12 @@ module Bytes : sig
 
         [pos] defaults to [0] and slice_length to {!Slice.default_length}. *)
 
+    val make' :
+      ?pos:Stream.pos -> ?slice_length:Slice.length ->
+      (t -> Slice.t -> unit) -> t
+    (** [make'] is like {!make} but provides access to the created writer
+        in the write function function. *)
+
     val ignore : ?pos:Stream.pos -> ?slice_length:Slice.length -> unit -> t
     (** [ignore ()] is [make (fun _ -> ())], a writer that ignores the
         writes that are pushed on it. *)

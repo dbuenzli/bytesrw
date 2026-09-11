@@ -17,7 +17,7 @@ let pp_head_hex count ~first ~len ppf b =
     Format.pp_print_char ppf 'x';
     for i = first to max
     do pp_hex_char ppf (Bytes.get_uint8 b i) done;
-    if len - 1 > max then Format.fprintf ppf "@<1>%s" "…";
+    if count < len then Format.fprintf ppf "@<1>%s" "…";
   end
 
 let pp_head_raw count ~first ~len ppf b =
@@ -25,7 +25,7 @@ let pp_head_raw count ~first ~len ppf b =
   if max < 0 then Format.pp_print_string ppf "<empty>" else begin
     Format.pp_print_char ppf '\"';
     for i = first to max do Format.pp_print_char ppf (Bytes.get b i) done;
-    if len - 1 > max then Format.fprintf ppf "@<1>%s" "…";
+    if count < len then Format.fprintf ppf "@<1>%s" "…";
     Format.pp_print_char ppf '\"';
   end
 

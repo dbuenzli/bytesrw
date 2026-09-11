@@ -1,5 +1,9 @@
 
 
+- Fix `Bytesrw_fmt.Slice.pp' ~head:true`, the ellipsis could be missing
+  on truncated output. Thanks to Anil Madhavapeddy for the
+  report.
+
 - Fix `Bytesrw_sysrandom` potential unwarranted panics on Linux due to short
   `getrandom` results or `EINTR`. Thanks to Anil Madhavapeddy for the
   report and the fix.
